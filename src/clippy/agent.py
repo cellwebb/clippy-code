@@ -44,6 +44,10 @@ class ClippyAgent:
         self.permission_manager = permission_manager
         self.executor = executor
 
+        # Store credentials for provider recreation
+        self.api_key = api_key
+        self.base_url = base_url
+
         # Create provider (OpenAI-compatible)
         self.provider = LLMProvider(api_key=api_key, base_url=base_url)
 
@@ -286,3 +290,39 @@ You are running in a CLI environment. Be concise but informative in your respons
         """Reset the conversation history."""
         self.conversation_history = []
         self.interrupted = False
+
+    def switch_model(
+        self, model: str | None = None, base_url: str | None = None
+    ) -> tuple[bool, str]:
+        """
+        Switch to a different model or provider.
+
+        Args:
+            model: New model identifier (if None, keeps current)
+            base_url: New base URL (if None, keeps current)
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        try:
+            # Update base_url if provided
+            new_base_url = base_url if base_url is not None else self.base_url
+
+            # Update model if provided
+            new_model = model if model is not None else self.model
+
+            # Create new provider with updated settings
+            self.provider = LLMProvider(api_key=self.api_key, base_url=new_base_url)
+
+            # Update instance variables
+            self.base_url = new_base_url
+            self.model = new_model
+
+            # Build success message
+            provider_info = f" ({new_base_url})" if new_base_url else " (OpenAI)"
+            message = f"Switched to model: {new_model}{provider_info}"
+
+            return True, message
+
+        except Exception as e:
+            return False, f"Failed to switch model: {e}"

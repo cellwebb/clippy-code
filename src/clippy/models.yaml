@@ -1,0 +1,75 @@
+# Model configurations organized by provider
+# Users can switch between these models using /model <name> in interactive mode
+
+providers:
+  openai:
+    base_url: null  # null = use default OpenAI endpoint
+    models:
+      gpt-4o:
+        model_id: gpt-4o
+        description: OpenAI GPT-4o (default)
+      gpt-4:
+        model_id: gpt-4
+        description: OpenAI GPT-4
+      gpt-4-turbo:
+        model_id: gpt-4-turbo-preview
+        description: OpenAI GPT-4 Turbo
+      gpt-3.5:
+        model_id: gpt-3.5-turbo
+        description: OpenAI GPT-3.5 Turbo
+
+  cerebras:
+    base_url: https://api.cerebras.ai/v1
+    models:
+      cerebras:
+        model_id: llama3.1-8b
+        description: Cerebras Llama 3.1 8B
+      cerebras-70b:
+        model_id: llama3.1-70b
+        description: Cerebras Llama 3.1 70B
+
+  ollama:
+    base_url: http://localhost:11434/v1
+    models:
+      ollama:
+        model_id: llama2
+        description: Ollama Llama 2 (local)
+      ollama-codellama:
+        model_id: codellama
+        description: Ollama Code Llama (local)
+      ollama-mistral:
+        model_id: mistral
+        description: Ollama Mistral (local)
+      ollama-qwen:
+        model_id: qwen2.5-coder
+        description: Ollama Qwen 2.5 Coder (local)
+
+  together:
+    base_url: https://api.together.xyz/v1
+    models:
+      together-llama-8b:
+        model_id: meta-llama/Llama-3-8b-chat-hf
+        description: Together AI Llama 3 8B
+      together-llama-70b:
+        model_id: meta-llama/Llama-3-70b-chat-hf
+        description: Together AI Llama 3 70B
+
+  groq:
+    base_url: https://api.groq.com/openai/v1
+    models:
+      groq:
+        model_id: llama3-70b-8192
+        description: Groq Llama 3 70B
+      groq-mixtral:
+        model_id: mixtral-8x7b-32768
+        description: Groq Mixtral 8x7B
+
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    models:
+      deepseek:
+        model_id: deepseek-coder
+        description: DeepSeek Coder
+      deepseek-chat:
+        model_id: deepseek-chat
+        description: DeepSeek Chat
