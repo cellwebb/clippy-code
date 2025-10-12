@@ -198,11 +198,23 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
 
                     if config:
                         # Use preset configuration
+                        # Load API key from environment variable specified in config
+                        api_key = os.getenv(config.api_key_env)
+
+                        if not api_key:
+                            console.print(
+                                f"[yellow]⚠ Warning: {config.api_key_env} not set in "
+                                f"environment[/yellow]\n"
+                                f"[dim]The model may fail if it requires authentication.[/dim]"
+                            )
+                            # Continue anyway - some providers like Ollama might not need a key
+                            api_key = "not-set"
+
                         success, message = agent.switch_model(
-                            model=config.model_id, base_url=config.base_url
+                            model=config.model_id, base_url=config.base_url, api_key=api_key
                         )
                     else:
-                        # Treat as custom model ID (keep current base_url)
+                        # Treat as custom model ID (keep current base_url and api_key)
                         success, message = agent.switch_model(model=model_name)
 
                     if success:

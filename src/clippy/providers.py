@@ -110,9 +110,9 @@ class LLMProvider:
                                 tc_delta.function.name
                             )
                         if tc_delta.function.arguments:
-                            cast(dict[str, str], tool_calls_dict[idx]["function"])[
-                                "arguments"
-                            ] += tc_delta.function.arguments
+                            cast(dict[str, str], tool_calls_dict[idx]["function"])["arguments"] += (
+                                tc_delta.function.arguments
+                            )
 
             # Capture finish reason
             if choice.finish_reason:

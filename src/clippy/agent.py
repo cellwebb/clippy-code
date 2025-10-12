@@ -292,7 +292,10 @@ You are running in a CLI environment. Be concise but informative in your respons
         self.interrupted = False
 
     def switch_model(
-        self, model: str | None = None, base_url: str | None = None
+        self,
+        model: str | None = None,
+        base_url: str | None = None,
+        api_key: str | None = None,
     ) -> tuple[bool, str]:
         """
         Switch to a different model or provider.
@@ -300,6 +303,7 @@ You are running in a CLI environment. Be concise but informative in your respons
         Args:
             model: New model identifier (if None, keeps current)
             base_url: New base URL (if None, keeps current)
+            api_key: New API key (if None, keeps current)
 
         Returns:
             Tuple of (success: bool, message: str)
@@ -311,12 +315,16 @@ You are running in a CLI environment. Be concise but informative in your respons
             # Update model if provided
             new_model = model if model is not None else self.model
 
+            # Update API key if provided
+            new_api_key = api_key if api_key is not None else self.api_key
+
             # Create new provider with updated settings
-            self.provider = LLMProvider(api_key=self.api_key, base_url=new_base_url)
+            self.provider = LLMProvider(api_key=new_api_key, base_url=new_base_url)
 
             # Update instance variables
             self.base_url = new_base_url
             self.model = new_model
+            self.api_key = new_api_key
 
             # Build success message
             provider_info = f" ({new_base_url})" if new_base_url else " (OpenAI)"
