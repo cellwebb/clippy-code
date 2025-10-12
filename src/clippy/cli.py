@@ -16,6 +16,7 @@ from rich.panel import Panel
 
 from .agent import ClippyAgent, InterruptedException
 from .executor import ActionExecutor
+from .models import get_model_config, list_available_models
 from .permissions import PermissionConfig, PermissionManager
 
 
@@ -130,6 +131,8 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
             "Commands:\n"
             "  /exit, /quit - Exit clippy-code\n"
             "  /reset - Reset conversation history\n"
+            "  /model list - Show available models\n"
+            "  /model <name> - Switch model/provider\n"
             "  /help - Show this help message\n\n"
             "Type your request and press Enter.\n"
             "Use Ctrl+C or double-ESC to interrupt execution.",
@@ -159,12 +162,53 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                         "[bold]Commands:[/bold]\n"
                         "  /exit, /quit - Exit clippy-code\n"
                         "  /reset - Reset conversation history\n"
+                        "  /model list - Show available model presets\n"
+                        "  /model <name> - Switch to a preset model\n"
                         "  /help - Show this help message\n\n"
                         "[bold]Interrupt:[/bold]\n"
                         "  Ctrl+C or double-ESC - Stop current execution",
                         border_style="blue",
                     )
                 )
+                continue
+            elif user_input.lower().startswith("/model"):
+                # Handle model switching
+                parts = user_input.split(maxsplit=1)
+                if len(parts) == 1 or parts[1].lower() == "list":
+                    # Show available models
+                    models = list_available_models()
+                    model_list = "\n".join(
+                        f"  [cyan]{name:20}[/cyan] - {desc}" for name, desc in models
+                    )
+                    current_model = agent.model
+                    current_provider = agent.base_url or "OpenAI"
+                    console.print(
+                        Panel.fit(
+                            f"[bold]Available Model Presets:[/bold]\n\n{model_list}\n\n"
+                            f"[bold]Current:[/bold] {current_model} ({current_provider})\n\n"
+                            f"[dim]Usage: /model <name>[/dim]",
+                            title="Models",
+                            border_style="cyan",
+                        )
+                    )
+                else:
+                    # Switch to specified model
+                    model_name = parts[1].strip()
+                    config = get_model_config(model_name)
+
+                    if config:
+                        # Use preset configuration
+                        success, message = agent.switch_model(
+                            model=config.model_id, base_url=config.base_url
+                        )
+                    else:
+                        # Treat as custom model ID (keep current base_url)
+                        success, message = agent.switch_model(model=model_name)
+
+                    if success:
+                        console.print(f"[green]✓ {message}[/green]")
+                    else:
+                        console.print(f"[red]✗ {message}[/red]")
                 continue
 
             # Run the agent
