@@ -1,4 +1,4 @@
-# CLIppy 📎
+# clippy-code 📎
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -7,7 +7,7 @@
 
 > A production-ready, model-agnostic CLI coding agent built with extensibility and safety as first-class concerns.
 
-CLIppy is an AI-powered development assistant that demonstrates modern software engineering practices through a clean, modular architecture. It features provider abstraction, robust permission controls, and an intuitive CLI interface—designed to be both powerful for users and maintainable for developers.
+clippy-code is an AI-powered development assistant that demonstrates modern software engineering practices through a clean, modular architecture. It features provider abstraction, robust permission controls, and an intuitive CLI interface—designed to be both powerful for users and maintainable for developers.
 
 **🎯 Portfolio Highlights**: Model-agnostic LLM abstraction • Security-first design • SOLID principles • Comprehensive type safety • Production-ready architecture
 
@@ -66,7 +66,7 @@ CLIppy is an AI-powered development assistant that demonstrates modern software 
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install CLIppy
+# Install clippy-code
 uv tool install clippy-code
 
 # Or use pipx
@@ -95,7 +95,7 @@ uv pip install -e ".[dev]"
 
 ### Setup API Keys
 
-CLIppy supports multiple LLM providers. Configure the provider you want to use:
+clippy-code supports multiple LLM providers. Configure the provider you want to use:
 
 #### Anthropic Claude (Default)
 
@@ -161,29 +161,32 @@ clippy
 ```
 
 In interactive mode, you can:
+
 - Have multi-turn conversations
 - `/reset` - Reset the conversation history
 - `/help` - Show available commands
-- `/exit` or `/quit` - Exit CLIppy
+- `/exit` or `/quit` - Exit clippy-code
 - Press Ctrl+C during execution to interrupt
 
 ## Permission System
 
-CLIppy has a built-in permission system to keep you safe:
+has a built-in permission system to keep you safe:
 
 ### Auto-Approved Actions (No confirmation needed)
+
 - 📖 **read_file** - Read file contents
 - 📂 **list_directory** - List directory contents
 - 🔍 **search_files** - Search for files
 - ℹ️ **get_file_info** - Get file metadata
 
 ### Require Approval (Will ask before executing)
+
 - ✏️ **write_file** - Write or modify files
 - 🗑️ **delete_file** - Delete files
 - 📁 **create_directory** - Create new directories
 - ⚡ **execute_command** - Run shell commands
 
-When CLIppy wants to perform an action that requires approval, you'll see:
+When clippy-code wants to perform an action that requires approval, you'll see:
 
 ```
 → write_file
@@ -194,43 +197,48 @@ When CLIppy wants to perform an action that requires approval, you'll see:
 ```
 
 Options:
+
 - `y` - Approve and execute
 - `N` - Reject (default)
 - `stop` - Stop execution entirely
 
 ## Available Tools
 
-CLIppy has access to these tools:
+clippy-code has access to these tools:
 
-| Tool | Description | Auto-Approved |
-|------|-------------|---------------|
-| `read_file` | Read file contents | ✅ |
-| `write_file` | Write/modify files | ❌ |
-| `delete_file` | Delete files | ❌ |
-| `list_directory` | List directory contents | ✅ |
-| `create_directory` | Create directories | ❌ |
-| `execute_command` | Run shell commands | ❌ |
-| `search_files` | Search with glob patterns | ✅ |
-| `get_file_info` | Get file metadata | ✅ |
+| Tool               | Description               | Auto-Approved |
+| ------------------ | ------------------------- | ------------- |
+| `read_file`        | Read file contents        | ✅            |
+| `write_file`       | Write/modify files        | ❌            |
+| `delete_file`      | Delete files              | ❌            |
+| `list_directory`   | List directory contents   | ✅            |
+| `create_directory` | Create directories        | ❌            |
+| `execute_command`  | Run shell commands        | ❌            |
+| `search_files`     | Search with glob patterns | ✅            |
+| `get_file_info`    | Get file metadata         | ✅            |
 
 ## Examples
 
 ### Example 1: Creating a new feature
+
 ```bash
 clippy "create a user authentication module with login and signup functions"
 ```
 
 ### Example 2: Code review
+
 ```bash
 clippy "review the code in src/utils.py and suggest improvements"
 ```
 
 ### Example 3: Debugging
+
 ```bash
 clippy "find and fix the bug causing the test_api.py tests to fail"
 ```
 
 ### Example 4: Refactoring
+
 ```bash
 clippy "refactor database.py to use async/await instead of blocking calls"
 ```
@@ -253,12 +261,14 @@ clippy "refactor database.py to use async/await instead of blocking calls"
 ### Provider-Specific Models
 
 #### Anthropic Models
+
 - `claude-3-5-sonnet-20241022` (default)
 - `claude-3-opus-20240229`
 - `claude-3-sonnet-20240229`
 - `claude-3-haiku-20240307`
 
 #### OpenAI Models
+
 - `gpt-4o` (default)
 - `gpt-4-turbo`
 - `gpt-4`
@@ -289,7 +299,7 @@ You'll be able to customize permission levels via a config file.
 
 ### System Architecture
 
-CLIppy follows a layered architecture with clear separation of concerns:
+clippy-code follows a layered architecture with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -320,11 +330,13 @@ CLIppy follows a layered architecture with clear separation of concerns:
 **Challenge**: Need to support multiple LLM providers with different API interfaces.
 
 **Solution**: Implemented an abstract base class `LLMProvider` with concrete implementations for each provider. This allows:
+
 - Runtime provider switching without code changes
 - Consistent response format across providers
 - Easy addition of new providers (Gemini, Cohere, etc.)
 
 **Code Example**:
+
 ```python
 class LLMProvider(ABC):
     @abstractmethod
@@ -343,11 +355,13 @@ class OpenAIProvider(LLMProvider):
 **Challenge**: Balance automation with user control and safety.
 
 **Solution**: Policy-based permission system with three access levels:
+
 - **Auto-Approved**: Read-only operations (read_file, list_directory)
 - **Require Approval**: Destructive operations (write_file, delete_file)
 - **Denied**: Completely blocked operations
 
 **Benefits**:
+
 - Prevents accidental file deletion or unwanted command execution
 - User maintains full control over agent actions
 - Extensible for custom permission policies
@@ -376,11 +390,13 @@ executor.execute(tool_name, tool_input)
 #### Challenge 1: Cross-Provider Tool Format Incompatibility
 
 **Problem**: Different LLM providers use incompatible formats for tool/function calling:
+
 - Anthropic uses a flat `tools` array with `input_schema`
 - OpenAI uses nested `functions` with `parameters` instead of `input_schema`
 - Message formats differ (Anthropic supports multi-part content blocks, OpenAI uses separate tool result messages)
 
 **Solution**:
+
 - Created provider-specific conversion methods (`convert_tools_to_provider_format`, `convert_messages_to_provider_format`)
 - Standardized internal format based on Anthropic's schema (cleaner, more expressive)
 - OpenAI provider translates on-the-fly during API calls
@@ -392,6 +408,7 @@ executor.execute(tool_name, tool_input)
 **Problem**: Conversation history must be preserved in a provider-agnostic format, but each provider expects different structures for tool results.
 
 **Solution**:
+
 - Stored conversation history in standardized format (Anthropic-like)
 - Provider implementations handle conversion during API calls
 - Created `LLMResponse` dataclass to normalize responses back to standard format
@@ -403,6 +420,7 @@ executor.execute(tool_name, tool_input)
 **Problem**: Tool execution is dynamic (mapped from string names), but we want compile-time type safety.
 
 **Solution**:
+
 - Used Enums for `ActionType` to prevent typos
 - Centralized tool name → action type mapping in a single dictionary
 - Pydantic models for runtime validation of tool inputs
@@ -415,6 +433,7 @@ executor.execute(tool_name, tool_input)
 **Problem**: Agent might make multiple tool calls in sequence; users need visibility and control.
 
 **Solution**:
+
 - Rich terminal UI with real-time feedback for each operation
 - Interrupt handling (Ctrl+C) at multiple levels:
   - During LLM API calls
@@ -452,14 +471,15 @@ clippy/
 
 This project maintains high code quality standards:
 
-| Tool | Purpose | Configuration |
-|------|---------|---------------|
-| **Ruff** | Linting & Formatting | Modern, fast Python linter |
-| **MyPy** | Static Type Checking | Strict mode enabled |
-| **Pytest** | Testing Framework | Coverage reporting included |
-| **Pre-commit** | Git Hooks | (Coming soon) Automated checks |
+| Tool           | Purpose              | Configuration                  |
+| -------------- | -------------------- | ------------------------------ |
+| **Ruff**       | Linting & Formatting | Modern, fast Python linter     |
+| **MyPy**       | Static Type Checking | Strict mode enabled            |
+| **Pytest**     | Testing Framework    | Coverage reporting included    |
+| **Pre-commit** | Git Hooks            | (Coming soon) Automated checks |
 
 All code follows:
+
 - PEP 8 style guidelines
 - Type hints on all functions
 - Comprehensive docstrings (Google style)
@@ -527,6 +547,7 @@ uv run pytest -k "test_provider"
 ```
 
 **Testing Philosophy**:
+
 - Unit tests for individual components (providers, executor, permissions)
 - Integration tests for end-to-end workflows
 - Mock external API calls to ensure tests are fast and reliable
@@ -547,19 +568,22 @@ uv publish --index-url https://test.pypi.org/simple/
 
 ## Safety & Security Features
 
-CLIppy implements multiple layers of security to protect users and their systems:
+clippy-code implements multiple layers of security to protect users and their systems:
 
 ### 1. **Permission System (Policy-Based Access Control)**
+
 - Three-tier permission model: Auto-approved, Require-approval, Denied
 - Configurable permission policies (extensible for custom rules)
 - Principle of least privilege: Read-only operations auto-approved, write operations require confirmation
 
 ### 2. **User Approval Workflow**
+
 - Interactive prompts for destructive operations
 - Full visibility into what the agent wants to do before execution
 - Abort option to immediately halt execution chain
 
 ### 3. **Interrupt Handling**
+
 - Multi-level interrupt support (Ctrl+C):
   - During LLM API calls
   - During tool execution
@@ -568,16 +592,19 @@ CLIppy implements multiple layers of security to protect users and their systems
 - Exception handling preserves conversation state
 
 ### 4. **Input Validation**
+
 - Schema validation for all tool inputs using Pydantic
 - Path traversal prevention for file operations
 - Command injection protection for shell execution
 
 ### 5. **Execution Boundaries**
+
 - Command timeout limits (30 seconds default)
 - Maximum iteration caps prevent infinite loops
 - Resource usage monitoring (future enhancement)
 
 ### 6. **Conversation Isolation**
+
 - Session-based conversation history
 - `/reset` command to clear context
 - No data persistence without explicit user action
@@ -585,26 +612,33 @@ CLIppy implements multiple layers of security to protect users and their systems
 ## Troubleshooting
 
 **API Key Not Found**
+
 ```
 Error: ANTHROPIC_API_KEY not found in environment
 ```
+
 → Make sure you've set up your API key (see Installation step 3)
 
 **Permission Denied**
+
 ```
 Action denied by policy
 ```
+
 → The action is blocked by the permission system. Modify permissions if needed.
 
 **Command Timeout**
+
 ```
 Command timed out after 30 seconds
 ```
+
 → The command took too long. Consider breaking it into smaller tasks.
 
 ## Contributing
 
 Contributions are welcome! Feel free to:
+
 - Report bugs
 - Suggest new features
 - Submit pull requests
@@ -618,7 +652,7 @@ MIT License - see LICENSE file for details
 
 ### Adding New LLM Providers
 
-CLIppy's provider abstraction makes it straightforward to add support for new LLM services. Here's the process:
+clippy-code's provider abstraction makes it straightforward to add support for new LLM services. Here's the process:
 
 #### Step-by-Step Guide
 
@@ -645,12 +679,12 @@ class GeminiProvider(LLMProvider):
         return "gemini-pro"
 
     def convert_tools_to_provider_format(self, tools):
-        """Map CLIppy tool schema to Gemini function calling format."""
+        """Map clippy-code tool schema to Gemini function calling format."""
         # Conversion logic
         pass
 
     def convert_messages_to_provider_format(self, messages):
-        """Map CLIppy message format to Gemini format."""
+        """Map clippy-code message format to Gemini format."""
         # Conversion logic
         pass
 ```
@@ -684,8 +718,9 @@ Add provider choice to argument parser in `cli.py`.
 #### Design Philosophy
 
 The abstraction handles:
+
 - ✅ **Response Normalization**: All providers return standardized `LLMResponse` objects
-- ✅ **Tool Format Conversion**: Automatic mapping between CLIppy's tool schema and provider-specific formats
+- ✅ **Tool Format Conversion**: Automatic mapping between clippy-code's tool schema and provider-specific formats
 - ✅ **Message Format Conversion**: Handles differences in conversation history structure
 - ✅ **Error Handling**: Consistent error responses across providers
 
@@ -721,6 +756,7 @@ action_map = {
 ```
 
 This pattern ensures:
+
 - **Type Safety**: Schema validation via Pydantic
 - **Consistency**: Single source of truth for tool definitions
 - **Maintainability**: Clear separation between definition and implementation
@@ -730,24 +766,28 @@ This pattern ensures:
 This project showcases proficiency in:
 
 ### Software Engineering
+
 - **Design Patterns**: Abstract Factory, Strategy, Dependency Injection, Repository
 - **SOLID Principles**: Single Responsibility, Open/Closed, Dependency Inversion
 - **Architectural Patterns**: Layered architecture, clean separation of concerns
 - **API Design**: Creating intuitive, extensible interfaces
 
 ### Python Development
+
 - **Modern Python**: Type hints, dataclasses, abstract base classes, Pydantic
 - **Packaging**: Modern pyproject.toml, optional dependencies, entry points
 - **Code Quality**: Ruff linting/formatting, MyPy type checking, pytest testing
 - **CLI Development**: argparse, prompt_toolkit, rich terminal UI
 
 ### System Design
+
 - **Abstraction Layers**: Provider-agnostic design for multiple backends
 - **Error Handling**: Graceful degradation, user-friendly error messages
 - **State Management**: Conversation history, session management
 - **Configuration Management**: Multi-layer config (env, CLI, defaults)
 
 ### Product Thinking
+
 - **User Experience**: Interactive mode, rich output, clear feedback
 - **Safety & Security**: Permission system, approval workflows
 - **Developer Experience**: Easy extension, clear documentation
@@ -771,6 +811,7 @@ Potential enhancements that demonstrate forward-thinking:
 ## Acknowledgments
 
 Built with:
+
 - [Anthropic Claude API](https://www.anthropic.com/) - Powerful LLM with excellent tool use
 - [OpenAI API](https://openai.com/) - Industry-leading language models
 - [Rich](https://rich.readthedocs.io/) - Beautiful terminal formatting
