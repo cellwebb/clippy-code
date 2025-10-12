@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance for AI coding agents working with the CLIppy codebase.
+This file provides guidance for AI coding agents working with the clippy-code codebase.
 
 ## Essential Commands
 
@@ -73,6 +73,7 @@ All LLM interactions go through `LLMProvider` interface. Never directly import `
 See `OpenAIProvider` for reference implementation.
 
 ### New Tool (checklist):
+
 1. Add tool definition to `TOOLS` in `tools.py` (JSON schema)
 2. Add `ActionType` enum in `permissions.py`
 3. Add to `action_map` in **both** `agent.py:_handle_tool_use()` and `executor.py:execute()`

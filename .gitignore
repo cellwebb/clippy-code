@@ -81,7 +81,7 @@ Thumbs.db
 docs/_build/
 site/
 
-# CLIppy specific
+# clippy-code specific
 .clippy_history
 
 # Agents
