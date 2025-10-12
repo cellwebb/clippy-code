@@ -1,0 +1,77 @@
+[project]
+name = "clippy-ai"
+version = "0.1.0"
+description = "A powerful CLI coding agent powered by Claude AI"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Your Name", email = "your.email@example.com" }]
+requires-python = ">=3.10"
+keywords = ["ai", "cli", "coding-agent", "claude", "anthropic", "llm", "developer-tools"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "anthropic>=0.39.0",
+    "prompt-toolkit>=3.0.0",
+    "rich>=13.0.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+clippy = "clippy.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/clippy"
+Repository = "https://github.com/yourusername/clippy"
+Issues = "https://github.com/yourusername/clippy/issues"
+Documentation = "https://github.com/yourusername/clippy#readme"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/clippy"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = []
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
