@@ -14,6 +14,7 @@ class ModelConfig:
     model_id: str
     base_url: str | None
     description: str
+    api_key_env: str  # Environment variable name for API key
 
 
 def _load_model_presets() -> dict[str, ModelConfig]:
@@ -29,6 +30,7 @@ def _load_model_presets() -> dict[str, ModelConfig]:
 
     for provider_name, provider_data in config["providers"].items():
         base_url = provider_data.get("base_url")
+        api_key_env = provider_data.get("api_key_env", "OPENAI_API_KEY")
         models = provider_data.get("models", {})
 
         for model_name, model_data in models.items():
@@ -37,6 +39,7 @@ def _load_model_presets() -> dict[str, ModelConfig]:
                 model_id=model_data["model_id"],
                 base_url=base_url,
                 description=model_data["description"],
+                api_key_env=api_key_env,
             )
 
     return presets
