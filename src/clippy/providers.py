@@ -1,7 +1,8 @@
 """OpenAI-compatible LLM provider."""
 
 import os
-from typing import Any
+import sys
+from typing import Any, cast
 
 
 class LLMProvider:
@@ -43,7 +44,7 @@ class LLMProvider:
         **kwargs,
     ) -> dict[str, Any]:
         """
-        Create a chat completion using OpenAI format.
+        Create a chat completion using OpenAI format with streaming.
 
         Args:
             messages: OpenAI-format messages (includes system message)
@@ -55,38 +56,82 @@ class LLMProvider:
         Returns:
             Dict with keys: role, content, tool_calls, finish_reason
         """
-        # Call OpenAI API
-        response = self.client.chat.completions.create(
+        # Call OpenAI API with streaming enabled
+        stream = self.client.chat.completions.create(
             model=model,
             max_tokens=max_tokens,
             messages=messages,
             tools=tools if tools else None,
+            stream=True,
             **kwargs,
         )
 
-        # Extract message from response
-        message = response.choices[0].message
+        # Accumulate streaming response
+        full_content = ""
+        tool_calls_dict: dict[int, dict[str, Any]] = {}  # Track tool calls by index
+        role = "assistant"
+        finish_reason = None
+
+        for chunk in stream:
+            if not chunk.choices:  # type: ignore
+                continue
+
+            choice = chunk.choices[0]  # type: ignore
+            delta = choice.delta
+
+            # Update role if present
+            if delta.role:
+                role = delta.role
+
+            # Stream text content to user in real-time
+            if delta.content:
+                print(delta.content, end="", flush=True)
+                full_content += delta.content
+
+            # Accumulate tool calls
+            if delta.tool_calls:
+                for tc_delta in delta.tool_calls:
+                    idx = tc_delta.index
+                    if idx not in tool_calls_dict:
+                        tool_calls_dict[idx] = {
+                            "id": tc_delta.id or "",
+                            "type": tc_delta.type or "function",
+                            "function": {"name": "", "arguments": ""},
+                        }
+
+                    # Update tool call fields as they arrive
+                    if tc_delta.id:
+                        tool_calls_dict[idx]["id"] = tc_delta.id
+                    if tc_delta.type:
+                        tool_calls_dict[idx]["type"] = tc_delta.type
+                    if tc_delta.function:
+                        if tc_delta.function.name:
+                            cast(dict[str, str], tool_calls_dict[idx]["function"])["name"] = (
+                                tc_delta.function.name
+                            )
+                        if tc_delta.function.arguments:
+                            cast(dict[str, str], tool_calls_dict[idx]["function"])[
+                                "arguments"
+                            ] += tc_delta.function.arguments
+
+            # Capture finish reason
+            if choice.finish_reason:
+                finish_reason = choice.finish_reason
+
+        # Print newline after streaming content (if any content was printed)
+        if full_content:
+            print()
 
         # Convert to simple dict format
         result = {
-            "role": message.role,
-            "content": message.content,
-            "finish_reason": response.choices[0].finish_reason,
+            "role": role,
+            "content": full_content if full_content else None,
+            "finish_reason": finish_reason,
         }
 
-        # Add tool calls if present
-        if message.tool_calls:
-            result["tool_calls"] = [
-                {
-                    "id": tc.id,
-                    "type": tc.type,
-                    "function": {
-                        "name": tc.function.name,
-                        "arguments": tc.function.arguments,  # Already JSON string
-                    },
-                }
-                for tc in message.tool_calls
-            ]
+        # Add tool calls if present (sorted by index)
+        if tool_calls_dict:
+            result["tool_calls"] = [tool_calls_dict[i] for i in sorted(tool_calls_dict.keys())]
 
         return result
 
