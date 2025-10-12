@@ -1,6 +1,6 @@
-# CLIppy Quick Start Guide
+# clippy-code Quick Start Guide
 
-Get started with CLIppy in 5 minutes!
+Get started with clippy-code in 5 minutes!
 
 ## 1. Installation
 
@@ -8,7 +8,7 @@ Get started with CLIppy in 5 minutes!
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install CLIppy from PyPI
+# Install clippy-code from PyPI
 uv tool install clippy-code
 
 # Or install from source
@@ -26,7 +26,8 @@ echo "ANTHROPIC_API_KEY=your_key_here" > .env
 clippy "create a hello world python script"
 ```
 
-CLIppy will:
+clippy-code will:
+
 1. Show you what it plans to do
 2. Ask for approval before writing files
 3. Execute approved actions
@@ -43,7 +44,7 @@ Now you can have a conversation:
 ```
 [You] ➜ create a simple calculator function
 
-[CLIppy will think and respond...]
+[clippy-code will think and respond...]
 
 → write_file
   path: calculator.py
@@ -55,26 +56,31 @@ Now you can have a conversation:
 
 [You] ➜ add tests for it
 
-[CLIppy continues...]
+[clippy-code continues...]
 ```
 
 ## 4. Safety Controls
 
 ### Auto-Approved Actions
+
 These run automatically without asking:
+
 - Reading files
 - Listing directories
 - Searching for files
 - Getting file info
 
 ### Requires Approval
+
 You'll be asked before:
+
 - Writing/modifying files
 - Deleting files
 - Creating directories
 - Running shell commands
 
 ### Stopping Execution
+
 - Type `stop` when asked for approval
 - Press Ctrl+C during execution
 - Use `/exit` to quit interactive mode
@@ -82,21 +88,25 @@ You'll be asked before:
 ## 5. Common Usage Patterns
 
 ### Code Generation
+
 ```bash
 clippy "create a REST API with Flask for user management"
 ```
 
 ### Code Review
+
 ```bash
 clippy "review main.py and suggest improvements"
 ```
 
 ### Debugging
+
 ```bash
 clippy "find the bug in utils.py causing the TypeError"
 ```
 
 ### Refactoring
+
 ```bash
 clippy "refactor app.py to use dependency injection"
 ```
@@ -104,14 +114,17 @@ clippy "refactor app.py to use dependency injection"
 ## 6. Tips
 
 1. **Be Specific**: The more context you provide, the better
+
    - Good: "create a Python function to validate email addresses using regex"
    - Better: "create a Python function to validate email addresses using regex, with type hints and docstrings"
 
-2. **Review Before Approving**: Always check what CLIppy wants to do
+2. **Review Before Approving**: Always check what clippy-code wants to do
+
    - Read the file path carefully
    - Review the content before approving writes
 
 3. **Use Interactive Mode for Complex Tasks**:
+
    - Start with `clippy -i`
    - Build up context over multiple turns
    - Use `/reset` if you want to start fresh
@@ -126,7 +139,7 @@ clippy "refactor app.py to use dependency injection"
 **Problem**: API key error
 **Solution**: Make sure `.env` file exists with `ANTHROPIC_API_KEY=...`
 
-**Problem**: CLIppy wants to modify the wrong file
+**Problem**: clippy-code wants to modify the wrong file
 **Solution**: Type `N` to reject, then provide more specific instructions
 
 **Problem**: Execution seems stuck
@@ -137,6 +150,6 @@ clippy "refactor app.py to use dependency injection"
 - Read the full [README.md](README.md) for detailed documentation
 - Experiment with different types of tasks
 - Customize permissions for your workflow
-- Provide feedback to improve CLIppy!
+- Provide feedback to improve clippy-code!
 
 Happy coding! 📎
