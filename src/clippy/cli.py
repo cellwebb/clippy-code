@@ -3,12 +3,14 @@
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
+from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.panel import Panel
 
@@ -96,11 +98,30 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
     """Run clippy-code in interactive mode (REPL)."""
     console = Console()
 
+    # Create key bindings for double-ESC detection
+    kb = KeyBindings()
+    last_esc_time = {"time": 0.0}
+    esc_timeout = 0.5  # 500ms window for double-ESC
+
+    @kb.add("escape")
+    def _(event):
+        """Handle ESC key press - double-ESC to abort."""
+        current_time = time.time()
+        time_diff = current_time - last_esc_time["time"]
+
+        if time_diff < esc_timeout:
+            # Double-ESC detected - raise KeyboardInterrupt
+            event.app.exit(exception=KeyboardInterrupt())
+        else:
+            # First ESC - just record the time
+            last_esc_time["time"] = current_time
+
     # Create history file
     history_file = Path.home() / ".clippy_history"
     session = PromptSession(
         history=FileHistory(str(history_file)),
         auto_suggest=AutoSuggestFromHistory(),
+        key_bindings=kb,
     )
 
     console.print(
@@ -110,7 +131,8 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
             "  /exit, /quit - Exit clippy-code\n"
             "  /reset - Reset conversation history\n"
             "  /help - Show this help message\n\n"
-            "Type your request and press Enter. Use Ctrl+C to interrupt execution.",
+            "Type your request and press Enter.\n"
+            "Use Ctrl+C or double-ESC to interrupt execution.",
             border_style="green",
         )
     )
@@ -137,7 +159,9 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                         "[bold]Commands:[/bold]\n"
                         "  /exit, /quit - Exit clippy-code\n"
                         "  /reset - Reset conversation history\n"
-                        "  /help - Show this help message",
+                        "  /help - Show this help message\n\n"
+                        "[bold]Interrupt:[/bold]\n"
+                        "  Ctrl+C or double-ESC - Stop current execution",
                         border_style="blue",
                     )
                 )
