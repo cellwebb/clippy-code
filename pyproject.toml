@@ -1,6 +1,6 @@
 [project]
 name = "clippy-code"
-version = "0.2.0"
+version = "0.3.0"
 description = "A powerful CLI coding agent powered by OpenAI-compatible LLMs"
 readme = "README.md"
 license = { text = "MIT" }
@@ -31,6 +31,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pydantic>=2.0.0",
     "pyyaml>=6.0.0",
+    "tiktoken>=0.5.0",
 ]
 
 [project.optional-dependencies]
