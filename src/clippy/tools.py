@@ -1,22 +1,19 @@
 """Tool definitions for the Claude API."""
 
-from typing import List, Dict, Any
+from typing import Any
 
 # Tool definitions for Claude API
-TOOLS: List[Dict[str, Any]] = [
+TOOLS: list[dict[str, Any]] = [
     {
         "name": "read_file",
         "description": "Read the contents of a file. Use this to examine existing code or files.",
         "input_schema": {
             "type": "object",
             "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "The path to the file to read"
-                }
+                "path": {"type": "string", "description": "The path to the file to read"}
             },
-            "required": ["path"]
-        }
+            "required": ["path"],
+        },
     },
     {
         "name": "write_file",
@@ -24,17 +21,11 @@ TOOLS: List[Dict[str, Any]] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "The path to the file to write"
-                },
-                "content": {
-                    "type": "string",
-                    "description": "The content to write to the file"
-                }
+                "path": {"type": "string", "description": "The path to the file to write"},
+                "content": {"type": "string", "description": "The content to write to the file"},
             },
-            "required": ["path", "content"]
-        }
+            "required": ["path", "content"],
+        },
     },
     {
         "name": "delete_file",
@@ -42,13 +33,10 @@ TOOLS: List[Dict[str, Any]] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "The path to the file to delete"
-                }
+                "path": {"type": "string", "description": "The path to the file to delete"}
             },
-            "required": ["path"]
-        }
+            "required": ["path"],
+        },
     },
     {
         "name": "list_directory",
@@ -58,15 +46,15 @@ TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "The path to the directory to list. Defaults to current directory."
+                    "description": "The path to the directory to list. Defaults to current directory.",
                 },
                 "recursive": {
                     "type": "boolean",
-                    "description": "Whether to list recursively. Defaults to false."
-                }
+                    "description": "Whether to list recursively. Defaults to false.",
+                },
             },
-            "required": ["path"]
-        }
+            "required": ["path"],
+        },
     },
     {
         "name": "create_directory",
@@ -74,13 +62,10 @@ TOOLS: List[Dict[str, Any]] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "The path to the directory to create"
-                }
+                "path": {"type": "string", "description": "The path to the directory to create"}
             },
-            "required": ["path"]
-        }
+            "required": ["path"],
+        },
     },
     {
         "name": "execute_command",
@@ -88,17 +73,14 @@ TOOLS: List[Dict[str, Any]] = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "command": {
-                    "type": "string",
-                    "description": "The shell command to execute"
-                },
+                "command": {"type": "string", "description": "The shell command to execute"},
                 "working_dir": {
                     "type": "string",
-                    "description": "The working directory for the command. Defaults to current directory."
-                }
+                    "description": "The working directory for the command. Defaults to current directory.",
+                },
             },
-            "required": ["command"]
-        }
+            "required": ["command"],
+        },
     },
     {
         "name": "search_files",
@@ -108,34 +90,29 @@ TOOLS: List[Dict[str, Any]] = [
             "properties": {
                 "pattern": {
                     "type": "string",
-                    "description": "The glob pattern to search for (e.g., '*.py', 'src/**/*.ts')"
+                    "description": "The glob pattern to search for (e.g., '*.py', 'src/**/*.ts')",
                 },
                 "path": {
                     "type": "string",
-                    "description": "The directory to search in. Defaults to current directory."
-                }
+                    "description": "The directory to search in. Defaults to current directory.",
+                },
             },
-            "required": ["pattern"]
-        }
+            "required": ["pattern"],
+        },
     },
     {
         "name": "get_file_info",
         "description": "Get metadata about a file (size, modification time, etc.).",
         "input_schema": {
             "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "The path to the file"
-                }
-            },
-            "required": ["path"]
-        }
-    }
+            "properties": {"path": {"type": "string", "description": "The path to the file"}},
+            "required": ["path"],
+        },
+    },
 ]
 
 
-def get_tool_by_name(name: str) -> Dict[str, Any] | None:
+def get_tool_by_name(name: str) -> dict[str, Any] | None:
     """Get a tool definition by name."""
     for tool in TOOLS:
         if tool["name"] == name:

@@ -1,19 +1,20 @@
 """Command-line interface for CLIppy."""
 
-import sys
 import argparse
 import os
+import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
+from prompt_toolkit import PromptSession
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.history import FileHistory
 from rich.console import Console
 from rich.panel import Panel
-from prompt_toolkit import PromptSession
-from prompt_toolkit.history import FileHistory
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 
-from .permissions import PermissionManager, PermissionConfig
-from .executor import ActionExecutor
 from .agent import ClippyAgent, InterruptedException
+from .executor import ActionExecutor
+from .permissions import PermissionConfig, PermissionManager
 
 
 def load_env():
@@ -40,13 +41,15 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-i", "--interactive",
+        "-i",
+        "--interactive",
         action="store_true",
         help="Start in interactive mode (REPL)",
     )
 
     parser.add_argument(
-        "-y", "--yes",
+        "-y",
+        "--yes",
         action="store_true",
         help="Auto-approve all actions (use with caution!)",
     )
@@ -62,6 +65,12 @@ def create_parser() -> argparse.ArgumentParser:
         "--model",
         type=str,
         help="Model to use (provider-specific, e.g., claude-3-5-sonnet-20241022 or gpt-4o)",
+    )
+
+    parser.add_argument(
+        "--base-url",
+        type=str,
+        help="Base URL for OpenAI-compatible providers (e.g., https://api.cerebras.ai/v1)",
     )
 
     parser.add_argument(
@@ -101,15 +110,17 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
         auto_suggest=AutoSuggestFromHistory(),
     )
 
-    console.print(Panel.fit(
-        "[bold green]CLIppy Interactive Mode[/bold green]\n\n"
-        "Commands:\n"
-        "  /exit, /quit - Exit CLIppy\n"
-        "  /reset - Reset conversation history\n"
-        "  /help - Show this help message\n\n"
-        "Type your request and press Enter. Use Ctrl+C to interrupt execution.",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]CLIppy Interactive Mode[/bold green]\n\n"
+            "Commands:\n"
+            "  /exit, /quit - Exit CLIppy\n"
+            "  /reset - Reset conversation history\n"
+            "  /help - Show this help message\n\n"
+            "Type your request and press Enter. Use Ctrl+C to interrupt execution.",
+            border_style="green",
+        )
+    )
 
     while True:
         try:
@@ -128,20 +139,24 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                 console.print("[green]Conversation history reset[/green]")
                 continue
             elif user_input.lower() == "/help":
-                console.print(Panel.fit(
-                    "[bold]Commands:[/bold]\n"
-                    "  /exit, /quit - Exit CLIppy\n"
-                    "  /reset - Reset conversation history\n"
-                    "  /help - Show this help message",
-                    border_style="blue"
-                ))
+                console.print(
+                    Panel.fit(
+                        "[bold]Commands:[/bold]\n"
+                        "  /exit, /quit - Exit CLIppy\n"
+                        "  /reset - Reset conversation history\n"
+                        "  /help - Show this help message",
+                        border_style="blue",
+                    )
+                )
                 continue
 
             # Run the agent
             try:
                 agent.run(user_input, auto_approve_all=auto_approve)
             except InterruptedException:
-                console.print("\n[yellow]Execution interrupted. You can continue with a new request.[/yellow]")
+                console.print(
+                    "\n[yellow]Execution interrupted. You can continue with a new request.[/yellow]"
+                )
                 continue
 
         except KeyboardInterrupt:
@@ -207,12 +222,21 @@ def main():
 
     # Create executor and agent
     executor = ActionExecutor(permission_manager)
+
+    # Prepare provider kwargs
+    provider_kwargs = {}
+    # Check for base_url from CLI arg or env var (for OpenAI-compatible providers)
+    base_url = args.base_url or os.getenv("OPENAI_BASE_URL")
+    if base_url:
+        provider_kwargs["base_url"] = base_url
+
     agent = ClippyAgent(
         permission_manager=permission_manager,
         executor=executor,
         provider_name=provider_name,
         api_key=api_key,
         model=args.model,
+        provider_kwargs=provider_kwargs,
     )
 
     # Determine mode

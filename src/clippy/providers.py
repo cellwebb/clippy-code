@@ -1,13 +1,14 @@
 """LLM provider abstraction layer for model-agnostic support."""
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class ContentBlockType(Enum):
     """Types of content blocks in responses."""
+
     TEXT = "text"
     TOOL_USE = "tool_use"
 
@@ -15,39 +16,41 @@ class ContentBlockType(Enum):
 @dataclass
 class ContentBlock:
     """Represents a content block in a response."""
+
     type: ContentBlockType
-    text: Optional[str] = None
-    name: Optional[str] = None  # For tool use
-    input: Optional[Dict[str, Any]] = None  # For tool use
-    id: Optional[str] = None  # For tool use
+    text: str | None = None
+    name: str | None = None  # For tool use
+    input: dict[str, Any] | None = None  # For tool use
+    id: str | None = None  # For tool use
 
 
 @dataclass
 class LLMResponse:
     """Standardized response from any LLM provider."""
-    content: List[ContentBlock]
+
+    content: list[ContentBlock]
     stop_reason: str
     model: str
-    usage: Optional[Dict[str, int]] = None
+    usage: dict[str, int] | None = None
 
 
 class LLMProvider(ABC):
     """Abstract base class for LLM providers."""
 
     @abstractmethod
-    def __init__(self, api_key: Optional[str] = None, **kwargs):
+    def __init__(self, api_key: str | None = None, **kwargs):
         """Initialize the provider with API key and additional config."""
         pass
 
     @abstractmethod
     def create_message(
         self,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         system: str,
-        tools: List[Dict[str, Any]],
+        tools: list[dict[str, Any]],
         max_tokens: int,
         model: str,
-        **kwargs
+        **kwargs,
     ) -> LLMResponse:
         """
         Create a message with the LLM provider.
@@ -71,12 +74,12 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    def convert_tools_to_provider_format(self, tools: List[Dict[str, Any]]) -> Any:
+    def convert_tools_to_provider_format(self, tools: list[dict[str, Any]]) -> Any:
         """Convert standardized tool format to provider-specific format."""
         pass
 
     @abstractmethod
-    def convert_messages_to_provider_format(self, messages: List[Dict[str, Any]]) -> Any:
+    def convert_messages_to_provider_format(self, messages: list[dict[str, Any]]) -> Any:
         """Convert standardized message format to provider-specific format."""
         pass
 
@@ -84,7 +87,7 @@ class LLMProvider(ABC):
 class AnthropicProvider(LLMProvider):
     """Anthropic Claude provider implementation."""
 
-    def __init__(self, api_key: Optional[str] = None, **kwargs):
+    def __init__(self, api_key: str | None = None, **kwargs):
         """Initialize Anthropic provider."""
         try:
             from anthropic import Anthropic
@@ -98,12 +101,12 @@ class AnthropicProvider(LLMProvider):
 
     def create_message(
         self,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         system: str,
-        tools: List[Dict[str, Any]],
+        tools: list[dict[str, Any]],
         max_tokens: int,
         model: str,
-        **kwargs
+        **kwargs,
     ) -> LLMResponse:
         """Create a message using Anthropic's API."""
         # Convert to Anthropic format
@@ -117,24 +120,23 @@ class AnthropicProvider(LLMProvider):
             system=system,
             messages=anthropic_messages,
             tools=anthropic_tools,
-            **kwargs
+            **kwargs,
         )
 
         # Convert response to standardized format
         content_blocks = []
         for block in response.content:
             if block.type == "text":
-                content_blocks.append(ContentBlock(
-                    type=ContentBlockType.TEXT,
-                    text=block.text
-                ))
+                content_blocks.append(ContentBlock(type=ContentBlockType.TEXT, text=block.text))
             elif block.type == "tool_use":
-                content_blocks.append(ContentBlock(
-                    type=ContentBlockType.TOOL_USE,
-                    name=block.name,
-                    input=block.input,
-                    id=block.id
-                ))
+                content_blocks.append(
+                    ContentBlock(
+                        type=ContentBlockType.TOOL_USE,
+                        name=block.name,
+                        input=block.input,
+                        id=block.id,
+                    )
+                )
 
         return LLMResponse(
             content=content_blocks,
@@ -143,18 +145,20 @@ class AnthropicProvider(LLMProvider):
             usage={
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
-            }
+            },
         )
 
     def get_default_model(self) -> str:
         """Get the default Anthropic model."""
         return "claude-3-5-sonnet-20241022"
 
-    def convert_tools_to_provider_format(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def convert_tools_to_provider_format(self, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Anthropic uses the same tool format as our standard."""
         return tools
 
-    def convert_messages_to_provider_format(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def convert_messages_to_provider_format(
+        self, messages: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Anthropic uses the same message format as our standard."""
         return messages
 
@@ -162,26 +166,35 @@ class AnthropicProvider(LLMProvider):
 class OpenAIProvider(LLMProvider):
     """OpenAI provider implementation."""
 
-    def __init__(self, api_key: Optional[str] = None, **kwargs):
-        """Initialize OpenAI provider."""
+    def __init__(self, api_key: str | None = None, base_url: str | None = None, **kwargs):
+        """Initialize OpenAI provider.
+
+        Args:
+            api_key: API key for authentication
+            base_url: Base URL for API (e.g., https://api.cerebras.ai/v1 for Cerebras)
+            **kwargs: Additional arguments passed to OpenAI client
+        """
         try:
             from openai import OpenAI
         except ImportError:
             raise ImportError(
-                "openai package is required for OpenAIProvider. "
-                "Install it with: pip install openai"
+                "openai package is required for OpenAIProvider. Install it with: pip install openai"
             )
 
-        self.client = OpenAI(api_key=api_key)
+        client_kwargs = {"api_key": api_key}
+        if base_url:
+            client_kwargs["base_url"] = base_url
+
+        self.client = OpenAI(**client_kwargs)
 
     def create_message(
         self,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         system: str,
-        tools: List[Dict[str, Any]],
+        tools: list[dict[str, Any]],
         max_tokens: int,
         model: str,
-        **kwargs
+        **kwargs,
     ) -> LLMResponse:
         """Create a message using OpenAI's API."""
         # Convert to OpenAI format
@@ -198,7 +211,7 @@ class OpenAIProvider(LLMProvider):
             max_tokens=max_tokens,
             messages=openai_messages,
             tools=openai_tools,
-            **kwargs
+            **kwargs,
         )
 
         # Convert response to standardized format
@@ -207,21 +220,21 @@ class OpenAIProvider(LLMProvider):
 
         # Handle text content
         if message.content:
-            content_blocks.append(ContentBlock(
-                type=ContentBlockType.TEXT,
-                text=message.content
-            ))
+            content_blocks.append(ContentBlock(type=ContentBlockType.TEXT, text=message.content))
 
         # Handle tool calls
         if message.tool_calls:
             for tool_call in message.tool_calls:
                 import json
-                content_blocks.append(ContentBlock(
-                    type=ContentBlockType.TOOL_USE,
-                    name=tool_call.function.name,
-                    input=json.loads(tool_call.function.arguments),
-                    id=tool_call.id
-                ))
+
+                content_blocks.append(
+                    ContentBlock(
+                        type=ContentBlockType.TOOL_USE,
+                        name=tool_call.function.name,
+                        input=json.loads(tool_call.function.arguments),
+                        id=tool_call.id,
+                    )
+                )
 
         return LLMResponse(
             content=content_blocks,
@@ -230,28 +243,34 @@ class OpenAIProvider(LLMProvider):
             usage={
                 "input_tokens": response.usage.prompt_tokens,
                 "output_tokens": response.usage.completion_tokens,
-            } if response.usage else None
+            }
+            if response.usage
+            else None,
         )
 
     def get_default_model(self) -> str:
         """Get the default OpenAI model."""
         return "gpt-4o"
 
-    def convert_tools_to_provider_format(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def convert_tools_to_provider_format(self, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Convert tools to OpenAI format."""
         openai_tools = []
         for tool in tools:
-            openai_tools.append({
-                "type": "function",
-                "function": {
-                    "name": tool["name"],
-                    "description": tool["description"],
-                    "parameters": tool["input_schema"]
+            openai_tools.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool["name"],
+                        "description": tool["description"],
+                        "parameters": tool["input_schema"],
+                    },
                 }
-            })
+            )
         return openai_tools
 
-    def convert_messages_to_provider_format(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def convert_messages_to_provider_format(
+        self, messages: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Convert messages to OpenAI format."""
         openai_messages = []
 
@@ -262,10 +281,7 @@ class OpenAIProvider(LLMProvider):
             # Handle different content types
             if isinstance(content, str):
                 # Simple text message
-                openai_messages.append({
-                    "role": role,
-                    "content": content
-                })
+                openai_messages.append({"role": role, "content": content})
             elif isinstance(content, list):
                 # Complex message with multiple blocks
                 text_parts = []
@@ -278,21 +294,26 @@ class OpenAIProvider(LLMProvider):
                             text_parts.append(block["text"])
                         elif block.get("type") == "tool_use":
                             import json
-                            tool_calls.append({
-                                "id": block["id"],
-                                "type": "function",
-                                "function": {
-                                    "name": block["name"],
-                                    "arguments": json.dumps(block["input"])
+
+                            tool_calls.append(
+                                {
+                                    "id": block["id"],
+                                    "type": "function",
+                                    "function": {
+                                        "name": block["name"],
+                                        "arguments": json.dumps(block["input"]),
+                                    },
                                 }
-                            })
+                            )
                         elif block.get("type") == "tool_result":
                             # OpenAI expects tool results as separate messages
-                            tool_results.append({
-                                "role": "tool",
-                                "tool_call_id": block["tool_use_id"],
-                                "content": block["content"]
-                            })
+                            tool_results.append(
+                                {
+                                    "role": "tool",
+                                    "tool_call_id": block["tool_use_id"],
+                                    "content": block["content"],
+                                }
+                            )
 
                 # Add assistant message with text and/or tool calls
                 if role == "assistant":
@@ -318,11 +339,7 @@ class ProviderFactory:
     }
 
     @staticmethod
-    def create_provider(
-        provider_name: str,
-        api_key: Optional[str] = None,
-        **kwargs
-    ) -> LLMProvider:
+    def create_provider(provider_name: str, api_key: str | None = None, **kwargs) -> LLMProvider:
         """
         Create a provider instance.
 
@@ -342,14 +359,13 @@ class ProviderFactory:
         if provider_name not in ProviderFactory.PROVIDERS:
             supported = ", ".join(ProviderFactory.PROVIDERS.keys())
             raise ValueError(
-                f"Unsupported provider: {provider_name}. "
-                f"Supported providers: {supported}"
+                f"Unsupported provider: {provider_name}. Supported providers: {supported}"
             )
 
         provider_class = ProviderFactory.PROVIDERS[provider_name]
         return provider_class(api_key=api_key, **kwargs)
 
     @staticmethod
-    def get_supported_providers() -> List[str]:
+    def get_supported_providers() -> list[str]:
         """Get list of supported provider names."""
         return list(ProviderFactory.PROVIDERS.keys())

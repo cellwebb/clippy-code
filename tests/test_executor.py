@@ -1,10 +1,10 @@
 """Tests for the action executor."""
 
-import os
 import tempfile
 from pathlib import Path
 
 import pytest
+
 from clippy.executor import ActionExecutor
 from clippy.permissions import PermissionManager
 
@@ -43,8 +43,7 @@ def test_write_file(executor, temp_dir):
 
     # Write the file
     success, message, _ = executor.execute(
-        "write_file",
-        {"path": str(test_file), "content": "Test content"}
+        "write_file", {"path": str(test_file), "content": "Test content"}
     )
 
     assert success is True
@@ -62,8 +61,7 @@ def test_list_directory(executor, temp_dir):
 
     # List the directory
     success, message, result = executor.execute(
-        "list_directory",
-        {"path": temp_dir, "recursive": False}
+        "list_directory", {"path": temp_dir, "recursive": False}
     )
 
     assert success is True
@@ -104,8 +102,7 @@ def test_execute_command(executor):
     """Test executing a shell command."""
     # Execute a simple command
     success, message, output = executor.execute(
-        "execute_command",
-        {"command": "echo 'Hello from command'", "working_dir": "."}
+        "execute_command", {"command": "echo 'Hello from command'", "working_dir": "."}
     )
 
     assert success is True

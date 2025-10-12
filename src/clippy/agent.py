@@ -1,20 +1,21 @@
 """AI agent with model-agnostic LLM support."""
 
 import os
-from typing import List, Dict, Any, Optional
-from rich.console import Console
-from rich.panel import Panel
-from rich.syntax import Syntax
-from rich.markdown import Markdown
+from typing import Any
 
-from .tools import TOOLS
+from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
+
 from .executor import ActionExecutor
-from .permissions import PermissionManager, ActionType
-from .providers import LLMProvider, ProviderFactory, ContentBlockType
+from .permissions import ActionType, PermissionManager
+from .providers import ContentBlockType, LLMProvider, ProviderFactory
+from .tools import TOOLS
 
 
 class InterruptedException(Exception):
     """Exception raised when user interrupts execution."""
+
     pass
 
 
@@ -25,10 +26,11 @@ class ClippyAgent:
         self,
         permission_manager: PermissionManager,
         executor: ActionExecutor,
-        provider: Optional[LLMProvider] = None,
-        provider_name: Optional[str] = None,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
+        provider: LLMProvider | None = None,
+        provider_name: str | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        provider_kwargs: dict[str, Any] | None = None,
     ):
         """
         Initialize the ClippyAgent.
@@ -40,6 +42,7 @@ class ClippyAgent:
             provider_name: Name of provider to use if provider not given (e.g., "anthropic", "openai")
             api_key: API key for the provider
             model: Model identifier to use
+            provider_kwargs: Additional kwargs to pass to provider (e.g., base_url for OpenAI)
         """
         self.permission_manager = permission_manager
         self.executor = executor
@@ -50,16 +53,16 @@ class ClippyAgent:
         else:
             # Default to anthropic if not specified
             provider_name = provider_name or os.getenv("CLIPPY_PROVIDER", "anthropic")
+            kwargs = provider_kwargs or {}
             self.provider = ProviderFactory.create_provider(
-                provider_name=provider_name,
-                api_key=api_key
+                provider_name=provider_name, api_key=api_key, **kwargs
             )
 
         # Set model (use provider default if not specified)
         self.model = model or os.getenv("CLIPPY_MODEL") or self.provider.get_default_model()
 
         self.console = Console()
-        self.conversation_history: List[Dict[str, Any]] = []
+        self.conversation_history: list[dict[str, Any]] = []
         self.interrupted = False
 
     def _create_system_prompt(self) -> str:
@@ -94,7 +97,9 @@ You are running in a CLI environment. Be concise but informative in your respons
         self.conversation_history.append({"role": "user", "content": user_message})
 
         # Show user message
-        self.console.print(Panel(user_message, title="[bold blue]You[/bold blue]", border_style="blue"))
+        self.console.print(
+            Panel(user_message, title="[bold blue]You[/bold blue]", border_style="blue")
+        )
 
         try:
             response = self._run_agent_loop(auto_approve_all)
@@ -125,12 +130,14 @@ You are running in a CLI environment. Be concise but informative in your respons
                 if block.type == ContentBlockType.TEXT:
                     assistant_content.append({"type": "text", "text": block.text})
                 elif block.type == ContentBlockType.TOOL_USE:
-                    assistant_content.append({
-                        "type": "tool_use",
-                        "name": block.name,
-                        "input": block.input,
-                        "id": block.id
-                    })
+                    assistant_content.append(
+                        {
+                            "type": "tool_use",
+                            "name": block.name,
+                            "input": block.input,
+                            "id": block.id,
+                        }
+                    )
 
             assistant_message = {"role": "assistant", "content": assistant_content}
             self.conversation_history.append(assistant_message)
@@ -143,11 +150,13 @@ You are running in a CLI environment. Be concise but informative in your respons
                 if block.type == ContentBlockType.TEXT:
                     text_response += block.text
                     # Show agent's thinking/response
-                    self.console.print(Panel(
-                        Markdown(block.text),
-                        title="[bold green]CLIppy[/bold green]",
-                        border_style="green"
-                    ))
+                    self.console.print(
+                        Panel(
+                            Markdown(block.text),
+                            title="[bold green]CLIppy[/bold green]",
+                            border_style="green",
+                        )
+                    )
                 elif block.type == ContentBlockType.TOOL_USE:
                     has_tool_use = True
                     success = self._handle_tool_use(
@@ -168,7 +177,7 @@ You are running in a CLI environment. Be concise but informative in your respons
         return "Maximum iterations reached. Task may be incomplete."
 
     def _handle_tool_use(
-        self, tool_name: str, tool_input: Dict[str, Any], tool_use_id: str, auto_approve_all: bool
+        self, tool_name: str, tool_input: dict[str, Any], tool_use_id: str, auto_approve_all: bool
     ) -> bool:
         """
         Handle a tool use request.
@@ -193,24 +202,24 @@ You are running in a CLI environment. Be concise but informative in your respons
             self._add_tool_result(tool_use_id, False, f"Unknown tool: {tool_name}", None)
             return False
 
-        # Check permission
-        permission = self.permission_manager.check_permission(action_type)
-
         # Show what the agent wants to do
         self._display_tool_request(tool_name, tool_input)
 
         # Check if we need approval
-        needs_approval = not auto_approve_all and not self.permission_manager.config.can_auto_execute(action_type)
+        needs_approval = (
+            not auto_approve_all
+            and not self.permission_manager.config.can_auto_execute(action_type)
+        )
 
         if self.permission_manager.config.is_denied(action_type):
-            self.console.print(f"[bold red]✗ Action denied by policy[/bold red]")
+            self.console.print("[bold red]✗ Action denied by policy[/bold red]")
             self._add_tool_result(tool_use_id, False, "Action denied by policy", None)
             return False
 
         if needs_approval:
             approved = self._ask_approval(tool_name, tool_input)
             if not approved:
-                self.console.print(f"[bold yellow]⊘ Action rejected by user[/bold yellow]")
+                self.console.print("[bold yellow]⊘ Action rejected by user[/bold yellow]")
                 self._add_tool_result(tool_use_id, False, "Action rejected by user", None)
                 return False
 
@@ -228,13 +237,13 @@ You are running in a CLI environment. Be concise but informative in your respons
 
         return success
 
-    def _display_tool_request(self, tool_name: str, tool_input: Dict[str, Any]):
+    def _display_tool_request(self, tool_name: str, tool_input: dict[str, Any]):
         """Display what tool the agent wants to use."""
         input_str = "\n".join(f"  {k}: {v}" for k, v in tool_input.items())
         self.console.print(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
         self.console.print(f"[cyan]{input_str}[/cyan]")
 
-    def _ask_approval(self, tool_name: str, tool_input: Dict[str, Any]) -> bool:
+    def _ask_approval(self, tool_name: str, tool_input: dict[str, Any]) -> bool:
         """Ask user for approval to execute an action."""
         try:
             response = input("\n[?] Approve this action? [y/N/stop]: ").strip().lower()
@@ -246,9 +255,7 @@ You are running in a CLI environment. Be concise but informative in your respons
             self.interrupted = True
             raise InterruptedException()
 
-    def _add_tool_result(
-        self, tool_use_id: str, success: bool, message: str, result: Any
-    ):
+    def _add_tool_result(self, tool_use_id: str, success: bool, message: str, result: Any):
         """Add a tool result to the conversation history."""
         content = message
         if result:
