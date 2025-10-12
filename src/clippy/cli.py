@@ -1,4 +1,4 @@
-"""Command-line interface for CLIppy."""
+"""Command-line interface for clippy-code."""
 
 import argparse
 import os
@@ -30,14 +30,14 @@ def load_env():
 def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
     parser = argparse.ArgumentParser(
-        description="CLIppy - A CLI coding agent",
+        description="clippy-code - A CLI coding agent powered by OpenAI-compatible LLMs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
         "prompt",
         nargs="*",
-        help="The task or question for CLIppy (one-shot mode)",
+        help="The task or question for clippy-code (one-shot mode)",
     )
 
     parser.add_argument(
@@ -55,22 +55,15 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--provider",
-        type=str,
-        choices=["anthropic", "openai"],
-        help="LLM provider to use (default: anthropic)",
-    )
-
-    parser.add_argument(
         "--model",
         type=str,
-        help="Model to use (provider-specific, e.g., claude-3-5-sonnet-20241022 or gpt-4o)",
+        help="Model to use (e.g., gpt-4o, llama3.1-8b for Cerebras)",
     )
 
     parser.add_argument(
         "--base-url",
         type=str,
-        help="Base URL for OpenAI-compatible providers (e.g., https://api.cerebras.ai/v1)",
+        help="Base URL for OpenAI-compatible API (e.g., https://api.cerebras.ai/v1)",
     )
 
     parser.add_argument(
@@ -83,7 +76,7 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool):
-    """Run CLIppy in one-shot mode."""
+    """Run clippy-code in one-shot mode."""
     console = Console()
 
     try:
@@ -100,7 +93,7 @@ def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool):
 
 
 def run_interactive(agent: ClippyAgent, auto_approve: bool):
-    """Run CLIppy in interactive mode (REPL)."""
+    """Run clippy-code in interactive mode (REPL)."""
     console = Console()
 
     # Create history file
@@ -112,9 +105,9 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
 
     console.print(
         Panel.fit(
-            "[bold green]CLIppy Interactive Mode[/bold green]\n\n"
+            "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
             "Commands:\n"
-            "  /exit, /quit - Exit CLIppy\n"
+            "  /exit, /quit - Exit clippy-code\n"
             "  /reset - Reset conversation history\n"
             "  /help - Show this help message\n\n"
             "Type your request and press Enter. Use Ctrl+C to interrupt execution.",
@@ -142,7 +135,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                 console.print(
                     Panel.fit(
                         "[bold]Commands:[/bold]\n"
-                        "  /exit, /quit - Exit CLIppy\n"
+                        "  /exit, /quit - Exit clippy-code\n"
                         "  /reset - Reset conversation history\n"
                         "  /help - Show this help message",
                         border_style="blue",
@@ -160,7 +153,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                 continue
 
         except KeyboardInterrupt:
-            console.print("\n[yellow]Use /exit or /quit to exit CLIppy[/yellow]")
+            console.print("\n[yellow]Use /exit or /quit to exit clippy-code[/yellow]")
             continue
         except EOFError:
             console.print("\n[yellow]Goodbye![/yellow]")
@@ -171,7 +164,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
 
 
 def main():
-    """Main entry point for CLIppy."""
+    """Main entry point for clippy-code."""
     # Load environment variables
     load_env()
 
@@ -179,39 +172,22 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
 
-    # Determine provider
-    provider_name = args.provider or os.getenv("CLIPPY_PROVIDER", "anthropic")
-
-    # Check for appropriate API key based on provider
-    api_key = None
-    if provider_name == "anthropic":
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            console = Console()
-            console.print(
-                "[bold red]Error:[/bold red] ANTHROPIC_API_KEY not found in environment.\n\n"
-                "Please set your API key:\n"
-                "  1. Create a .env file in the current directory, or\n"
-                "  2. Create a .clippy.env file in your home directory, or\n"
-                "  3. Set the ANTHROPIC_API_KEY environment variable\n\n"
-                "Example .env file:\n"
-                "  ANTHROPIC_API_KEY=your_api_key_here"
-            )
-            sys.exit(1)
-    elif provider_name == "openai":
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            console = Console()
-            console.print(
-                "[bold red]Error:[/bold red] OPENAI_API_KEY not found in environment.\n\n"
-                "Please set your API key:\n"
-                "  1. Create a .env file in the current directory, or\n"
-                "  2. Create a .clippy.env file in your home directory, or\n"
-                "  3. Set the OPENAI_API_KEY environment variable\n\n"
-                "Example .env file:\n"
-                "  OPENAI_API_KEY=your_api_key_here"
-            )
-            sys.exit(1)
+    # Get API key (required)
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        console = Console()
+        console.print(
+            "[bold red]Error:[/bold red] OPENAI_API_KEY not found in environment.\n\n"
+            "Please set your API key:\n"
+            "  1. Create a .env file in the current directory, or\n"
+            "  2. Create a .clippy.env file in your home directory, or\n"
+            "  3. Set the OPENAI_API_KEY environment variable\n\n"
+            "Example .env file:\n"
+            "  OPENAI_API_KEY=your_api_key_here\n"
+            "  OPENAI_BASE_URL=https://api.cerebras.ai/v1  # Optional, for alternate providers\n"
+            "  CLIPPY_MODEL=llama3.1-8b  # Optional, specify model"
+        )
+        sys.exit(1)
 
     # Create permission manager
     permission_manager = PermissionManager(PermissionConfig())
@@ -222,21 +198,12 @@ def main():
 
     # Create executor and agent
     executor = ActionExecutor(permission_manager)
-
-    # Prepare provider kwargs
-    provider_kwargs = {}
-    # Check for base_url from CLI arg or env var (for OpenAI-compatible providers)
-    base_url = args.base_url or os.getenv("OPENAI_BASE_URL")
-    if base_url:
-        provider_kwargs["base_url"] = base_url
-
     agent = ClippyAgent(
         permission_manager=permission_manager,
         executor=executor,
-        provider_name=provider_name,
         api_key=api_key,
         model=args.model,
-        provider_kwargs=provider_kwargs,
+        base_url=args.base_url or os.getenv("OPENAI_BASE_URL"),
     )
 
     # Determine mode
