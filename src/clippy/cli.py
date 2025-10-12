@@ -52,9 +52,16 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--provider",
+        type=str,
+        choices=["anthropic", "openai"],
+        help="LLM provider to use (default: anthropic)",
+    )
+
+    parser.add_argument(
         "--model",
         type=str,
-        help="Claude model to use (default: claude-3-5-sonnet-20241022)",
+        help="Model to use (provider-specific, e.g., claude-3-5-sonnet-20241022 or gpt-4o)",
     )
 
     parser.add_argument(
@@ -153,23 +160,43 @@ def main():
     # Load environment variables
     load_env()
 
-    # Check for API key
-    if not os.getenv("ANTHROPIC_API_KEY"):
-        console = Console()
-        console.print(
-            "[bold red]Error:[/bold red] ANTHROPIC_API_KEY not found in environment.\n\n"
-            "Please set your API key:\n"
-            "  1. Create a .env file in the current directory, or\n"
-            "  2. Create a .clippy.env file in your home directory, or\n"
-            "  3. Set the ANTHROPIC_API_KEY environment variable\n\n"
-            "Example .env file:\n"
-            "  ANTHROPIC_API_KEY=your_api_key_here"
-        )
-        sys.exit(1)
-
     # Parse arguments
     parser = create_parser()
     args = parser.parse_args()
+
+    # Determine provider
+    provider_name = args.provider or os.getenv("CLIPPY_PROVIDER", "anthropic")
+
+    # Check for appropriate API key based on provider
+    api_key = None
+    if provider_name == "anthropic":
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            console = Console()
+            console.print(
+                "[bold red]Error:[/bold red] ANTHROPIC_API_KEY not found in environment.\n\n"
+                "Please set your API key:\n"
+                "  1. Create a .env file in the current directory, or\n"
+                "  2. Create a .clippy.env file in your home directory, or\n"
+                "  3. Set the ANTHROPIC_API_KEY environment variable\n\n"
+                "Example .env file:\n"
+                "  ANTHROPIC_API_KEY=your_api_key_here"
+            )
+            sys.exit(1)
+    elif provider_name == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            console = Console()
+            console.print(
+                "[bold red]Error:[/bold red] OPENAI_API_KEY not found in environment.\n\n"
+                "Please set your API key:\n"
+                "  1. Create a .env file in the current directory, or\n"
+                "  2. Create a .clippy.env file in your home directory, or\n"
+                "  3. Set the OPENAI_API_KEY environment variable\n\n"
+                "Example .env file:\n"
+                "  OPENAI_API_KEY=your_api_key_here"
+            )
+            sys.exit(1)
 
     # Create permission manager
     permission_manager = PermissionManager(PermissionConfig())
@@ -183,6 +210,8 @@ def main():
     agent = ClippyAgent(
         permission_manager=permission_manager,
         executor=executor,
+        provider_name=provider_name,
+        api_key=api_key,
         model=args.model,
     )
 
