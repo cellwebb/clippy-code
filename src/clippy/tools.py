@@ -1,112 +1,139 @@
-"""Tool definitions for the Claude API."""
+"""Tool definitions for OpenAI-compatible APIs."""
 
 from typing import Any
 
-# Tool definitions for Claude API
+# Tool definitions in OpenAI format
 TOOLS: list[dict[str, Any]] = [
     {
-        "name": "read_file",
-        "description": "Read the contents of a file. Use this to examine existing code or files.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "The path to the file to read"}
-            },
-            "required": ["path"],
-        },
-    },
-    {
-        "name": "write_file",
-        "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "The path to the file to write"},
-                "content": {"type": "string", "description": "The content to write to the file"},
-            },
-            "required": ["path", "content"],
-        },
-    },
-    {
-        "name": "delete_file",
-        "description": "Delete a file. Use with caution.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "The path to the file to delete"}
-            },
-            "required": ["path"],
-        },
-    },
-    {
-        "name": "list_directory",
-        "description": "List the contents of a directory.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "The path to the directory to list. Defaults to current directory.",
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Read the contents of a file. Use this to examine existing code or files.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "The path to the file to read"}
                 },
-                "recursive": {
-                    "type": "boolean",
-                    "description": "Whether to list recursively. Defaults to false.",
-                },
+                "required": ["path"],
             },
-            "required": ["path"],
         },
     },
     {
-        "name": "create_directory",
-        "description": "Create a new directory.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "The path to the directory to create"}
+        "type": "function",
+        "function": {
+            "name": "write_file",
+            "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "The path to the file to write"},
+                    "content": {
+                        "type": "string",
+                        "description": "The content to write to the file",
+                    },
+                },
+                "required": ["path", "content"],
             },
-            "required": ["path"],
         },
     },
     {
-        "name": "execute_command",
-        "description": "Execute a shell command. Use with caution.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "command": {"type": "string", "description": "The shell command to execute"},
-                "working_dir": {
-                    "type": "string",
-                    "description": "The working directory for the command. Defaults to current directory.",
+        "type": "function",
+        "function": {
+            "name": "delete_file",
+            "description": "Delete a file. Use with caution.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "The path to the file to delete"}
                 },
+                "required": ["path"],
             },
-            "required": ["command"],
         },
     },
     {
-        "name": "search_files",
-        "description": "Search for files matching a pattern (supports glob patterns like *.py).",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "pattern": {
-                    "type": "string",
-                    "description": "The glob pattern to search for (e.g., '*.py', 'src/**/*.ts')",
+        "type": "function",
+        "function": {
+            "name": "list_directory",
+            "description": "List the contents of a directory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "The path to the directory to list. Defaults to current directory.",
+                    },
+                    "recursive": {
+                        "type": "boolean",
+                        "description": "Whether to list recursively. Defaults to false.",
+                    },
                 },
-                "path": {
-                    "type": "string",
-                    "description": "The directory to search in. Defaults to current directory.",
-                },
+                "required": ["path"],
             },
-            "required": ["pattern"],
         },
     },
     {
-        "name": "get_file_info",
-        "description": "Get metadata about a file (size, modification time, etc.).",
-        "input_schema": {
-            "type": "object",
-            "properties": {"path": {"type": "string", "description": "The path to the file"}},
-            "required": ["path"],
+        "type": "function",
+        "function": {
+            "name": "create_directory",
+            "description": "Create a new directory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "The path to the directory to create"}
+                },
+                "required": ["path"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "execute_command",
+            "description": "Execute a shell command. Use with caution.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "The shell command to execute"},
+                    "working_dir": {
+                        "type": "string",
+                        "description": "The working directory for the command. Defaults to current directory.",
+                    },
+                },
+                "required": ["command"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_files",
+            "description": "Search for files matching a pattern (supports glob patterns like *.py).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {
+                        "type": "string",
+                        "description": "The glob pattern to search for (e.g., '*.py', 'src/**/*.ts')",
+                    },
+                    "path": {
+                        "type": "string",
+                        "description": "The directory to search in. Defaults to current directory.",
+                    },
+                },
+                "required": ["pattern"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_file_info",
+            "description": "Get metadata about a file (size, modification time, etc.).",
+            "parameters": {
+                "type": "object",
+                "properties": {"path": {"type": "string", "description": "The path to the file"}},
+                "required": ["path"],
+            },
         },
     },
 ]
