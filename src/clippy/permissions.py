@@ -1,0 +1,88 @@
+"""Permission system for controlling agent actions."""
+
+from enum import Enum
+from typing import Dict, Set
+from pydantic import BaseModel
+
+
+class PermissionLevel(str, Enum):
+    """Permission levels for actions."""
+    AUTO_APPROVE = "auto_approve"  # Execute without asking
+    REQUIRE_APPROVAL = "require_approval"  # Ask user before executing
+    DENY = "deny"  # Never allow
+
+
+class ActionType(str, Enum):
+    """Types of actions the agent can perform."""
+    READ_FILE = "read_file"
+    WRITE_FILE = "write_file"
+    DELETE_FILE = "delete_file"
+    LIST_DIR = "list_dir"
+    CREATE_DIR = "create_dir"
+    EXECUTE_COMMAND = "execute_command"
+    SEARCH_FILES = "search_files"
+    GET_FILE_INFO = "get_file_info"
+
+
+class PermissionConfig(BaseModel):
+    """Configuration for action permissions."""
+    auto_approve: Set[ActionType] = {
+        ActionType.READ_FILE,
+        ActionType.LIST_DIR,
+        ActionType.SEARCH_FILES,
+        ActionType.GET_FILE_INFO,
+    }
+    require_approval: Set[ActionType] = {
+        ActionType.WRITE_FILE,
+        ActionType.DELETE_FILE,
+        ActionType.CREATE_DIR,
+        ActionType.EXECUTE_COMMAND,
+    }
+    deny: Set[ActionType] = set()
+
+    def get_permission_level(self, action_type: ActionType) -> PermissionLevel:
+        """Get the permission level for an action type."""
+        if action_type in self.deny:
+            return PermissionLevel.DENY
+        if action_type in self.auto_approve:
+            return PermissionLevel.AUTO_APPROVE
+        if action_type in self.require_approval:
+            return PermissionLevel.REQUIRE_APPROVAL
+        # Default to requiring approval for unknown actions
+        return PermissionLevel.REQUIRE_APPROVAL
+
+    def can_auto_execute(self, action_type: ActionType) -> bool:
+        """Check if an action can be auto-executed."""
+        return self.get_permission_level(action_type) == PermissionLevel.AUTO_APPROVE
+
+    def is_denied(self, action_type: ActionType) -> bool:
+        """Check if an action is explicitly denied."""
+        return self.get_permission_level(action_type) == PermissionLevel.DENY
+
+
+class PermissionManager:
+    """Manages permissions for agent actions."""
+
+    def __init__(self, config: PermissionConfig | None = None):
+        self.config = config or PermissionConfig()
+
+    def check_permission(self, action_type: ActionType) -> PermissionLevel:
+        """Check the permission level for an action."""
+        return self.config.get_permission_level(action_type)
+
+    def update_permission(
+        self, action_type: ActionType, level: PermissionLevel
+    ) -> None:
+        """Update the permission level for an action type."""
+        # Remove from all sets first
+        self.config.auto_approve.discard(action_type)
+        self.config.require_approval.discard(action_type)
+        self.config.deny.discard(action_type)
+
+        # Add to appropriate set
+        if level == PermissionLevel.AUTO_APPROVE:
+            self.config.auto_approve.add(action_type)
+        elif level == PermissionLevel.REQUIRE_APPROVAL:
+            self.config.require_approval.add(action_type)
+        elif level == PermissionLevel.DENY:
+            self.config.deny.add(action_type)
