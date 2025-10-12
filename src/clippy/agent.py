@@ -1,8 +1,7 @@
-"""AI agent using Claude API."""
+"""AI agent with model-agnostic LLM support."""
 
 import os
 from typing import List, Dict, Any, Optional
-from anthropic import Anthropic
 from rich.console import Console
 from rich.panel import Panel
 from rich.syntax import Syntax
@@ -11,6 +10,7 @@ from rich.markdown import Markdown
 from .tools import TOOLS
 from .executor import ActionExecutor
 from .permissions import PermissionManager, ActionType
+from .providers import LLMProvider, ProviderFactory, ContentBlockType
 
 
 class InterruptedException(Exception):
@@ -19,19 +19,45 @@ class InterruptedException(Exception):
 
 
 class ClippyAgent:
-    """AI coding agent powered by Claude."""
+    """AI coding agent with model-agnostic LLM support."""
 
     def __init__(
         self,
         permission_manager: PermissionManager,
         executor: ActionExecutor,
+        provider: Optional[LLMProvider] = None,
+        provider_name: Optional[str] = None,
         api_key: Optional[str] = None,
         model: Optional[str] = None,
     ):
+        """
+        Initialize the ClippyAgent.
+
+        Args:
+            permission_manager: Permission manager instance
+            executor: Action executor instance
+            provider: Pre-configured LLM provider (optional)
+            provider_name: Name of provider to use if provider not given (e.g., "anthropic", "openai")
+            api_key: API key for the provider
+            model: Model identifier to use
+        """
         self.permission_manager = permission_manager
         self.executor = executor
-        self.client = Anthropic(api_key=api_key or os.getenv("ANTHROPIC_API_KEY"))
-        self.model = model or os.getenv("CLIPPY_MODEL", "claude-3-5-sonnet-20241022")
+
+        # Create or use provided provider
+        if provider:
+            self.provider = provider
+        else:
+            # Default to anthropic if not specified
+            provider_name = provider_name or os.getenv("CLIPPY_PROVIDER", "anthropic")
+            self.provider = ProviderFactory.create_provider(
+                provider_name=provider_name,
+                api_key=api_key
+            )
+
+        # Set model (use provider default if not specified)
+        self.model = model or os.getenv("CLIPPY_MODEL") or self.provider.get_default_model()
+
         self.console = Console()
         self.conversation_history: List[Dict[str, Any]] = []
         self.interrupted = False
@@ -84,17 +110,29 @@ You are running in a CLI environment. Be concise but informative in your respons
             if self.interrupted:
                 raise InterruptedException()
 
-            # Call Claude API
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=int(os.getenv("CLIPPY_MAX_TOKENS", "4096")),
-                system=self._create_system_prompt(),
+            # Call LLM provider
+            response = self.provider.create_message(
                 messages=self.conversation_history,
+                system=self._create_system_prompt(),
                 tools=TOOLS,
+                max_tokens=int(os.getenv("CLIPPY_MAX_TOKENS", "4096")),
+                model=self.model,
             )
 
-            # Process response
-            assistant_message = {"role": "assistant", "content": response.content}
+            # Process response - convert content blocks back to original format for conversation history
+            assistant_content = []
+            for block in response.content:
+                if block.type == ContentBlockType.TEXT:
+                    assistant_content.append({"type": "text", "text": block.text})
+                elif block.type == ContentBlockType.TOOL_USE:
+                    assistant_content.append({
+                        "type": "tool_use",
+                        "name": block.name,
+                        "input": block.input,
+                        "id": block.id
+                    })
+
+            assistant_message = {"role": "assistant", "content": assistant_content}
             self.conversation_history.append(assistant_message)
 
             # Handle response content
@@ -102,7 +140,7 @@ You are running in a CLI environment. Be concise but informative in your respons
             text_response = ""
 
             for block in response.content:
-                if block.type == "text":
+                if block.type == ContentBlockType.TEXT:
                     text_response += block.text
                     # Show agent's thinking/response
                     self.console.print(Panel(
@@ -110,7 +148,7 @@ You are running in a CLI environment. Be concise but informative in your respons
                         title="[bold green]CLIppy[/bold green]",
                         border_style="green"
                     ))
-                elif block.type == "tool_use":
+                elif block.type == ContentBlockType.TOOL_USE:
                     has_tool_use = True
                     success = self._handle_tool_use(
                         block.name, block.input, block.id, auto_approve_all
