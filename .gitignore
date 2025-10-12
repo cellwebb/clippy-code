@@ -83,3 +83,7 @@ site/
 
 # CLIppy specific
 .clippy_history
+
+# Agents
+CLAUDE.md
+.claude/settings.local.json
