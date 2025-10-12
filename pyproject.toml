@@ -1,12 +1,12 @@
 [project]
 name = "clippy-code"
 version = "0.1.0"
-description = "A powerful CLI coding agent powered by Claude AI"
+description = "A powerful CLI coding agent powered by OpenAI-compatible LLMs"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Your Name", email = "your.email@example.com" }]
 requires-python = ">=3.10"
-keywords = ["ai", "cli", "coding-agent", "claude", "anthropic", "llm", "developer-tools"]
+keywords = ["ai", "cli", "coding-agent", "openai", "llm", "developer-tools", "cerebras", "ollama"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -25,7 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "anthropic>=0.39.0",
+    "openai>=1.0.0",
     "prompt-toolkit>=3.0.0",
     "rich>=13.0.0",
     "python-dotenv>=1.0.0",
@@ -33,12 +33,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-openai = [
-    "openai>=1.0.0",
-]
-all-providers = [
-    "openai>=1.0.0",
-]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
