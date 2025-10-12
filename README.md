@@ -1,2 +1,3 @@
-# clippy
-cli coding agent
+# CLIppy
+
+CLI coding agent
