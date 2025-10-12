@@ -1,0 +1,142 @@
+"""Tests for the agent model switching functionality."""
+
+import os
+from unittest.mock import MagicMock
+
+import pytest
+
+from clippy.agent import ClippyAgent
+from clippy.executor import ActionExecutor
+from clippy.permissions import PermissionConfig, PermissionManager
+
+
+@pytest.fixture
+def mock_agent():
+    """Create a ClippyAgent with mocked dependencies."""
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = ActionExecutor(permission_manager)
+
+    agent = ClippyAgent(
+        permission_manager=permission_manager,
+        executor=executor,
+        api_key="test-key",
+        model="gpt-4o",
+        base_url=None,
+    )
+
+    return agent
+
+
+def test_agent_initialization(mock_agent):
+    """Test that agent initializes with correct values."""
+    assert mock_agent.model == "gpt-4o"
+    assert mock_agent.base_url is None
+    assert mock_agent.api_key == "test-key"
+    assert mock_agent.provider is not None
+
+
+def test_switch_model_changes_model(mock_agent):
+    """Test switching to a different model."""
+    success, message = mock_agent.switch_model(model="gpt-3.5-turbo")
+
+    assert success is True
+    assert "gpt-3.5-turbo" in message
+    assert mock_agent.model == "gpt-3.5-turbo"
+
+
+def test_switch_model_changes_base_url(mock_agent):
+    """Test switching to a different provider base URL."""
+    success, message = mock_agent.switch_model(
+        model="llama3.1-8b", base_url="https://api.cerebras.ai/v1"
+    )
+
+    assert success is True
+    assert mock_agent.model == "llama3.1-8b"
+    assert mock_agent.base_url == "https://api.cerebras.ai/v1"
+
+
+def test_switch_model_changes_api_key(mock_agent):
+    """Test switching with a different API key."""
+    success, message = mock_agent.switch_model(
+        model="llama3.1-8b",
+        base_url="https://api.cerebras.ai/v1",
+        api_key="new-test-key",
+    )
+
+    assert success is True
+    assert mock_agent.api_key == "new-test-key"
+    assert mock_agent.model == "llama3.1-8b"
+    assert mock_agent.base_url == "https://api.cerebras.ai/v1"
+
+
+def test_switch_model_keeps_current_values_if_none(mock_agent):
+    """Test that None values preserve current settings."""
+    original_model = mock_agent.model
+    original_base_url = mock_agent.base_url
+    original_api_key = mock_agent.api_key
+
+    # Call with all None - should keep everything the same
+    success, message = mock_agent.switch_model(model=None, base_url=None, api_key=None)
+
+    assert success is True
+    assert mock_agent.model == original_model
+    assert mock_agent.base_url == original_base_url
+    assert mock_agent.api_key == original_api_key
+
+
+def test_switch_model_partial_update(mock_agent):
+    """Test updating only some parameters."""
+    original_api_key = mock_agent.api_key
+
+    # Only update model, keep base_url and api_key
+    success, message = mock_agent.switch_model(model="new-model")
+
+    assert success is True
+    assert mock_agent.model == "new-model"
+    assert mock_agent.api_key == original_api_key
+
+
+def test_reset_conversation(mock_agent):
+    """Test resetting conversation history."""
+    # Add some conversation history
+    mock_agent.conversation_history = [
+        {"role": "user", "content": "test message"},
+        {"role": "assistant", "content": "test response"},
+    ]
+
+    mock_agent.reset_conversation()
+
+    assert len(mock_agent.conversation_history) == 0
+    assert mock_agent.interrupted is False
+
+
+def test_conversation_history_preserved_after_model_switch(mock_agent):
+    """Test that conversation history is preserved when switching models."""
+    # Add conversation history
+    mock_agent.conversation_history = [
+        {"role": "system", "content": "system prompt"},
+        {"role": "user", "content": "test message"},
+    ]
+
+    original_length = len(mock_agent.conversation_history)
+
+    # Switch model
+    mock_agent.switch_model(model="gpt-4")
+
+    # Conversation history should still be intact
+    assert len(mock_agent.conversation_history) == original_length
+    assert mock_agent.conversation_history[0]["role"] == "system"
+    assert mock_agent.conversation_history[1]["role"] == "user"
+
+
+def test_provider_recreated_on_switch(mock_agent):
+    """Test that provider is recreated when switching models."""
+    original_provider = mock_agent.provider
+
+    # Switch to different provider
+    mock_agent.switch_model(
+        model="llama3.1-8b", base_url="https://api.cerebras.ai/v1", api_key="new-key"
+    )
+
+    # Provider should be a new instance
+    assert mock_agent.provider is not original_provider
