@@ -1,5 +1,6 @@
-"""AI agent with model-agnostic LLM support."""
+"""AI agent with OpenAI-compatible LLM support."""
 
+import json
 import os
 from typing import Any
 
@@ -9,7 +10,7 @@ from rich.panel import Panel
 
 from .executor import ActionExecutor
 from .permissions import ActionType, PermissionManager
-from .providers import ContentBlockType, LLMProvider, ProviderFactory
+from .providers import LLMProvider
 from .tools import TOOLS
 
 
@@ -20,17 +21,15 @@ class InterruptedException(Exception):
 
 
 class ClippyAgent:
-    """AI coding agent with model-agnostic LLM support."""
+    """AI coding agent powered by OpenAI-compatible LLMs."""
 
     def __init__(
         self,
         permission_manager: PermissionManager,
         executor: ActionExecutor,
-        provider: LLMProvider | None = None,
-        provider_name: str | None = None,
         api_key: str | None = None,
         model: str | None = None,
-        provider_kwargs: dict[str, Any] | None = None,
+        base_url: str | None = None,
     ):
         """
         Initialize the ClippyAgent.
@@ -38,28 +37,18 @@ class ClippyAgent:
         Args:
             permission_manager: Permission manager instance
             executor: Action executor instance
-            provider: Pre-configured LLM provider (optional)
-            provider_name: Name of provider to use if provider not given (e.g., "anthropic", "openai")
-            api_key: API key for the provider
+            api_key: API key for OpenAI-compatible provider
             model: Model identifier to use
-            provider_kwargs: Additional kwargs to pass to provider (e.g., base_url for OpenAI)
+            base_url: Base URL for OpenAI-compatible API (for alternate providers)
         """
         self.permission_manager = permission_manager
         self.executor = executor
 
-        # Create or use provided provider
-        if provider:
-            self.provider = provider
-        else:
-            # Default to anthropic if not specified
-            provider_name = provider_name or os.getenv("CLIPPY_PROVIDER", "anthropic")
-            kwargs = provider_kwargs or {}
-            self.provider = ProviderFactory.create_provider(
-                provider_name=provider_name, api_key=api_key, **kwargs
-            )
+        # Create provider (OpenAI-compatible)
+        self.provider = LLMProvider(api_key=api_key, base_url=base_url)
 
         # Set model (use provider default if not specified)
-        self.model = model or os.getenv("CLIPPY_MODEL") or self.provider.get_default_model()
+        self.model = model or self.provider.get_default_model()
 
         self.console = Console()
         self.conversation_history: list[dict[str, Any]] = []
@@ -67,7 +56,7 @@ class ClippyAgent:
 
     def _create_system_prompt(self) -> str:
         """Create the system prompt for the agent."""
-        return """You are CLIppy, a helpful CLI coding assistant. You help users with software development tasks.
+        return """You are clippy-code, a helpful CLI coding assistant. You help users with software development tasks.
 
 You have access to tools to read files, write code, execute commands, and more. Use these tools to help users accomplish their goals.
 
@@ -93,7 +82,13 @@ You are running in a CLI environment. Be concise but informative in your respons
         """
         self.interrupted = False
 
-        # Add user message to history
+        # Initialize with system message if first run
+        if not self.conversation_history:
+            self.conversation_history.append(
+                {"role": "system", "content": self._create_system_prompt()}
+            )
+
+        # Add user message
         self.conversation_history.append({"role": "user", "content": user_message})
 
         # Show user message
@@ -115,64 +110,77 @@ You are running in a CLI environment. Be concise but informative in your respons
             if self.interrupted:
                 raise InterruptedException()
 
-            # Call LLM provider
+            # Call provider (returns OpenAI message dict)
             response = self.provider.create_message(
                 messages=self.conversation_history,
-                system=self._create_system_prompt(),
                 tools=TOOLS,
                 max_tokens=int(os.getenv("CLIPPY_MAX_TOKENS", "4096")),
                 model=self.model,
             )
 
-            # Process response - convert content blocks back to original format for conversation history
-            assistant_content = []
-            for block in response.content:
-                if block.type == ContentBlockType.TEXT:
-                    assistant_content.append({"type": "text", "text": block.text})
-                elif block.type == ContentBlockType.TOOL_USE:
-                    assistant_content.append(
-                        {
-                            "type": "tool_use",
-                            "name": block.name,
-                            "input": block.input,
-                            "id": block.id,
-                        }
-                    )
+            # Build assistant message for history
+            assistant_message: dict[str, Any] = {
+                "role": "assistant",
+            }
 
-            assistant_message = {"role": "assistant", "content": assistant_content}
+            # Add content if present
+            if response.get("content"):
+                assistant_message["content"] = response["content"]
+
+            # Add tool calls if present
+            if response.get("tool_calls"):
+                assistant_message["tool_calls"] = response["tool_calls"]
+
+            # Add to conversation history
             self.conversation_history.append(assistant_message)
 
-            # Handle response content
-            has_tool_use = False
-            text_response = ""
-
-            for block in response.content:
-                if block.type == ContentBlockType.TEXT:
-                    text_response += block.text
-                    # Show agent's thinking/response
-                    self.console.print(
-                        Panel(
-                            Markdown(block.text),
-                            title="[bold green]CLIppy[/bold green]",
-                            border_style="green",
-                        )
+            # Display text response if present
+            if response.get("content"):
+                self.console.print(
+                    Panel(
+                        Markdown(response["content"]),
+                        title="[bold green]CLIppy[/bold green]",
+                        border_style="green",
                     )
-                elif block.type == ContentBlockType.TOOL_USE:
-                    has_tool_use = True
+                )
+
+            # Handle tool calls
+            has_tool_calls = False
+            if response.get("tool_calls"):
+                has_tool_calls = True
+                for tool_call in response["tool_calls"]:
+                    # Parse tool arguments (JSON string -> dict)
+                    try:
+                        tool_input = json.loads(tool_call["function"]["arguments"])
+                    except json.JSONDecodeError as e:
+                        self.console.print(
+                            f"[bold red]Error parsing tool arguments: {e}[/bold red]"
+                        )
+                        self._add_tool_result(
+                            tool_call["id"],
+                            False,
+                            f"Error parsing tool arguments: {e}",
+                            None,
+                        )
+                        continue
+
                     success = self._handle_tool_use(
-                        block.name, block.input, block.id, auto_approve_all
+                        tool_call["function"]["name"],
+                        tool_input,
+                        tool_call["id"],
+                        auto_approve_all,
                     )
                     if not success:
                         # Tool execution failed or was denied
                         continue
 
-            # If no tool use, we're done
-            if not has_tool_use:
-                return text_response
+            # If no tool calls, we're done
+            if not has_tool_calls:
+                return response.get("content", "")
 
-            # Check stop reason
-            if response.stop_reason == "end_turn":
-                return text_response
+            # Check finish reason
+            if response.get("finish_reason") == "stop":
+                return response.get("content", "")
 
         return "Maximum iterations reached. Task may be incomplete."
 
@@ -261,19 +269,18 @@ You are running in a CLI environment. Be concise but informative in your respons
         if result:
             content += f"\n\n{result}"
 
-        # Create tool result message
-        tool_result = {
-            "role": "user",
-            "content": [
-                {
-                    "type": "tool_result",
-                    "tool_use_id": tool_use_id,
-                    "content": content,
-                    "is_error": not success,
-                }
-            ],
-        }
-        self.conversation_history.append(tool_result)
+        # Add error prefix if failed (OpenAI doesn't have is_error flag)
+        if not success:
+            content = f"ERROR: {content}"
+
+        # Add tool result message (OpenAI format)
+        self.conversation_history.append(
+            {
+                "role": "tool",
+                "tool_call_id": tool_use_id,
+                "content": content,
+            }
+        )
 
     def reset_conversation(self):
         """Reset the conversation history."""
