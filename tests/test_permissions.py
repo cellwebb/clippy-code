@@ -1,6 +1,5 @@
 """Tests for the permission system."""
 
-import pytest
 from clippy.permissions import (
     ActionType,
     PermissionConfig,

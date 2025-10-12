@@ -2,12 +2,12 @@
 
 import os
 import subprocess
-from pathlib import Path
-from typing import Any, Dict
-from glob import glob
 from datetime import datetime
+from glob import glob
+from pathlib import Path
+from typing import Any
 
-from .permissions import ActionType, PermissionManager, PermissionLevel
+from .permissions import ActionType, PermissionManager
 
 
 class ActionExecutor:
@@ -16,9 +16,7 @@ class ActionExecutor:
     def __init__(self, permission_manager: PermissionManager):
         self.permission_manager = permission_manager
 
-    def execute(
-        self, tool_name: str, tool_input: Dict[str, Any]
-    ) -> tuple[bool, str, Any]:
+    def execute(self, tool_name: str, tool_input: dict[str, Any]) -> tuple[bool, str, Any]:
         """
         Execute an action.
 
@@ -54,9 +52,7 @@ class ActionExecutor:
             elif tool_name == "delete_file":
                 return self._delete_file(tool_input["path"])
             elif tool_name == "list_directory":
-                return self._list_directory(
-                    tool_input["path"], tool_input.get("recursive", False)
-                )
+                return self._list_directory(tool_input["path"], tool_input.get("recursive", False))
             elif tool_name == "create_directory":
                 return self._create_directory(tool_input["path"])
             elif tool_name == "execute_command":
@@ -64,9 +60,7 @@ class ActionExecutor:
                     tool_input["command"], tool_input.get("working_dir", ".")
                 )
             elif tool_name == "search_files":
-                return self._search_files(
-                    tool_input["pattern"], tool_input.get("path", ".")
-                )
+                return self._search_files(tool_input["pattern"], tool_input.get("path", "."))
             elif tool_name == "get_file_info":
                 return self._get_file_info(tool_input["path"])
             else:
@@ -77,7 +71,7 @@ class ActionExecutor:
     def _read_file(self, path: str) -> tuple[bool, str, Any]:
         """Read a file."""
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 content = f.read()
             return True, f"Successfully read {path}", content
         except Exception as e:
@@ -135,9 +129,7 @@ class ActionExecutor:
         except Exception as e:
             return False, f"Failed to create directory {path}: {str(e)}", None
 
-    def _execute_command(
-        self, command: str, working_dir: str
-    ) -> tuple[bool, str, Any]:
+    def _execute_command(self, command: str, working_dir: str) -> tuple[bool, str, Any]:
         """Execute a shell command."""
         try:
             result = subprocess.run(
@@ -150,7 +142,7 @@ class ActionExecutor:
             )
             output = result.stdout + result.stderr
             if result.returncode == 0:
-                return True, f"Command executed successfully", output
+                return True, "Command executed successfully", output
             else:
                 return (
                     False,

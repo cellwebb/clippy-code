@@ -1,12 +1,13 @@
 """Permission system for controlling agent actions."""
 
 from enum import Enum
-from typing import Dict, Set
+
 from pydantic import BaseModel
 
 
 class PermissionLevel(str, Enum):
     """Permission levels for actions."""
+
     AUTO_APPROVE = "auto_approve"  # Execute without asking
     REQUIRE_APPROVAL = "require_approval"  # Ask user before executing
     DENY = "deny"  # Never allow
@@ -14,6 +15,7 @@ class PermissionLevel(str, Enum):
 
 class ActionType(str, Enum):
     """Types of actions the agent can perform."""
+
     READ_FILE = "read_file"
     WRITE_FILE = "write_file"
     DELETE_FILE = "delete_file"
@@ -26,19 +28,20 @@ class ActionType(str, Enum):
 
 class PermissionConfig(BaseModel):
     """Configuration for action permissions."""
-    auto_approve: Set[ActionType] = {
+
+    auto_approve: set[ActionType] = {
         ActionType.READ_FILE,
         ActionType.LIST_DIR,
         ActionType.SEARCH_FILES,
         ActionType.GET_FILE_INFO,
     }
-    require_approval: Set[ActionType] = {
+    require_approval: set[ActionType] = {
         ActionType.WRITE_FILE,
         ActionType.DELETE_FILE,
         ActionType.CREATE_DIR,
         ActionType.EXECUTE_COMMAND,
     }
-    deny: Set[ActionType] = set()
+    deny: set[ActionType] = set()
 
     def get_permission_level(self, action_type: ActionType) -> PermissionLevel:
         """Get the permission level for an action type."""
@@ -70,9 +73,7 @@ class PermissionManager:
         """Check the permission level for an action."""
         return self.config.get_permission_level(action_type)
 
-    def update_permission(
-        self, action_type: ActionType, level: PermissionLevel
-    ) -> None:
+    def update_permission(self, action_type: ActionType, level: PermissionLevel) -> None:
         """Update the permission level for an action type."""
         # Remove from all sets first
         self.config.auto_approve.discard(action_type)
