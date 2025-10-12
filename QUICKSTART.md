@@ -9,7 +9,7 @@ Get started with CLIppy in 5 minutes!
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install CLIppy from PyPI
-uv tool install clippy-ai
+uv tool install clippy-code
 
 # Or install from source
 git clone https://github.com/yourusername/clippy.git

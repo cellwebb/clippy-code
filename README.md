@@ -20,10 +20,10 @@ A powerful CLI coding agent powered by Claude that helps you with software devel
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install CLIppy
-uv tool install clippy-ai
+uv tool install clippy-code
 
 # Or use pipx
-pipx install clippy-ai
+pipx install clippy-code
 ```
 
 ### From Source

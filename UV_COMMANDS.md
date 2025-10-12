@@ -133,23 +133,23 @@ uv publish --index-url https://test.pypi.org/simple/
 uv publish
 
 # Install from TestPyPI to test
-uv pip install --index-url https://test.pypi.org/simple/ clippy-ai
+uv pip install --index-url https://test.pypi.org/simple/ clippy-code
 ```
 
 ## Tools Installation
 
 ```bash
 # Install CLIppy as a global tool
-uv tool install clippy-ai
+uv tool install clippy-code
 
 # Install from local source as tool
 uv tool install .
 
 # Update tool
-uv tool upgrade clippy-ai
+uv tool upgrade clippy-code
 
 # Uninstall tool
-uv tool uninstall clippy-ai
+uv tool uninstall clippy-code
 
 # List installed tools
 uv tool list
