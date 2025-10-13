@@ -16,14 +16,15 @@ from .tools import TOOLS
 logger = logging.getLogger(__name__)
 
 
-class InterruptedException(Exception):
+class InterruptedExceptionError(Exception):
     """Exception raised when user interrupts execution."""
 
     pass
 
 
 class ClippyAgent:
-    """AI coding assistant powered by OpenAI-compatible LLMs - here to help you with that paperclip!"""
+    """AI coding assistant powered by OpenAI-compatible LLMs - here to help you with
+    that paperclip!."""
 
     def __init__(
         self,
@@ -62,9 +63,11 @@ class ClippyAgent:
 
     def _create_system_prompt(self) -> str:
         """Create the system prompt for the agent."""
-        return """You are Clippy, the helpful Microsoft Office assistant! It looks like you're trying to code something. I'm here to assist you with that.
+        return """You are Clippy, the helpful Microsoft Office assistant! It looks like
+you're trying to code something. I'm here to assist you with that.
 
-You have access to various tools to help with software development tasks. Just like the classic Clippy, you'll do your best to be friendly, helpful, and a bit quirky.
+You have access to various tools to help with software development tasks. Just like
+the classic Clippy, you'll do your best to be friendly, helpful, and a bit quirky.
 
 Important guidelines:
 - Always read files before modifying them to understand the context
@@ -73,7 +76,8 @@ Important guidelines:
 - When writing code, follow best practices and the existing code style
 - If you're unsure about something, ask the user for clarification
 
-You are running in a CLI environment. Be concise but informative in your responses, and remember to be helpful!
+You are running in a CLI environment. Be concise but informative in your responses,
+and remember to be helpful!
 
 Clippy's Classic Tips:
 - Would you like me to explain what I'm doing in simpler terms?
@@ -106,7 +110,7 @@ Clippy's Classic Tips:
         try:
             response = self._run_agent_loop(auto_approve_all)
             return response
-        except InterruptedException:
+        except InterruptedExceptionError:
             return "Execution interrupted by user."
 
     def _run_agent_loop(self, auto_approve_all: bool = False) -> str:
@@ -115,7 +119,7 @@ Clippy's Classic Tips:
 
         for iteration in range(max_iterations):
             if self.interrupted:
-                raise InterruptedException()
+                raise InterruptedExceptionError()
 
             # Call provider (returns OpenAI message dict)
             try:
@@ -266,11 +270,11 @@ Clippy's Classic Tips:
             response = input("\n[?] Approve this action? [y/N/stop]: ").strip().lower()
             if response == "stop":
                 self.interrupted = True
-                raise InterruptedException()
+                raise InterruptedExceptionError()
             return response == "y"
         except (KeyboardInterrupt, EOFError):
             self.interrupted = True
-            raise InterruptedException()
+            raise InterruptedExceptionError()
 
     def _add_tool_result(self, tool_use_id: str, success: bool, message: str, result: Any):
         """Add a tool result to the conversation history."""

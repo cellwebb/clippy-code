@@ -6,6 +6,7 @@ import os
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from prompt_toolkit import PromptSession
@@ -15,13 +16,13 @@ from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.panel import Panel
 
-from .agent import ClippyAgent, InterruptedException
+from .agent import ClippyAgent, InterruptedExceptionError
 from .executor import ActionExecutor
 from .models import get_model_config, list_available_models
 from .permissions import PermissionConfig, PermissionManager
 
 
-def load_env():
+def load_env() -> None:
     """Load environment variables from .env file."""
     # Check current directory first
     if Path(".env").exists():
@@ -31,7 +32,7 @@ def load_env():
         load_dotenv(Path.home() / ".clippy.env")
 
 
-def setup_logging(verbose: bool = False):
+def setup_logging(verbose: bool = False) -> None:
     """Configure logging for the application."""
     level = logging.DEBUG if verbose else logging.WARNING
 
@@ -110,13 +111,13 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool):
+def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool) -> None:
     """Run clippy-code in one-shot mode."""
     console = Console()
 
     try:
         agent.run(prompt, auto_approve_all=auto_approve)
-    except InterruptedException:
+    except InterruptedExceptionError:
         console.print("\n[yellow]Execution interrupted[/yellow]")
         sys.exit(1)
     except KeyboardInterrupt:
@@ -127,7 +128,7 @@ def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool):
         sys.exit(1)
 
 
-def run_interactive(agent: ClippyAgent, auto_approve: bool):
+def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
     """Run clippy-code in interactive mode (REPL)."""
     console = Console()
 
@@ -137,7 +138,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
     esc_timeout = 0.5  # 500ms window for double-ESC
 
     @kb.add("escape")
-    def _(event):
+    def _(event: Any) -> None:
         """Handle ESC key press - double-ESC to abort."""
         current_time = time.time()
         time_diff = current_time - last_esc_time["time"]
@@ -151,7 +152,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
 
     # Create history file
     history_file = Path.home() / ".clippy_history"
-    session = PromptSession(
+    session: PromptSession[str] = PromptSession(
         history=FileHistory(str(history_file)),
         auto_suggest=AutoSuggestFromHistory(),
         key_bindings=kb,
@@ -336,7 +337,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
             # Run the agent
             try:
                 agent.run(user_input, auto_approve_all=auto_approve)
-            except InterruptedException:
+            except InterruptedExceptionError:
                 console.print(
                     "\n[yellow]Execution interrupted. You can continue with a new request.[/yellow]"
                 )
@@ -353,7 +354,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
             continue
 
 
-def main():
+def main() -> None:
     """Main entry point for clippy-code."""
     # Load environment variables
     load_env()
