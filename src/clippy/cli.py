@@ -196,6 +196,12 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                     usage_bar = "█" * usage_filled + "░" * (usage_bar_length - usage_filled)
 
                     usage_pct = f"{status['usage_percent']:.1f}%"
+
+                    # Format max_tokens display
+                    max_tokens_display = (
+                        f"{status['max_tokens']:,}" if status["max_tokens"] else "API default"
+                    )
+
                     console.print(
                         Panel.fit(
                             f"[bold]Current Session:[/bold]\n"
@@ -204,7 +210,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                             f"  Messages: [cyan]{status['message_count']}[/cyan]\n\n"
                             f"[bold]Token Usage:[/bold]\n"
                             f"  Context: [cyan]{status['total_tokens']:,}[/cyan] tokens\n"
-                            f"  Max Response: [cyan]{status['max_tokens']:,}[/cyan] tokens\n"
+                            f"  Max Response: [cyan]{max_tokens_display}[/cyan] tokens\n"
                             f"  Usage: [{usage_bar}] [cyan]{usage_pct}[/cyan]\n\n"
                             f"[dim]Note: Usage % is estimated for ~128k context window[/dim]",
                             title="Session Status",
