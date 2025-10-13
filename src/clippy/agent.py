@@ -33,7 +33,7 @@ class ClippyAgent:
         api_key: str | None = None,
         model: str | None = None,
         base_url: str | None = None,
-    ):
+    ) -> None:
         """
         Initialize the ClippyAgent.
 
@@ -189,11 +189,13 @@ Clippy's Classic Tips:
 
             # If no tool calls, we're done
             if not has_tool_calls:
-                return response.get("content", "")
+                content = response.get("content", "")
+                return content if isinstance(content, str) else ""
 
             # Check finish reason
             if response.get("finish_reason") == "stop":
-                return response.get("content", "")
+                content = response.get("content", "")
+                return content if isinstance(content, str) else ""
 
         return "Maximum iterations reached. Task may be incomplete."
 
@@ -258,7 +260,7 @@ Clippy's Classic Tips:
 
         return success
 
-    def _display_tool_request(self, tool_name: str, tool_input: dict[str, Any]):
+    def _display_tool_request(self, tool_name: str, tool_input: dict[str, Any]) -> None:
         """Display what tool the agent wants to use."""
         input_str = "\n".join(f"  {k}: {v}" for k, v in tool_input.items())
         self.console.print(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
@@ -276,7 +278,7 @@ Clippy's Classic Tips:
             self.interrupted = True
             raise InterruptedExceptionError()
 
-    def _add_tool_result(self, tool_use_id: str, success: bool, message: str, result: Any):
+    def _add_tool_result(self, tool_use_id: str, success: bool, message: str, result: Any) -> None:
         """Add a tool result to the conversation history."""
         content = message
         if result:
@@ -339,7 +341,7 @@ Clippy's Classic Tips:
         except ImportError:
             return f"{type(error).__name__}: {str(error)}"
 
-    def reset_conversation(self):
+    def reset_conversation(self) -> None:
         """Reset the conversation history."""
         self.conversation_history = []
         self.interrupted = False

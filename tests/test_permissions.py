@@ -8,7 +8,7 @@ from clippy.permissions import (
 )
 
 
-def test_default_permissions():
+def test_default_permissions() -> None:
     """Test default permission configuration."""
     config = PermissionConfig()
 
@@ -25,7 +25,7 @@ def test_default_permissions():
     assert ActionType.EXECUTE_COMMAND in config.require_approval
 
 
-def test_permission_manager_check():
+def test_permission_manager_check() -> None:
     """Test permission manager checks."""
     manager = PermissionManager()
 
@@ -38,7 +38,7 @@ def test_permission_manager_check():
     assert level == PermissionLevel.REQUIRE_APPROVAL
 
 
-def test_permission_update():
+def test_permission_update() -> None:
     """Test updating permissions."""
     manager = PermissionManager()
 
@@ -55,7 +55,7 @@ def test_permission_update():
     assert manager.config.is_denied(ActionType.WRITE_FILE)
 
 
-def test_can_auto_execute():
+def test_can_auto_execute() -> None:
     """Test can_auto_execute check."""
     config = PermissionConfig()
 
@@ -63,7 +63,7 @@ def test_can_auto_execute():
     assert config.can_auto_execute(ActionType.WRITE_FILE) is False
 
 
-def test_is_denied():
+def test_is_denied() -> None:
     """Test is_denied check."""
     config = PermissionConfig()
     config.deny.add(ActionType.DELETE_FILE)

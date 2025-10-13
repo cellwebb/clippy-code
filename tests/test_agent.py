@@ -8,7 +8,7 @@ from clippy.permissions import PermissionConfig, PermissionManager
 
 
 @pytest.fixture
-def mock_agent():
+def mock_agent() -> ClippyAgent:
     """Create a ClippyAgent with mocked dependencies."""
     permission_manager = PermissionManager(PermissionConfig())
     executor = ActionExecutor(permission_manager)
@@ -24,7 +24,7 @@ def mock_agent():
     return agent
 
 
-def test_agent_initialization(mock_agent):
+def test_agent_initialization(mock_agent: ClippyAgent) -> None:
     """Test that agent initializes with correct values."""
     assert mock_agent.model == "gpt-4o"
     assert mock_agent.base_url is None
@@ -32,7 +32,7 @@ def test_agent_initialization(mock_agent):
     assert mock_agent.provider is not None
 
 
-def test_switch_model_changes_model(mock_agent):
+def test_switch_model_changes_model(mock_agent: ClippyAgent) -> None:
     """Test switching to a different model."""
     success, message = mock_agent.switch_model(model="gpt-3.5-turbo")
 
@@ -41,7 +41,7 @@ def test_switch_model_changes_model(mock_agent):
     assert mock_agent.model == "gpt-3.5-turbo"
 
 
-def test_switch_model_changes_base_url(mock_agent):
+def test_switch_model_changes_base_url(mock_agent: ClippyAgent) -> None:
     """Test switching to a different provider base URL."""
     success, message = mock_agent.switch_model(
         model="llama3.1-8b", base_url="https://api.cerebras.ai/v1"
@@ -52,7 +52,7 @@ def test_switch_model_changes_base_url(mock_agent):
     assert mock_agent.base_url == "https://api.cerebras.ai/v1"
 
 
-def test_switch_model_changes_api_key(mock_agent):
+def test_switch_model_changes_api_key(mock_agent: ClippyAgent) -> None:
     """Test switching with a different API key."""
     success, message = mock_agent.switch_model(
         model="llama3.1-8b",
@@ -66,7 +66,7 @@ def test_switch_model_changes_api_key(mock_agent):
     assert mock_agent.base_url == "https://api.cerebras.ai/v1"
 
 
-def test_switch_model_keeps_current_values_if_none(mock_agent):
+def test_switch_model_keeps_current_values_if_none(mock_agent: ClippyAgent) -> None:
     """Test that None values preserve current settings."""
     original_model = mock_agent.model
     original_base_url = mock_agent.base_url
@@ -81,7 +81,7 @@ def test_switch_model_keeps_current_values_if_none(mock_agent):
     assert mock_agent.api_key == original_api_key
 
 
-def test_switch_model_partial_update(mock_agent):
+def test_switch_model_partial_update(mock_agent: ClippyAgent) -> None:
     """Test updating only some parameters."""
     original_api_key = mock_agent.api_key
 
@@ -93,7 +93,7 @@ def test_switch_model_partial_update(mock_agent):
     assert mock_agent.api_key == original_api_key
 
 
-def test_reset_conversation(mock_agent):
+def test_reset_conversation(mock_agent: ClippyAgent) -> None:
     """Test resetting conversation history."""
     # Add some conversation history
     mock_agent.conversation_history = [
@@ -107,7 +107,7 @@ def test_reset_conversation(mock_agent):
     assert mock_agent.interrupted is False
 
 
-def test_conversation_history_preserved_after_model_switch(mock_agent):
+def test_conversation_history_preserved_after_model_switch(mock_agent: ClippyAgent) -> None:
     """Test that conversation history is preserved when switching models."""
     # Add conversation history
     mock_agent.conversation_history = [
@@ -126,7 +126,7 @@ def test_conversation_history_preserved_after_model_switch(mock_agent):
     assert mock_agent.conversation_history[1]["role"] == "user"
 
 
-def test_provider_recreated_on_switch(mock_agent):
+def test_provider_recreated_on_switch(mock_agent: ClippyAgent) -> None:
     """Test that provider is recreated when switching models."""
     original_provider = mock_agent.provider
 
