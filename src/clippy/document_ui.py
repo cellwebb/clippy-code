@@ -4,9 +4,9 @@ import re
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.events import Key
+from textual.widgets import Static, TextArea, Button
+from textual.containers import Container, Horizontal, Vertical
 from textual.message import Message
-from textual.widgets import Static, TextArea
 
 
 def strip_ansi_codes(text: str) -> str:
@@ -63,23 +63,22 @@ def strip_ansi_codes(text: str) -> str:
 
 
 class DocumentTextArea(TextArea):
-    """Custom TextArea that sends messages on Enter key."""
+    """Custom TextArea that sends messages on Enter."""
 
     class SubmitMessage(Message):
         """Message sent when Enter is pressed."""
 
         pass
 
-    def _on_key(self, event: Key) -> None:
-        """Handle key press events."""
+    def on_key(self, event) -> None:
+        """Handle key events."""
+        # Simple Enter detection
         if event.key == "enter":
-            # Send submit message instead of inserting newline
+            # Always submit on Enter, regardless of modifiers
+            # This avoids issues with different Textual versions
+            self.post_message(self.SubmitMessage())
             event.prevent_default()
             event.stop()
-            self.post_message(self.SubmitMessage())
-        else:
-            # Let parent handle all other keys
-            super()._on_key(event)
 
 
 class DocumentHeader(Static):
@@ -88,7 +87,7 @@ class DocumentHeader(Static):
     def compose(self) -> ComposeResult:
         yield Static("📎 clippy - 📄 Document Mode", classes="doc-title")
         yield Static(
-            "Type directly in the document, press Enter to send | Ctrl+H (help) | Ctrl+Q (quit)",
+            "Type directly in the document, press Enter to send message",
             classes="doc-commands",
         )
 
@@ -97,8 +96,12 @@ class DocumentStatusBar(Static):
     """Status bar showing model info."""
 
     def update_status(self, model: str, messages: int, tokens: int = 0) -> None:
-        """Update status bar."""
+        """Update status bar with model info."""
         self.update(f"Model: {model} | Messages: {messages} | Tokens: {tokens:,}")
+
+    def update_message(self, message: str) -> None:
+        """Update status bar with a simple message."""
+        self.update(message)
 
 
 class DocumentApp(App):
@@ -106,12 +109,12 @@ class DocumentApp(App):
 
     CSS = """
     Screen {
-        background: #f5f5f5;
+        background: #f0f0f0;
     }
 
     DocumentHeader {
         dock: top;
-        height: 5;
+        height: 4;
         background: #2b579a;
         color: white;
         padding: 1;
@@ -126,39 +129,67 @@ class DocumentApp(App):
     .doc-commands {
         text-align: center;
         color: #e0e0e0;
-        margin-top: 1;
+    }
+
+    #toolbar {
+        dock: top;
+        height: 3;
+        background: #f0f0f0;
+        border-bottom: solid #d0d0d0;
+        padding: 0 1;
+        margin-top: 4;
+    }
+
+    #toolbar Button {
+        margin: 0 1;
+        width: 10;
+        height: 1fr;
+        background: #e0e0e0;
+        color: #000000;
+        border: round #888888;
+    }
+
+    #toolbar Button:hover {
+        background: #d0d0d0;
+    }
+
+    #toolbar Button:focus {
+        border: double #2b579a;
+    }
+
+    #toolbar Button.-active {
+        background: #2b579a;
+        color: white;
     }
 
     #document-area {
         background: white;
         color: #000000;
         border: solid #d0d0d0;
-        margin: 1 8;
+        margin: 1 2;
         padding: 2 4;
         height: 1fr;
+        width: 1fr;
     }
 
     DocumentStatusBar {
         dock: bottom;
         height: 1;
-        background: #2b579a;
+        background: #1e3c72;
         color: white;
         text-align: center;
     }
 
     #help-panel {
-        background: white;
-        border: heavy #2b579a;
-        padding: 2;
-        margin: 4 16;
+        background: #ffffcc;
+        border: round #cccc99;
+        padding: 1 2;
+        margin: 2 4;
     }
     """
 
     BINDINGS = [
-        Binding("ctrl+q", "quit", "Quit", show=False),
-        Binding("ctrl+h", "toggle_help", "Help", show=False),
-        Binding("ctrl+r", "reset", "Reset", show=False),
-        Binding("ctrl+s", "show_status", "Status", show=False),
+        Binding("ctrl+q", "quit", "Quit"),
     ]
 
     def __init__(self, agent, auto_approve: bool = False) -> None:
@@ -171,7 +202,16 @@ class DocumentApp(App):
     def compose(self) -> ComposeResult:
         """Compose the document UI."""
         yield DocumentHeader()
-        yield DocumentTextArea(id="document-area", show_line_numbers=False)
+        
+        # Toolbar with Word-like buttons
+        with Horizontal(id="toolbar"):
+            yield Button("Send", id="submit-btn", variant="default")
+            yield Button("Reset", id="reset-btn", variant="default")
+            yield Button("Help", id="help-btn", variant="default")
+            yield Button("Status", id="status-btn", variant="default")
+            yield Button("Quit", id="quit-btn", variant="default")
+        
+        yield DocumentTextArea(id="document-area", language="markdown")
         yield DocumentStatusBar()
 
     def on_mount(self) -> None:
@@ -180,6 +220,21 @@ class DocumentApp(App):
         text_area.focus()
         self.input_start_position = 0
         self.update_status_bar()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses."""
+        button_id = event.button.id
+        
+        if button_id == "submit-btn":
+            self.action_submit()
+        elif button_id == "reset-btn":
+            self.action_reset()
+        elif button_id == "help-btn":
+            self.action_toggle_help()
+        elif button_id == "status-btn":
+            self.action_show_status()
+        elif button_id == "quit-btn":
+            self.action_quit()
 
     def on_document_text_area_submit_message(self, message: DocumentTextArea.SubmitMessage) -> None:
         """Handle Enter key press from the text area."""
@@ -198,7 +253,7 @@ class DocumentApp(App):
             status_bar.update_status("unknown", 0, 0)
 
     def action_submit(self) -> None:
-        """Handle Enter key to submit the message."""
+        """Submit the message to the agent."""
         text_area = self.query_one("#document-area", DocumentTextArea)
         full_text = text_area.text
 
@@ -229,6 +284,10 @@ class DocumentApp(App):
         # Run the agent
         self.run_worker(self.run_agent_async(user_input), exclusive=True)
 
+    def action_quit(self) -> None:
+        """Quit the application."""
+        self.exit()
+
     async def run_agent_async(self, user_input: str) -> None:
         """Run agent asynchronously."""
         text_area = self.query_one("#document-area", DocumentTextArea)
@@ -236,8 +295,8 @@ class DocumentApp(App):
 
         try:
             # Show processing status in status bar
-            status_bar.update("💡 Thinking...")
-            self.refresh()  # Force screen refresh to show the update immediately
+            status_bar.update_message("💡 Thinking...")
+            self.refresh()  # Refresh the screen to show immediate status update
 
             import io
             from contextlib import redirect_stderr, redirect_stdout
@@ -259,8 +318,6 @@ class DocumentApp(App):
 
             try:
                 with redirect_stdout(output_buffer), redirect_stderr(error_buffer):
-                    # Set a flag to indicate we're in document mode
-                    # This will be checked by the spinner to disable it
                     self.agent.run(user_input, auto_approve_all=self.auto_approve)
             finally:
                 if old_console:
@@ -294,9 +351,10 @@ class DocumentApp(App):
             text_area.insert(f"Error: {e}\n\n")
             text_area.move_cursor_relative(rows=100)
             self.input_start_position = len(text_area.text)
-            
+
             # Update status bar to show error
-            status_bar.update("❌ Error occurred")
+            status_bar.update_message("❌ Error occurred")
+            self.refresh()  # Refresh the screen to show error status immediately
 
     def action_toggle_help(self) -> None:
         """Toggle help panel."""
@@ -309,27 +367,18 @@ class DocumentApp(App):
             self.help_visible = False
         else:
             help_content = Static(
-                """╔══════════════════════════════════════════════════════════════╗
-║                          HELP - COMMANDS                        ║
-╠══════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║  Enter         - Submit your message to clippy                  ║
-║  /exit, /quit  - Exit the document                              ║
-║  /reset        - Clear conversation history                     ║
-║  /status       - Show session information                       ║
-║  /help         - Show this help message                         ║
-║                                                                  ║
-║  Ctrl+Q        - Quit                                            ║
-║  Ctrl+H        - Toggle help                                     ║
-║  Ctrl+R        - Reset conversation                              ║
-║  Ctrl+S        - Show status                                     ║
-║                                                                  ║
-║  Type directly in the document like Word!                       ║
-║  Press Enter when ready to send your message.                   ║
-║                                                                  ║
-║  Press Ctrl+H or type /help to close this panel                ║
-║                                                                  ║
-╚══════════════════════════════════════════════════════════════╝""",
+                """📎 clippy - Document Mode Help
+
+ shortcuts:
+• Enter        - Send message to clippy
+• Ctrl+Q       - Quit application
+
+ toolbar buttons:
+• Send   - Submit your message
+• Reset  - Clear conversation history  
+• Help   - Show/hide this help panel
+• Status - Display session information
+• Quit   - Exit clippy""",
                 id="help-panel",
             )
             self.mount(help_content)
@@ -350,16 +399,15 @@ class DocumentApp(App):
         try:
             status = self.agent.get_token_count()
             status_text = f"""
-━━━━━━━━━━━━━━━━━━━ STATUS ━━━━━━━━━━━━━━━━━━━
+📎 clippy - Session Status
+
 Model: {status.get("model", "unknown")}
 Provider: {status.get("base_url") or "OpenAI"}
 Messages: {status.get("message_count", 0)}
 Tokens: {status.get("total_tokens", 0):,}
-Context Usage: {status.get("usage_percent", 0):.1f}%
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-"""
+Context Usage: {status.get("usage_percent", 0):.1f}%"""
             text_area.insert(status_text)
+            text_area.insert("\n\n")
             text_area.move_cursor_relative(rows=100)
             self.input_start_position = len(text_area.text)
         except Exception as e:
