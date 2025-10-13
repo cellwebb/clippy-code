@@ -69,6 +69,13 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "-d",
+        "--document",
+        action="store_true",
+        help="Start in document mode (Word-like TUI interface)",
+    )
+
+    parser.add_argument(
         "-y",
         "--yes",
         action="store_true",
@@ -393,7 +400,12 @@ def main():
     )
 
     # Determine mode
-    if args.interactive or not args.prompt:
+    if args.document:
+        # Document mode (Word-like TUI)
+        from .document_ui import run_document_mode
+
+        run_document_mode(agent, args.yes)
+    elif args.interactive or not args.prompt:
         # Interactive mode
         run_interactive(agent, args.yes)
     else:

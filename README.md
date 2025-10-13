@@ -168,6 +168,37 @@ In interactive mode, you can:
 - `/exit` or `/quit` - Exit clippy-code
 - Press Ctrl+C during execution to interrupt
 
+### Document Mode (NEW!)
+
+Experience a Microsoft Word-inspired TUI interface where you type directly on the page:
+
+```bash
+# Start document mode
+clippy -d
+
+# Or with specific model
+clippy -d --model gpt-4o
+```
+
+Document mode features:
+
+- 📄 **Word-like document interface** with proper borders and styling
+- 💬 **Colored message backgrounds**:
+  - Blue background for your messages
+  - Gray background for clippy's responses
+- ⌨️ **Type in the blue input area** at the bottom
+- ✅ **Press `Enter` to send** your message
+- 🎨 **Clean scrolling conversation** that looks like a real document
+- 📊 **Live status bar** showing model, message count, and tokens
+- **Keyboard shortcuts**:
+  - `Enter` - Submit your message
+  - `Ctrl+Q` - Quit document
+  - `Ctrl+H` - Toggle help
+  - `Ctrl+R` - Reset conversation
+  - `Ctrl+S` - Show status
+
+Document mode provides a Microsoft Word-inspired interface with color-coded messages and a clean, professional appearance.
+
 ## Permission System
 
 has a built-in permission system to keep you safe:

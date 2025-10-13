@@ -126,6 +126,7 @@ class LLMProvider:
         tool_calls_dict: dict[int, dict[str, Any]] = {}  # Track tool calls by index
         role = "assistant"
         finish_reason = None
+        content_started = False  # Track if we've started printing content
 
         for chunk in stream:
             if not chunk.choices:  # type: ignore
@@ -140,6 +141,10 @@ class LLMProvider:
 
             # Stream text content to user in real-time
             if delta.content:
+                # Print prefix before first content chunk
+                if not content_started:
+                    print("\n[📎] ", end="", flush=True)
+                    content_started = True
                 print(delta.content, end="", flush=True)
                 full_content += delta.content
 
