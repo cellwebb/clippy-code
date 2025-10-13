@@ -1,5 +1,6 @@
 """Microsoft Word-inspired document interface using Textual."""
 
+import os
 import re
 from typing import Any
 
@@ -9,6 +10,8 @@ from textual.containers import Horizontal
 from textual.events import Key
 from textual.message import Message
 from textual.widgets import Button, Static, TextArea
+
+from .models import get_model_config, list_available_models
 
 
 def strip_ansi_codes(text: str) -> str:
@@ -190,6 +193,13 @@ class DocumentApp(App[None]):
         padding: 1 2;
         margin: 2 4;
     }
+
+    #models-panel {
+        background: #e6f3ff;
+        border: round #99ccff;
+        padding: 1 2;
+        margin: 2 4;
+    }
     """
 
     BINDINGS = [
@@ -201,6 +211,7 @@ class DocumentApp(App[None]):
         self.agent = agent
         self.auto_approve = auto_approve
         self.help_visible = False
+        self.models_visible = False
         self.input_start_position = 0
 
     def compose(self) -> ComposeResult:
@@ -213,6 +224,7 @@ class DocumentApp(App[None]):
             yield Button("Reset", id="reset-btn", variant="default")
             yield Button("Help", id="help-btn", variant="default")
             yield Button("Status", id="status-btn", variant="default")
+            yield Button("Models", id="models-btn", variant="default")
             yield Button("Quit", id="quit-btn", variant="default")
 
         yield DocumentTextArea(id="document-area", language="markdown")
@@ -239,6 +251,8 @@ class DocumentApp(App[None]):
             self.action_toggle_help()
         elif button_id == "status-btn":
             self.action_show_status()
+        elif button_id == "models-btn":
+            self.action_toggle_models()
         elif button_id == "quit-btn":
             self.exit()
 
@@ -273,22 +287,150 @@ class DocumentApp(App[None]):
         if user_input.lower() in ["/exit", "/quit"]:
             self.exit()
             return
-        elif user_input.lower() == "/reset":
+        elif user_input.lower() in ["/reset", "/clear", "/new"]:
+            # For command responses, we want to show the command
+            text_area.insert("\n\n")
+            text_area.move_cursor_relative(rows=1)
             self.action_reset()
             return
         elif user_input.lower() == "/help":
+            # For command responses, we want to show the command
+            text_area.insert("\n\n")
+            text_area.move_cursor_relative(rows=1)
             self.action_toggle_help()
             return
         elif user_input.lower() == "/status":
+            # For command responses, we want to show the command
+            text_area.insert("\n\n")
+            text_area.move_cursor_relative(rows=1)
             self.action_show_status()
             return
+        elif user_input.lower() == "/compact":
+            # For command responses, we want to show the command
+            text_area.insert("\n\n")
+            text_area.move_cursor_relative(rows=1)
+            self.handle_compact_command()
+            return
+        elif user_input.lower().startswith("/model"):
+            # For command responses, we want to show the command
+            text_area.insert("\n\n")
+            text_area.move_cursor_relative(rows=1)
+            self.handle_model_command(user_input)
+            return
 
-        # Add spacing before response
+        # For regular messages, clear the input line and add spacing before response
+        text_area.delete(
+            (0, self.input_start_position),  # Start position
+            (0, len(text_area.text)),  # End position
+        )
         text_area.insert("\n\n")
         text_area.move_cursor_relative(rows=1)
 
         # Run the agent
         self.run_worker(self.run_agent_async(user_input), exclusive=True)
+
+    def handle_compact_command(self) -> None:
+        """Handle conversation compacting command."""
+        text_area = self.query_one("#document-area", DocumentTextArea)
+        status_bar = self.query_one(DocumentStatusBar)
+
+        # Show compacting status in status bar
+        status_bar.update_message("🔄 Compacting conversation...")
+
+        try:
+            success, message, stats = self.agent.compact_conversation()
+
+            if success:
+                status_text = f"""
+📎 clippy - Conversation Compacted
+
+Token Reduction:
+  Before: {stats["before_tokens"]:,} tokens
+  After:  {stats["after_tokens"]:,} tokens
+  Saved:  {stats["tokens_saved"]:,} tokens ({stats["reduction_percent"]:.1f}%)
+
+Messages:
+  Before:      {stats["messages_before"]} messages
+  After:       {stats["messages_after"]} messages
+  Summarized:  {stats["messages_summarized"]} messages
+
+The conversation history has been condensed while preserving recent context."""
+            else:
+                status_text = f"""
+📎 clippy - Cannot Compact
+
+{message}"""
+
+            text_area.insert(status_text)
+            text_area.insert("\n\n[You] ➜ ")
+            text_area.move_cursor_relative(rows=1)
+            self.input_start_position = len(text_area.text)
+            self.update_status_bar()
+
+        except Exception as e:
+            text_area.insert(f"Error compacting conversation: {e}\n\n[You] ➜ ")
+            text_area.move_cursor_relative(rows=1)
+            self.input_start_position = len(text_area.text)
+            status_bar.update_message("❌ Error occurred")
+
+    def handle_model_command(self, command: str) -> None:
+        """Handle model switching command."""
+        text_area = self.query_one("#document-area", DocumentTextArea)
+        status_bar = self.query_one(DocumentStatusBar)
+
+        parts = command.split(maxsplit=1)
+        if len(parts) == 1 or parts[1].lower() == "list":
+            # Show available models
+            models = list_available_models()
+            model_list = "\n".join(f"  {name:20} - {desc}" for name, desc in models)
+            current_model = self.agent.model
+            current_provider = self.agent.base_url or "OpenAI"
+
+            panel_content = f"""
+📎 clippy - Available Models
+
+{model_list}
+
+Current: {current_model} ({current_provider})
+
+Usage: /model <name>"""
+
+            text_area.insert(panel_content)
+            text_area.insert("\n\n[You] ➜ ")
+            text_area.move_cursor_relative(rows=1)
+            self.input_start_position = len(text_area.text)
+        else:
+            # Switch to specified model
+            model_name = parts[1].strip()
+            config = get_model_config(model_name)
+
+            if config:
+                # Use preset configuration
+                # Load API key from environment variable specified in config
+                api_key = os.getenv(config.api_key_env)
+
+                if not api_key:
+                    # Continue anyway - some providers like Ollama might not need a key
+                    api_key = "not-set"
+
+                success, message = self.agent.switch_model(
+                    model=config.model_id, base_url=config.base_url, api_key=api_key
+                )
+            else:
+                # Treat as custom model ID (keep current base_url and api_key)
+                success, message = self.agent.switch_model(model=model_name)
+
+            if success:
+                text_area.insert(f"✓ Model switched to: {message}")
+                status_bar.update_message(f"✓ Model switched to: {message}")
+            else:
+                text_area.insert(f"✗ Error: {message}")
+                status_bar.update_message(f"✗ Error: {message}")
+
+            text_area.insert("\n\n[You] ➜ ")
+            text_area.move_cursor_relative(rows=1)
+            self.input_start_position = len(text_area.text)
+            self.update_status_bar()
 
     async def run_agent_async(self, user_input: str) -> None:
         """Run agent asynchronously."""
@@ -360,10 +502,10 @@ class DocumentApp(App[None]):
         """Reset conversation."""
         self.agent.reset_conversation()
         text_area = self.query_one("#document-area", DocumentTextArea)
-        text_area.clear()
-        text_area.insert("[You] ➜ ")
+        text_area.insert("✓ Conversation history reset")
+        text_area.insert("\n\n[You] ➜ ")
+        text_area.move_cursor_relative(rows=1)
         self.input_start_position = len(text_area.text)
-        text_area.focus()
         self.update_status_bar()
 
     def action_toggle_help(self) -> None:
@@ -388,15 +530,58 @@ class DocumentApp(App[None]):
 • Reset  - Clear conversation history
 • Help   - Show/hide this help panel
 • Status - Display session information
-• Quit   - Exit clippy""",
+• Models - Show model switching options
+• Quit   - Exit clippy
+
+ slash commands:
+• /exit, /quit     - Exit clippy
+• /reset, /clear, /new - Reset conversation history
+• /help           - Show this help message
+• /status         - Show session information
+• /compact        - Summarize conversation to reduce context usage
+• /model list     - Show available models
+• /model <name>   - Switch to a different model""",
                 id="help-panel",
             )
             self.mount(help_content)
             self.help_visible = True
 
+    def action_toggle_models(self) -> None:
+        """Toggle models panel."""
+        if self.models_visible:
+            try:
+                models_panel = self.query_one("#models-panel")
+                models_panel.remove()
+            except Exception:
+                pass
+            self.models_visible = False
+        else:
+            models = list_available_models()
+            model_list = "\n".join(f"• {name:20} - {desc}" for name, desc in models)
+            current_model = self.agent.model
+            current_provider = self.agent.base_url or "OpenAI"
+
+            models_content = Static(
+                f"""📎 clippy - Available Models
+
+{model_list}
+
+Current Model: {current_model}
+Provider: {current_provider}
+
+To switch models:
+1. Type "/model <name>" and press Enter
+2. Or use the Models button to close this panel""",
+                id="models-panel",
+            )
+            self.mount(models_content)
+            self.models_visible = True
+
     def action_show_status(self) -> None:
         """Show status information."""
         text_area = self.query_one("#document-area", DocumentTextArea)
+        status_bar = self.query_one(DocumentStatusBar)
+
         try:
             status = self.agent.get_token_count()
             status_text = f"""
@@ -412,9 +597,10 @@ Context Usage: {status.get("usage_percent", 0):.1f}%"""
             text_area.move_cursor_relative(rows=1)
             self.input_start_position = len(text_area.text)
         except Exception as e:
-            text_area.insert(f"\nError getting status: {e}\n\n[You] ➜ ")
+            text_area.insert(f"Error getting status: {e}\n\n[You] ➜ ")
             text_area.move_cursor_relative(rows=1)
             self.input_start_position = len(text_area.text)
+            status_bar.update_message("❌ Error occurred")
 
 
 def run_document_mode(agent: Any, auto_approve: bool = False) -> None:
