@@ -131,6 +131,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
             "Commands:\n"
             "  /exit, /quit - Exit clippy-code\n"
             "  /reset - Reset conversation history\n"
+            "  /status - Show token usage and session info\n"
             "  /model list - Show available models\n"
             "  /model <name> - Switch model/provider\n"
             "  /help - Show this help message\n\n"
@@ -162,6 +163,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                         "[bold]Commands:[/bold]\n"
                         "  /exit, /quit - Exit clippy-code\n"
                         "  /reset - Reset conversation history\n"
+                        "  /status - Show token usage and session info\n"
                         "  /model list - Show available model presets\n"
                         "  /model <name> - Switch to a preset model\n"
                         "  /help - Show this help message\n\n"
@@ -170,6 +172,45 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                         border_style="blue",
                     )
                 )
+                continue
+            elif user_input.lower() == "/status":
+                # Show session status and token usage
+                status = agent.get_token_count()
+
+                if "error" in status:
+                    console.print(
+                        Panel.fit(
+                            f"[bold red]Error counting tokens:[/bold red]\n{status['error']}\n\n"
+                            f"[bold]Session Info:[/bold]\n"
+                            f"  Model: {status['model']}\n"
+                            f"  Provider: {status.get('base_url') or 'OpenAI'}\n"
+                            f"  Messages: {status['message_count']}",
+                            title="Status",
+                            border_style="yellow",
+                        )
+                    )
+                else:
+                    provider = status.get("base_url") or "OpenAI"
+                    usage_bar_length = 20
+                    usage_filled = int((status["usage_percent"] / 100) * usage_bar_length)
+                    usage_bar = "█" * usage_filled + "░" * (usage_bar_length - usage_filled)
+
+                    usage_pct = f"{status['usage_percent']:.1f}%"
+                    console.print(
+                        Panel.fit(
+                            f"[bold]Current Session:[/bold]\n"
+                            f"  Model: [cyan]{status['model']}[/cyan]\n"
+                            f"  Provider: [cyan]{provider}[/cyan]\n"
+                            f"  Messages: [cyan]{status['message_count']}[/cyan]\n\n"
+                            f"[bold]Token Usage:[/bold]\n"
+                            f"  Context: [cyan]{status['total_tokens']:,}[/cyan] tokens\n"
+                            f"  Max Response: [cyan]{status['max_tokens']:,}[/cyan] tokens\n"
+                            f"  Usage: [{usage_bar}] [cyan]{usage_pct}[/cyan]\n\n"
+                            f"[dim]Note: Usage % is estimated for ~128k context window[/dim]",
+                            title="Session Status",
+                            border_style="cyan",
+                        )
+                    )
                 continue
             elif user_input.lower().startswith("/model"):
                 # Handle model switching
