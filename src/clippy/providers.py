@@ -1,17 +1,16 @@
 """OpenAI-compatible LLM provider."""
 
+import logging
 import os
-import sys
 from typing import Any, cast
 
 from tenacity import (
+    before_sleep_log,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    before_sleep_log,
 )
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -72,8 +71,8 @@ class LLMProvider:
             from openai import (
                 APIConnectionError,
                 APITimeoutError,
-                RateLimitError,
                 InternalServerError,
+                RateLimitError,
             )
 
             # Call OpenAI API with streaming enabled

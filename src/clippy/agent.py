@@ -2,7 +2,6 @@
 
 import json
 import logging
-import os
 from typing import Any
 
 import tiktoken
@@ -308,10 +307,10 @@ You are running in a CLI environment. Be concise but informative in your respons
             from openai import (
                 APIConnectionError,
                 APITimeoutError,
-                RateLimitError,
                 AuthenticationError,
                 BadRequestError,
                 InternalServerError,
+                RateLimitError,
             )
 
             if isinstance(error, AuthenticationError):
@@ -335,10 +334,7 @@ You are running in a CLI environment. Be concise but informative in your respons
                     "The system will automatically retry."
                 )
             elif isinstance(error, BadRequestError):
-                return (
-                    f"Bad request. The API rejected the request.\n\n"
-                    f"Details: {str(error)}"
-                )
+                return f"Bad request. The API rejected the request.\n\nDetails: {str(error)}"
             elif isinstance(error, InternalServerError):
                 return (
                     "Server error. The API encountered an internal error.\n\n"
@@ -456,3 +452,107 @@ You are running in a CLI environment. Be concise but informative in your respons
                 "model": self.model,
                 "base_url": self.base_url,
             }
+
+    def compact_conversation(self, keep_recent: int = 4) -> tuple[bool, str, dict[str, Any]]:
+        """
+        Compact the conversation history by summarizing older messages.
+
+        This helps manage context window limits by condensing older conversation
+        history into a summary while keeping recent messages intact.
+
+        Args:
+            keep_recent: Number of recent messages to keep intact (default: 4)
+
+        Returns:
+            Tuple of (success: bool, message: str, stats: dict)
+            Stats include before/after token counts and reduction percentage
+        """
+        # Need at least system + user + assistant + keep_recent messages to compact
+        min_messages = 3 + keep_recent
+        if len(self.conversation_history) <= min_messages:
+            return (
+                False,
+                f"Conversation too short to compact (need >{min_messages} messages)",
+                {},
+            )
+
+        # Get token count before compaction
+        before_stats = self.get_token_count()
+        if "error" in before_stats:
+            return False, f"Error counting tokens: {before_stats['error']}", {}
+
+        before_tokens = before_stats["total_tokens"]
+
+        try:
+            # Separate conversation parts
+            system_msg = self.conversation_history[0]  # Keep system prompt
+            recent_msgs = self.conversation_history[-keep_recent:]  # Keep recent messages
+            to_summarize = self.conversation_history[1:-keep_recent]  # Messages to compact
+
+            if not to_summarize:
+                return False, "No messages to compact", {}
+
+            # Create summarization prompt
+            summary_request = {
+                "role": "user",
+                "content": """Please create a concise summary of the conversation so far.
+Focus on:
+- Key tasks and requests made
+- Important decisions and outcomes
+- Relevant code changes or file operations
+- Any ongoing context needed for future requests
+
+Keep the summary brief but informative (aim for 200-400 words).""",
+            }
+
+            # Build temporary conversation for summarization
+            summarization_conversation = [system_msg] + to_summarize + [summary_request]
+
+            # Call LLM to create summary
+            response = self.provider.create_message(
+                messages=summarization_conversation,
+                tools=[],  # No tools needed for summarization
+                model=self.model,
+            )
+
+            summary_content = response.get("content", "")
+            if not summary_content:
+                return False, "Failed to generate summary", {}
+
+            # Create new conversation history
+            summary_msg = {
+                "role": "assistant",
+                "content": f"[CONVERSATION SUMMARY]\n\n{summary_content}\n\n[END SUMMARY]",
+            }
+
+            # Rebuild conversation: system + summary + recent messages
+            self.conversation_history = [system_msg, summary_msg] + recent_msgs
+
+            # Get token count after compaction
+            after_stats = self.get_token_count()
+            after_tokens = after_stats["total_tokens"]
+
+            # Calculate reduction
+            tokens_saved = before_tokens - after_tokens
+            reduction_percent = (tokens_saved / before_tokens) * 100 if before_tokens > 0 else 0
+
+            stats = {
+                "before_tokens": before_tokens,
+                "after_tokens": after_tokens,
+                "tokens_saved": tokens_saved,
+                "reduction_percent": reduction_percent,
+                "messages_before": before_stats["message_count"],
+                "messages_after": len(self.conversation_history),
+                "messages_summarized": len(to_summarize),
+            }
+
+            success_msg = (
+                f"Conversation compacted: {before_tokens:,} → {after_tokens:,} tokens "
+                f"({reduction_percent:.1f}% reduction)"
+            )
+
+            return True, success_msg, stats
+
+        except Exception as e:
+            logger.error(f"Error during conversation compaction: {e}", exc_info=True)
+            return False, f"Error compacting conversation: {e}", {}
