@@ -31,8 +31,21 @@ def _load_model_presets() -> dict[str, ModelConfig]:
     for provider_name, provider_data in config["providers"].items():
         base_url = provider_data.get("base_url")
         api_key_env = provider_data.get("api_key_env", "OPENAI_API_KEY")
+        default_model = provider_data.get("default_model")
         models = provider_data.get("models", {})
 
+        # Add provider name as a model alias if it has a default model
+        if default_model and default_model in models:
+            model_data = models[default_model]
+            presets[provider_name] = ModelConfig(
+                name=provider_name,
+                model_id=model_data["model_id"],
+                base_url=base_url,
+                description=model_data["description"],
+                api_key_env=api_key_env,
+            )
+
+        # Add all individual models
         for model_name, model_data in models.items():
             presets[model_name] = ModelConfig(
                 name=model_name,

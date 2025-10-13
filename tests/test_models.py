@@ -60,7 +60,7 @@ def test_get_cerebras_model():
 
     assert config is not None
     assert config.name == "cerebras"
-    assert config.model_id == "llama3.1-8b"
+    assert config.model_id == "qwen-3-coder-480b"
     assert config.base_url == "https://api.cerebras.ai/v1"
     assert config.api_key_env == "CEREBRAS_API_KEY"
 
@@ -82,6 +82,7 @@ def test_get_groq_model():
 
     assert config is not None
     assert config.name == "groq"
+    assert config.model_id == "llama3-70b-8192"
     assert config.base_url == "https://api.groq.com/openai/v1"
     assert config.api_key_env == "GROQ_API_KEY"
 
@@ -92,6 +93,7 @@ def test_get_together_model():
 
     assert config is not None
     assert config.name == "together-llama-8b"
+    assert config.model_id == "meta-llama/Llama-3-8b-chat-hf"
     assert config.base_url == "https://api.together.xyz/v1"
     assert config.api_key_env == "TOGETHER_API_KEY"
 
