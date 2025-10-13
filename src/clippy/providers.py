@@ -21,14 +21,14 @@ logger = logging.getLogger(__name__)
 class Spinner:
     """A simple terminal spinner for indicating loading status."""
 
-    def __init__(self, message: str = "Processing", enabled: bool = True):
+    def __init__(self, message: str = "Processing", enabled: bool = True) -> None:
         self.message = message
         self.spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
         self.running = False
-        self.thread = None
+        self.thread: threading.Thread | None = None
         self.enabled = enabled
 
-    def _spin(self):
+    def _spin(self) -> None:
         """Internal method to run the spinner animation."""
         i = 0
         while self.running:
@@ -39,7 +39,7 @@ class Spinner:
             time.sleep(0.1)
             i += 1
 
-    def start(self):
+    def start(self) -> None:
         """Start the spinner."""
         if not self.enabled or self.running:
             return
@@ -48,7 +48,7 @@ class Spinner:
         self.thread = threading.Thread(target=self._spin, daemon=True)
         self.thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the spinner and clear the line."""
         self.running = False
         if self.thread:
@@ -67,7 +67,9 @@ class LLMProvider:
     Azure OpenAI, Ollama, llama.cpp, vLLM, Groq, etc.)
     """
 
-    def __init__(self, api_key: str | None = None, base_url: str | None = None, **kwargs):
+    def __init__(
+        self, api_key: str | None = None, base_url: str | None = None, **kwargs: Any
+    ) -> None:
         """
         Initialize OpenAI-compatible provider.
 
@@ -81,7 +83,7 @@ class LLMProvider:
         except ImportError:
             raise ImportError("openai package is required. Install it with: pip install openai")
 
-        client_kwargs = {"api_key": api_key}
+        client_kwargs: dict[str, Any] = {"api_key": api_key}
         if base_url:
             client_kwargs["base_url"] = base_url
 
@@ -102,8 +104,8 @@ class LLMProvider:
         model: str,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Any:
         """
         Internal method to create completion with retry logic.
 
@@ -119,12 +121,22 @@ class LLMProvider:
                 InternalServerError,
                 RateLimitError,
             )
+        except ImportError:
+            raise ImportError("openai package is required. Install it with: pip install openai")
+
+        try:
+            from openai import (
+                APIConnectionError,
+                APITimeoutError,
+                InternalServerError,
+                RateLimitError,
+            )
 
             # Call OpenAI API with streaming enabled
             return self.client.chat.completions.create(
                 model=model,
-                messages=messages,
-                tools=tools if tools else None,
+                messages=messages,  # type: ignore
+                tools=tools if tools else None,  # type: ignore
                 stream=True,
                 **kwargs,
             )
@@ -141,7 +153,7 @@ class LLMProvider:
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         model: str = "gpt-4o",
-        **kwargs,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """
         Create a chat completion using OpenAI format with streaming.
@@ -188,18 +200,18 @@ class LLMProvider:
         content_started = False  # Track if we've started printing content
 
         for chunk in stream:
-            if not chunk.choices:  # type: ignore
+            if not chunk.choices:
                 continue
 
-            choice = chunk.choices[0]  # type: ignore
+            choice = chunk.choices[0]
             delta = choice.delta
 
             # Update role if present
-            if delta.role:
+            if hasattr(delta, "role") and delta.role:
                 role = delta.role
 
             # Stream text content to user in real-time
-            if delta.content:
+            if hasattr(delta, "content") and delta.content:
                 # Print prefix before first content chunk
                 if not content_started:
                     print("\n[📎] ", end="", flush=True)
@@ -208,7 +220,7 @@ class LLMProvider:
                 full_content += delta.content
 
             # Accumulate tool calls
-            if delta.tool_calls:
+            if hasattr(delta, "tool_calls") and delta.tool_calls:
                 for tc_delta in delta.tool_calls:
                     idx = tc_delta.index
                     if idx not in tool_calls_dict:
@@ -242,7 +254,7 @@ class LLMProvider:
             print()
 
         # Convert to simple dict format
-        result = {
+        result: dict[str, Any] = {
             "role": role,
             "content": full_content if full_content else None,
             "finish_reason": finish_reason,
@@ -257,4 +269,4 @@ class LLMProvider:
     def get_default_model(self) -> str:
         """Get the default model."""
         # Check for model in environment first
-        return os.getenv("CLIPPY_MODEL", "gpt-5")
+        return os.getenv("CLIPPY_MODEL", "gpt-4o")  # Fixed default model

@@ -1,10 +1,12 @@
 """Microsoft Word-inspired document interface using Textual."""
 
 import re
+from typing import Any
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal
+from textual.events import Key
 from textual.message import Message
 from textual.widgets import Button, Static, TextArea
 
@@ -70,10 +72,10 @@ class DocumentTextArea(TextArea):
 
         pass
 
-    def on_key(self, event) -> None:
+    def on_key(self, event: Key) -> None:
         """Handle key events."""
         # Simple Enter detection
-        if event.key == "enter":
+        if event.name == "enter":
             # Always submit on Enter, regardless of modifiers
             # This avoids issues with different Textual versions
             self.post_message(self.SubmitMessage())
@@ -104,7 +106,7 @@ class DocumentStatusBar(Static):
         self.update(message)
 
 
-class DocumentApp(App):
+class DocumentApp(App[None]):
     """A Textual app that looks like Microsoft Word."""
 
     CSS = """
@@ -194,7 +196,7 @@ class DocumentApp(App):
         Binding("ctrl+q", "quit", "Quit"),
     ]
 
-    def __init__(self, agent, auto_approve: bool = False) -> None:
+    def __init__(self, agent: Any, auto_approve: bool = False) -> None:
         super().__init__()
         self.agent = agent
         self.auto_approve = auto_approve
@@ -236,7 +238,7 @@ class DocumentApp(App):
         elif button_id == "status-btn":
             self.action_show_status()
         elif button_id == "quit-btn":
-            self.action_quit()
+            self.exit()
 
     def on_document_text_area_submit_message(self, message: DocumentTextArea.SubmitMessage) -> None:
         """Handle Enter key press from the text area."""
@@ -286,10 +288,6 @@ class DocumentApp(App):
         # Run the agent
         self.run_worker(self.run_agent_async(user_input), exclusive=True)
 
-    def action_quit(self) -> None:
-        """Quit the application."""
-        self.exit()
-
     async def run_agent_async(self, user_input: str) -> None:
         """Run agent asynchronously."""
         text_area = self.query_one("#document-area", DocumentTextArea)
@@ -298,7 +296,6 @@ class DocumentApp(App):
         try:
             # Show processing status in status bar
             status_bar.update_message("💡 Thinking...")
-            self.refresh()  # Refresh the screen to show immediate status update
 
             import io
             from contextlib import redirect_stderr, redirect_stdout
@@ -356,7 +353,15 @@ class DocumentApp(App):
 
             # Update status bar to show error
             status_bar.update_message("❌ Error occurred")
-            self.refresh()  # Refresh the screen to show error status immediately
+
+    def action_reset(self) -> None:
+        """Reset conversation."""
+        self.agent.reset_conversation()
+        text_area = self.query_one("#document-area", DocumentTextArea)
+        text_area.clear()
+        self.input_start_position = 0
+        text_area.focus()
+        self.update_status_bar()
 
     def action_toggle_help(self) -> None:
         """Toggle help panel."""
@@ -386,15 +391,6 @@ class DocumentApp(App):
             self.mount(help_content)
             self.help_visible = True
 
-    def action_reset(self) -> None:
-        """Reset conversation."""
-        self.agent.reset_conversation()
-        text_area = self.query_one("#document-area", DocumentTextArea)
-        text_area.clear()
-        self.input_start_position = 0
-        text_area.focus()
-        self.update_status_bar()
-
     def action_show_status(self) -> None:
         """Show status information."""
         text_area = self.query_one("#document-area", DocumentTextArea)
@@ -418,7 +414,7 @@ Context Usage: {status.get("usage_percent", 0):.1f}%"""
             self.input_start_position = len(text_area.text)
 
 
-def run_document_mode(agent, auto_approve: bool = False) -> None:
+def run_document_mode(agent: Any, auto_approve: bool = False) -> None:
     """Run the Textual document mode interface."""
     app = DocumentApp(agent, auto_approve)
     app.run()
