@@ -17,7 +17,7 @@ python -m clippy -i   # Run in interactive mode
 src/clippy/
 ├── cli.py           # CLI entry point, argument parsing
 ├── agent.py         # Core agent loop (max 25 iterations)
-├── providers.py     # LLM provider abstraction
+├── providers.py     # OpenAI-compatible LLM provider (~100 lines)
 ├── tools.py         # Tool definitions (JSON schemas)
 ├── executor.py      # Tool execution implementations
 └── permissions.py   # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
@@ -25,13 +25,15 @@ src/clippy/
 
 ## Core Architecture
 
-### Provider Abstraction
+### Provider Layer
 
-All LLM interactions go through `LLMProvider` interface. Never directly import `anthropic` or `openai` in agent logic.
+All LLM interactions go through a single `LLMProvider` class (~100 lines total).
 
-- `LLMProvider` (ABC) → `AnthropicProvider`, `OpenAIProvider`
-- `ProviderFactory` creates instances
-- All responses normalized to `LLMResponse` dataclass
+- Uses OpenAI SDK with native OpenAI format throughout (no conversions)
+- Works with any OpenAI-compatible API: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, Groq, etc.
+- Configure alternate providers via `base_url` parameter
+- Includes retry logic with exponential backoff (up to 3 attempts)
+- Streams responses in real-time
 
 ### Agent Flow
 
@@ -62,15 +64,16 @@ All LLM interactions go through `LLMProvider` interface. Never directly import `
 
 ## Adding Features
 
-### New LLM Provider
+### Using Alternate LLM Providers
 
-1. Create class in `providers.py` inheriting from `LLMProvider`
-2. Implement: `__init__`, `create_message()`, `get_default_model()`, `convert_tools_to_provider_format()`, `convert_messages_to_provider_format()`
-3. Register in `ProviderFactory.PROVIDERS`
-4. Add optional dependency to `pyproject.toml`
-5. Update CLI choices in `cli.py`
+CLIppy uses OpenAI format natively, so any OpenAI-compatible provider works out-of-the-box:
 
-See `OpenAIProvider` for reference implementation.
+1. Set `OPENAI_BASE_URL` to the provider's API endpoint
+2. Set `OPENAI_API_KEY` to your API key for that provider
+3. Set `CLIPPY_MODEL` to the model name (if different from default)
+4. No code changes needed!
+
+Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, Groq, Mistral API
 
 ### New Tool (checklist):
 
@@ -83,7 +86,11 @@ See `OpenAIProvider` for reference implementation.
 
 ## Configuration
 
-Environment variables: `CLIPPY_PROVIDER` (anthropic|openai), `CLIPPY_MODEL`, `CLIPPY_MAX_TOKENS`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`
+Environment variables:
+- `OPENAI_API_KEY`: API key for OpenAI or OpenAI-compatible provider (required)
+- `OPENAI_BASE_URL`: Base URL for alternate providers (e.g., https://api.cerebras.ai/v1)
+- `CLIPPY_MODEL`: Model identifier (default: gpt-4o)
+- `CLIPPY_MAX_TOKENS`: Max tokens for responses (default: 4096)
 
 Config files (priority order): `.env` → `~/.clippy.env` → system env
 
@@ -93,8 +100,9 @@ Config files (priority order): `.env` → `~/.clippy.env` → system env
 - **Command timeout**: 30 seconds
 - **File ops**: Auto-create parent dirs, UTF-8 encoding, use `pathlib.Path`
 - **Executor returns**: `tuple[bool, str, Any]` (success, message, result)
-- **Message format**: Tool results need matching `tool_use_id`, alternating "user"/"assistant" roles
-- **Conversation**: Store in Anthropic-style format, providers convert on API call
+- **Message format**: Uses OpenAI format natively throughout (no conversions)
+- **Conversation**: Stores messages in OpenAI format with role and content fields
+- **Streaming**: Responses are streamed in real-time to provide immediate feedback
 
 ## Version Management
 
@@ -102,7 +110,9 @@ Keep `pyproject.toml` and `src/clippy/__version__.py` in sync. Use: `make bump-p
 
 ## Design Rationale
 
-- **Anthropic format internally**: Cleaner schema, better multi-turn support
+- **OpenAI format natively**: Single standard format, works with any OpenAI-compatible provider
+- **No provider abstraction**: Simpler codebase (~100 lines vs 370+), easier to maintain
 - **3 permission levels**: AUTO_APPROVE (safe ops), REQUIRE_APPROVAL (risky), DENY (blocked)
 - **25 iteration max**: Prevents infinite loops, sufficient for most tasks
+- **Retry logic**: Exponential backoff with 3 attempts for resilience against transient failures
 - **Separate tools/executor/permissions**: Interface vs execution vs policy (separation of concerns)
