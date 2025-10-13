@@ -1,6 +1,7 @@
 """AI agent with OpenAI-compatible LLM support."""
 
 import json
+import logging
 import os
 from typing import Any
 
@@ -13,6 +14,8 @@ from .executor import ActionExecutor
 from .permissions import ActionType, PermissionManager
 from .providers import LLMProvider
 from .tools import TOOLS
+
+logger = logging.getLogger(__name__)
 
 
 class InterruptedException(Exception):
@@ -116,11 +119,24 @@ You are running in a CLI environment. Be concise but informative in your respons
                 raise InterruptedException()
 
             # Call provider (returns OpenAI message dict)
-            response = self.provider.create_message(
-                messages=self.conversation_history,
-                tools=TOOLS,
-                model=self.model,
-            )
+            try:
+                response = self.provider.create_message(
+                    messages=self.conversation_history,
+                    tools=TOOLS,
+                    model=self.model,
+                )
+            except Exception as e:
+                # Handle API errors gracefully
+                error_message = self._format_api_error(e)
+                self.console.print(
+                    Panel(
+                        f"[bold red]API Error:[/bold red]\n\n{error_message}",
+                        title="[bold red]Error[/bold red]",
+                        border_style="red",
+                    )
+                )
+                logger.error(f"API error in agent loop: {type(e).__name__}: {e}", exc_info=True)
+                raise
 
             # Build assistant message for history
             assistant_message: dict[str, Any] = {
@@ -285,6 +301,53 @@ You are running in a CLI environment. Be concise but informative in your respons
                 "content": content,
             }
         )
+
+    def _format_api_error(self, error: Exception) -> str:
+        """Format API errors into user-friendly messages."""
+        try:
+            from openai import (
+                APIConnectionError,
+                APITimeoutError,
+                RateLimitError,
+                AuthenticationError,
+                BadRequestError,
+                InternalServerError,
+            )
+
+            if isinstance(error, AuthenticationError):
+                return (
+                    "Authentication failed. Please check your API key.\n\n"
+                    "Set OPENAI_API_KEY in your environment or .env file."
+                )
+            elif isinstance(error, RateLimitError):
+                return (
+                    "Rate limit exceeded. The API has throttled your requests.\n\n"
+                    "The system will automatically retry with exponential backoff."
+                )
+            elif isinstance(error, APIConnectionError):
+                return (
+                    "Connection error. Failed to connect to the API.\n\n"
+                    "Check your internet connection or base URL settings."
+                )
+            elif isinstance(error, APITimeoutError):
+                return (
+                    "Request timeout. The API took too long to respond.\n\n"
+                    "The system will automatically retry."
+                )
+            elif isinstance(error, BadRequestError):
+                return (
+                    f"Bad request. The API rejected the request.\n\n"
+                    f"Details: {str(error)}"
+                )
+            elif isinstance(error, InternalServerError):
+                return (
+                    "Server error. The API encountered an internal error.\n\n"
+                    "The system will automatically retry."
+                )
+            else:
+                return f"{type(error).__name__}: {str(error)}"
+        except ImportError:
+            return f"{type(error).__name__}: {str(error)}"
 
     def reset_conversation(self):
         """Reset the conversation history."""
