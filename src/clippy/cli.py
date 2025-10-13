@@ -1,6 +1,7 @@
 """Command-line interface for clippy-code."""
 
 import argparse
+import logging
 import os
 import sys
 import time
@@ -28,6 +29,23 @@ def load_env():
     # Then check home directory
     elif Path.home().joinpath(".clippy.env").exists():
         load_dotenv(Path.home() / ".clippy.env")
+
+
+def setup_logging(verbose: bool = False):
+    """Configure logging for the application."""
+    level = logging.DEBUG if verbose else logging.WARNING
+
+    # Configure root logger
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
+    # Set library loggers to WARNING to reduce noise
+    logging.getLogger("openai").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -73,6 +91,13 @@ def create_parser() -> argparse.ArgumentParser:
         "--config",
         type=str,
         help="Path to custom permission config file",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging (shows retry attempts and API errors)",
     )
 
     return parser
@@ -292,6 +317,9 @@ def main():
     # Parse arguments
     parser = create_parser()
     args = parser.parse_args()
+
+    # Setup logging
+    setup_logging(verbose=args.verbose)
 
     # Get API key (required)
     api_key = os.getenv("OPENAI_API_KEY")

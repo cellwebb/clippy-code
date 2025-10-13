@@ -4,6 +4,17 @@ import os
 import sys
 from typing import Any, cast
 
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+    before_sleep_log,
+)
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class LLMProvider:
     """OpenAI-compatible LLM provider.
@@ -35,6 +46,52 @@ class LLMProvider:
 
         self.client = OpenAI(**client_kwargs)
 
+    @retry(
+        retry=retry_if_exception_type((Exception,)),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        reraise=True,
+    )
+    def _create_completion_with_retry(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        **kwargs,
+    ):
+        """
+        Internal method to create completion with retry logic.
+
+        Retries up to 3 times with exponential backoff for:
+        - Network errors
+        - Rate limit errors
+        - Server errors (5xx)
+        """
+        try:
+            from openai import (
+                APIConnectionError,
+                APITimeoutError,
+                RateLimitError,
+                InternalServerError,
+            )
+
+            # Call OpenAI API with streaming enabled
+            return self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tools if tools else None,
+                stream=True,
+                **kwargs,
+            )
+        except (APIConnectionError, APITimeoutError, RateLimitError, InternalServerError) as e:
+            logger.warning(f"API error (will retry): {type(e).__name__}: {e}")
+            raise
+        except Exception as e:
+            # For other errors, log and re-raise without retry
+            logger.error(f"Unexpected API error: {type(e).__name__}: {e}")
+            raise
+
     def create_message(
         self,
         messages: list[dict[str, Any]],
@@ -53,13 +110,15 @@ class LLMProvider:
 
         Returns:
             Dict with keys: role, content, tool_calls, finish_reason
+
+        Raises:
+            Various OpenAI exceptions if all retries fail
         """
-        # Call OpenAI API with streaming enabled
-        stream = self.client.chat.completions.create(
+        # Call with retry logic
+        stream = self._create_completion_with_retry(
             model=model,
             messages=messages,
-            tools=tools if tools else None,
-            stream=True,
+            tools=tools,
             **kwargs,
         )
 
