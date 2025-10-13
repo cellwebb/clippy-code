@@ -7,6 +7,8 @@ from glob import glob
 from pathlib import Path
 from typing import Any
 
+import pathspec
+
 from .permissions import ActionType, PermissionManager
 
 
@@ -96,16 +98,54 @@ class ActionExecutor:
         except Exception as e:
             return False, f"Failed to delete {path}: {str(e)}", None
 
+    def _load_gitignore(self, directory: str) -> pathspec.PathSpec | None:
+        """Load .gitignore patterns from a directory."""
+        gitignore_path = os.path.join(directory, ".gitignore")
+        if not os.path.exists(gitignore_path):
+            return None
+
+        try:
+            with open(gitignore_path, encoding="utf-8") as f:
+                patterns = f.read().splitlines()
+            return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
+        except Exception:
+            return None
+
     def _list_directory(self, path: str, recursive: bool) -> tuple[bool, str, Any]:
         """List directory contents."""
         try:
             if recursive:
+                # Load .gitignore patterns
+                gitignore_spec = self._load_gitignore(path)
+
                 files = []
                 for root, dirs, filenames in os.walk(path):
-                    for filename in filenames:
-                        files.append(os.path.join(root, filename))
+                    # Calculate relative path from base
+                    rel_root = os.path.relpath(root, path)
+                    if rel_root == ".":
+                        rel_root = ""
+
+                    # Filter directories in-place to avoid descending into ignored dirs
+                    if gitignore_spec:
+                        dirs[:] = [
+                            d
+                            for d in dirs
+                            if not gitignore_spec.match_file(
+                                os.path.join(rel_root, d) if rel_root else d
+                            )
+                        ]
+
+                    # Add directories to output
                     for dirname in dirs:
-                        files.append(os.path.join(root, dirname) + "/")
+                        rel_path = os.path.join(rel_root, dirname) if rel_root else dirname
+                        files.append(rel_path + "/")
+
+                    # Add files to output (filter by gitignore)
+                    for filename in filenames:
+                        rel_path = os.path.join(rel_root, filename) if rel_root else filename
+                        if not gitignore_spec or not gitignore_spec.match_file(rel_path):
+                            files.append(rel_path)
+
                 result = "\n".join(sorted(files))
             else:
                 items = os.listdir(path)
