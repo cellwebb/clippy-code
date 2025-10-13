@@ -162,7 +162,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
             "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
             "Commands:\n"
             "  /exit, /quit - Exit clippy-code\n"
-            "  /reset - Reset conversation history\n"
+            "  /reset, /clear, /new - Reset conversation history\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n"
             "  /model list - Show available models\n"
@@ -186,7 +186,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
             if user_input.lower() in ["/exit", "/quit"]:
                 console.print("[yellow]Goodbye![/yellow]")
                 break
-            elif user_input.lower() == "/reset":
+            elif user_input.lower() in ["/reset", "/clear", "/new"]:
                 agent.reset_conversation()
                 console.print("[green]Conversation history reset[/green]")
                 continue
@@ -195,7 +195,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                     Panel.fit(
                         "[bold]Commands:[/bold]\n"
                         "  /exit, /quit - Exit clippy-code\n"
-                        "  /reset - Reset conversation history\n"
+                        "  /reset, /clear, /new - Reset conversation history\n"
                         "  /status - Show token usage and session info\n"
                         "  /compact - Summarize conversation to reduce context usage\n"
                         "  /model list - Show available model presets\n"

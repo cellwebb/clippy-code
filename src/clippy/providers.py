@@ -198,4 +198,4 @@ class LLMProvider:
     def get_default_model(self) -> str:
         """Get the default model."""
         # Check for model in environment first
-        return os.getenv("CLIPPY_MODEL", "gpt-4o")
+        return os.getenv("CLIPPY_MODEL", "gpt-5")
