@@ -86,7 +86,7 @@ class DocumentHeader(Static):
     """Word-like document header."""
 
     def compose(self) -> ComposeResult:
-        yield Static("📄 clippy - Document Mode", classes="doc-title")
+        yield Static("📎 clippy - 📄 Document Mode", classes="doc-title")
         yield Static(
             "Type directly in the document, press Enter to send | Ctrl+H (help) | Ctrl+Q (quit)",
             classes="doc-commands",
@@ -232,8 +232,13 @@ class DocumentApp(App):
     async def run_agent_async(self, user_input: str) -> None:
         """Run agent asynchronously."""
         text_area = self.query_one("#document-area", DocumentTextArea)
+        status_bar = self.query_one(DocumentStatusBar)
 
         try:
+            # Show processing status in status bar
+            status_bar.update("💡 Thinking...")
+            self.refresh()  # Force screen refresh to show the update immediately
+
             import io
             from contextlib import redirect_stderr, redirect_stdout
 
@@ -254,6 +259,8 @@ class DocumentApp(App):
 
             try:
                 with redirect_stdout(output_buffer), redirect_stderr(error_buffer):
+                    # Set a flag to indicate we're in document mode
+                    # This will be checked by the spinner to disable it
                     self.agent.run(user_input, auto_approve_all=self.auto_approve)
             finally:
                 if old_console:
@@ -287,6 +294,9 @@ class DocumentApp(App):
             text_area.insert(f"Error: {e}\n\n")
             text_area.move_cursor_relative(rows=100)
             self.input_start_position = len(text_area.text)
+            
+            # Update status bar to show error
+            status_bar.update("❌ Error occurred")
 
     def action_toggle_help(self) -> None:
         """Toggle help panel."""
