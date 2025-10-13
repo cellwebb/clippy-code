@@ -8,28 +8,28 @@ from clippy.document_ui import (
 )
 
 
-def test_strip_ansi_codes_removes_ansi_sequences():
+def test_strip_ansi_codes_removes_ansi_sequences() -> None:
     """Test that strip_ansi_codes removes ANSI escape sequences."""
     text_with_ansi = "\x1b[31mRed Text\x1b[0m"
     cleaned = strip_ansi_codes(text_with_ansi)
     assert cleaned == "Red Text"
 
 
-def test_strip_ansi_codes_removes_rich_markup():
+def test_strip_ansi_codes_removes_rich_markup() -> None:
     """Test that strip_ansi_codes removes Rich markup."""
     text_with_rich = "[bold]Bold Text[/bold]"
     cleaned = strip_ansi_codes(text_with_rich)
     assert cleaned == "Bold Text"
 
 
-def test_strip_ansi_codes_removes_paperclip_prefix():
+def test_strip_ansi_codes_removes_paperclip_prefix() -> None:
     """Test that strip_ansi_codes removes paperclip emoji prefix."""
     text_with_prefix = "[📎] Hello World"
     cleaned = strip_ansi_codes(text_with_prefix)
     assert cleaned == "Hello World"
 
 
-def test_document_text_area_submit_message():
+def test_document_text_area_submit_message() -> None:
     """Test that DocumentTextArea creates SubmitMessage on Enter key."""
     text_area = DocumentTextArea(id="document-area", language="markdown")
 
@@ -51,7 +51,7 @@ def test_document_text_area_submit_message():
         event.stop.assert_called_once()
 
 
-def test_document_text_area_does_not_submit_on_other_keys():
+def test_document_text_area_does_not_submit_on_other_keys() -> None:
     """Test that DocumentTextArea only submits on Enter key."""
     text_area = DocumentTextArea(id="document-area", language="markdown")
 
