@@ -222,7 +222,9 @@ class DocumentApp(App[None]):
         """Initialize the document."""
         text_area = self.query_one("#document-area", DocumentTextArea)
         text_area.focus()
-        self.input_start_position = 0
+        # Initialize with the prompt
+        text_area.insert("[You] ➜ ")
+        self.input_start_position = len(text_area.text)
         self.update_status_bar()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -337,7 +339,7 @@ class DocumentApp(App[None]):
 
             # Add assistant response
             text_area.insert(clean_output)
-            text_area.insert("\n\n")
+            text_area.insert("\n\n[You] ➜ ")
             text_area.move_cursor_relative(rows=1)
 
             # Update the position where next user input starts
@@ -347,7 +349,7 @@ class DocumentApp(App[None]):
             self.update_status_bar()
 
         except Exception as e:
-            text_area.insert(f"Error: {e}\n\n")
+            text_area.insert(f"Error: {e}\n\n[You] ➜ ")
             text_area.move_cursor_relative(rows=1)
             self.input_start_position = len(text_area.text)
 
@@ -359,7 +361,8 @@ class DocumentApp(App[None]):
         self.agent.reset_conversation()
         text_area = self.query_one("#document-area", DocumentTextArea)
         text_area.clear()
-        self.input_start_position = 0
+        text_area.insert("[You] ➜ ")
+        self.input_start_position = len(text_area.text)
         text_area.focus()
         self.update_status_bar()
 
@@ -405,11 +408,11 @@ Messages: {status.get("message_count", 0)}
 Tokens: {status.get("total_tokens", 0):,}
 Context Usage: {status.get("usage_percent", 0):.1f}%"""
             text_area.insert(status_text)
-            text_area.insert("\n\n")
+            text_area.insert("\n\n[You] ➜ ")
             text_area.move_cursor_relative(rows=1)
             self.input_start_position = len(text_area.text)
         except Exception as e:
-            text_area.insert(f"\nError getting status: {e}\n\n")
+            text_area.insert(f"\nError getting status: {e}\n\n[You] ➜ ")
             text_area.move_cursor_relative(rows=1)
             self.input_start_position = len(text_area.text)
 
