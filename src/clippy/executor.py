@@ -119,32 +119,63 @@ class ActionExecutor:
                 gitignore_spec = self._load_gitignore(path)
 
                 files = []
-                for root, dirs, filenames in os.walk(path):
-                    # Calculate relative path from base
-                    rel_root = os.path.relpath(root, path)
-                    if rel_root == ".":
-                        rel_root = ""
+                skipped_dirs = []
 
-                    # Filter directories in-place to avoid descending into ignored dirs
-                    if gitignore_spec:
-                        dirs[:] = [
-                            d
-                            for d in dirs
-                            if not gitignore_spec.match_file(
-                                os.path.join(rel_root, d) if rel_root else d
+                # Use pathspec's built-in tree walking which handles filtering properly
+                if gitignore_spec:
+                    # Walk the tree and collect all entries
+                    for root, dirs, filenames in os.walk(path):
+                        # Get relative path from base
+                        rel_root = os.path.relpath(root, path)
+                        if rel_root == ".":
+                            rel_root = ""
+
+                        # Check each directory to see if it should be skipped
+                        dirs_to_remove = []
+                        for dirname in dirs:
+                            rel_dir_path = os.path.join(rel_root, dirname) if rel_root else dirname
+
+                            # Check if this directory should be skipped
+                            if gitignore_spec.match_file(rel_dir_path + "/"):
+                                skipped_dirs.append(rel_dir_path + "/")
+                                dirs_to_remove.append(dirname)
+
+                        # Remove skipped directories from the walk
+                        for dirname in dirs_to_remove:
+                            dirs.remove(dirname)
+
+                        # Add non-ignored directories to output
+                        for dirname in dirs:
+                            rel_dir_path = os.path.join(rel_root, dirname) if rel_root else dirname
+                            files.append(rel_dir_path + "/")
+
+                        # Add non-ignored files to output
+                        for filename in filenames:
+                            rel_file_path = (
+                                os.path.join(rel_root, filename) if rel_root else filename
                             )
-                        ]
+                            if not gitignore_spec.match_file(rel_file_path):
+                                files.append(rel_file_path)
+                else:
+                    # No .gitignore, do normal recursive listing
+                    for root, dirs, filenames in os.walk(path):
+                        rel_root = os.path.relpath(root, path)
+                        if rel_root == ".":
+                            rel_root = ""
 
-                    # Add directories to output
-                    for dirname in dirs:
-                        rel_path = os.path.join(rel_root, dirname) if rel_root else dirname
-                        files.append(rel_path + "/")
+                        for dirname in dirs:
+                            rel_dir_path = os.path.join(rel_root, dirname) if rel_root else dirname
+                            files.append(rel_dir_path + "/")
 
-                    # Add files to output (filter by gitignore)
-                    for filename in filenames:
-                        rel_path = os.path.join(rel_root, filename) if rel_root else filename
-                        if not gitignore_spec or not gitignore_spec.match_file(rel_path):
-                            files.append(rel_path)
+                        for filename in filenames:
+                            rel_file_path = (
+                                os.path.join(rel_root, filename) if rel_root else filename
+                            )
+                            files.append(rel_file_path)
+
+                # Add skip notes for large directories
+                for skipped_dir in sorted(skipped_dirs):
+                    files.append(f"[skipped {skipped_dir} due to .gitignore]")
 
                 result = "\n".join(sorted(files))
             else:
