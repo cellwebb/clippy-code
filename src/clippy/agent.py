@@ -4,6 +4,7 @@ import json
 import os
 from typing import Any
 
+import tiktoken
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -334,3 +335,66 @@ You are running in a CLI environment. Be concise but informative in your respons
 
         except Exception as e:
             return False, f"Failed to switch model: {e}"
+
+    def get_token_count(self) -> dict[str, Any]:
+        """
+        Get token usage statistics for the current conversation.
+
+        Returns:
+            Dictionary with token usage information including:
+            - total_tokens: Total tokens in conversation history
+            - max_tokens: Max tokens configured for responses
+            - usage_percent: Percentage of typical context window used (estimate)
+            - message_count: Number of messages in history
+        """
+        try:
+            # Try to get the appropriate encoding for the model
+            # Default to cl100k_base which works for GPT-4, GPT-3.5-turbo, etc.
+            try:
+                encoding = tiktoken.encoding_for_model(self.model)
+            except KeyError:
+                # Fall back to cl100k_base for unknown models
+                encoding = tiktoken.get_encoding("cl100k_base")
+
+            # Count tokens in conversation history
+            total_tokens = 0
+            for message in self.conversation_history:
+                # Count tokens in role
+                total_tokens += len(encoding.encode(message.get("role", "")))
+
+                # Count tokens in content
+                if message.get("content"):
+                    total_tokens += len(encoding.encode(message["content"]))
+
+                # Count tokens in tool calls (if present)
+                if message.get("tool_calls"):
+                    for tool_call in message["tool_calls"]:
+                        total_tokens += len(encoding.encode(json.dumps(tool_call)))
+
+                # Add overhead for message formatting (~4 tokens per message)
+                total_tokens += 4
+
+            max_tokens = int(os.getenv("CLIPPY_MAX_TOKENS", "4096"))
+
+            # Estimate context window (most models have 128k, some have 8k-32k)
+            # This is a rough estimate
+            estimated_context_window = 128000  # Conservative estimate
+            usage_percent = (total_tokens / estimated_context_window) * 100
+
+            return {
+                "total_tokens": total_tokens,
+                "max_tokens": max_tokens,
+                "usage_percent": usage_percent,
+                "message_count": len(self.conversation_history),
+                "model": self.model,
+                "base_url": self.base_url,
+            }
+
+        except Exception as e:
+            # Return error info if token counting fails
+            return {
+                "error": str(e),
+                "message_count": len(self.conversation_history),
+                "model": self.model,
+                "base_url": self.base_url,
+            }
