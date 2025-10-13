@@ -38,6 +38,9 @@ def strip_ansi_codes(text: str) -> str:
     # Remove zero-width characters
     text = re.sub(r"[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f-\x9f]", "", text)
 
+    # Remove paperclip emoji prefix (used in interactive mode)
+    text = re.sub(r"^\[📎\]\s*", "", text)
+
     # Filter out "You" lines that the agent outputs
     lines = text.split("\n")
     cleaned_lines = []
@@ -219,10 +222,8 @@ class DocumentApp(App):
             self.action_show_status()
             return
 
-        # Add visual separator and label for the response
-        text_area.insert("\n\n" + "━" * 80 + "\n")
-        text_area.insert("CLIPPY:\n")
-        text_area.insert("━" * 80 + "\n\n")
+        # Add spacing before response
+        text_area.insert("\n\n")
         text_area.move_cursor_relative(rows=100)
 
         # Run the agent
@@ -273,7 +274,7 @@ class DocumentApp(App):
 
             # Add assistant response
             text_area.insert(clean_output)
-            text_area.insert("\n\n" + "━" * 80 + "\n\n")
+            text_area.insert("\n\n")
             text_area.move_cursor_relative(rows=100)
 
             # Update the position where next user input starts
@@ -284,7 +285,6 @@ class DocumentApp(App):
 
         except Exception as e:
             text_area.insert(f"Error: {e}\n\n")
-            text_area.insert("━" * 80 + "\n\n")
             text_area.move_cursor_relative(rows=100)
             self.input_start_position = len(text_area.text)
 
