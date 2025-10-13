@@ -6,7 +6,6 @@ from typing import Any
 
 import tiktoken
 from rich.console import Console
-from rich.markdown import Markdown
 from rich.panel import Panel
 
 from .executor import ActionExecutor
@@ -98,11 +97,6 @@ You are running in a CLI environment. Be concise but informative in your respons
         # Add user message
         self.conversation_history.append({"role": "user", "content": user_message})
 
-        # Show user message
-        self.console.print(
-            Panel(user_message, title="[bold blue]You[/bold blue]", border_style="blue")
-        )
-
         try:
             response = self._run_agent_loop(auto_approve_all)
             return response
@@ -152,16 +146,6 @@ You are running in a CLI environment. Be concise but informative in your respons
 
             # Add to conversation history
             self.conversation_history.append(assistant_message)
-
-            # Display text response if present
-            if response.get("content"):
-                self.console.print(
-                    Panel(
-                        Markdown(response["content"]),
-                        title="[bold green]CLIppy[/bold green]",
-                        border_style="green",
-                    )
-                )
 
             # Handle tool calls
             has_tool_calls = False

@@ -16,6 +16,12 @@ providers:
     base_url: null  # null = use default OpenAI endpoint
     api_key_env: OPENAI_API_KEY
     models:
+      gpt-5:
+        model_id: gpt-5
+        description: OpenAI GPT-5
+      gpt-5-mini:
+        model_id: gpt-5-mini
+        description: OpenAI GPT-5 Mini
       gpt-4o:
         model_id: gpt-4o
         description: OpenAI GPT-4o (default)
@@ -33,12 +39,9 @@ providers:
     base_url: https://api.cerebras.ai/v1
     api_key_env: CEREBRAS_API_KEY
     models:
-      cerebras:
-        model_id: llama3.1-8b
-        description: Cerebras Llama 3.1 8B
-      cerebras-70b:
-        model_id: llama3.1-70b
-        description: Cerebras Llama 3.1 70B
+      qwen-3-coder-480b:
+        model_id: qwen-3-coder-480b
+        description: Cerebras Qwen 3 Coder 480B
 
   ollama:
     base_url: http://localhost:11434/v1
