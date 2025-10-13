@@ -1,9 +1,6 @@
 """Tests for the model configuration system."""
 
-import os
 from pathlib import Path
-
-import pytest
 
 from clippy.models import ModelConfig, get_model_config, list_available_models
 

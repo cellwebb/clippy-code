@@ -157,6 +157,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
             "  /exit, /quit - Exit clippy-code\n"
             "  /reset - Reset conversation history\n"
             "  /status - Show token usage and session info\n"
+            "  /compact - Summarize conversation to reduce context usage\n"
             "  /model list - Show available models\n"
             "  /model <name> - Switch model/provider\n"
             "  /help - Show this help message\n\n"
@@ -189,6 +190,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                         "  /exit, /quit - Exit clippy-code\n"
                         "  /reset - Reset conversation history\n"
                         "  /status - Show token usage and session info\n"
+                        "  /compact - Summarize conversation to reduce context usage\n"
                         "  /model list - Show available model presets\n"
                         "  /model <name> - Switch to a preset model\n"
                         "  /help - Show this help message\n\n"
@@ -234,6 +236,41 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool):
                             f"[dim]Note: Usage % is estimated for ~128k context window[/dim]",
                             title="Session Status",
                             border_style="cyan",
+                        )
+                    )
+                continue
+            elif user_input.lower() == "/compact":
+                # Compact conversation history
+                console.print("[cyan]Compacting conversation...[/cyan]")
+
+                success, message, stats = agent.compact_conversation()
+
+                if success:
+                    console.print(
+                        Panel.fit(
+                            f"[bold green]✓ Conversation Compacted[/bold green]\n\n"
+                            f"[bold]Token Reduction:[/bold]\n"
+                            f"  Before: [cyan]{stats['before_tokens']:,}[/cyan] tokens\n"
+                            f"  After: [cyan]{stats['after_tokens']:,}[/cyan] tokens\n"
+                            f"  Saved: [green]{stats['tokens_saved']:,}[/green] tokens "
+                            f"([green]{stats['reduction_percent']:.1f}%[/green])\n\n"
+                            f"[bold]Messages:[/bold]\n"
+                            f"  Before: [cyan]{stats['messages_before']}[/cyan] messages\n"
+                            f"  After: [cyan]{stats['messages_after']}[/cyan] messages\n"
+                            f"  Summarized: "
+                            f"[cyan]{stats['messages_summarized']}[/cyan] messages\n\n"
+                            f"[dim]The conversation history has been condensed while "
+                            f"preserving recent context.[/dim]",
+                            title="Compact Complete",
+                            border_style="green",
+                        )
+                    )
+                else:
+                    console.print(
+                        Panel.fit(
+                            f"[bold yellow]⚠ Cannot Compact[/bold yellow]\n\n{message}",
+                            title="Compact",
+                            border_style="yellow",
                         )
                     )
                 continue

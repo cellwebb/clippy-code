@@ -1,7 +1,5 @@
 """Tests for the agent model switching functionality."""
 
-import os
-from unittest.mock import MagicMock
 
 import pytest
 
