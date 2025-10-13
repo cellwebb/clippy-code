@@ -15,6 +15,7 @@ providers:
   openai:
     base_url: null  # null = use default OpenAI endpoint
     api_key_env: OPENAI_API_KEY
+    default_model: gpt-4o
     models:
       gpt-5:
         model_id: gpt-5
@@ -38,7 +39,11 @@ providers:
   cerebras:
     base_url: https://api.cerebras.ai/v1
     api_key_env: CEREBRAS_API_KEY
+    default_model: cerebras
     models:
+      cerebras:
+        model_id: qwen-3-coder-480b
+        description: Cerebras Qwen 3 Coder 480B (default)
       qwen-3-coder-480b:
         model_id: qwen-3-coder-480b
         description: Cerebras Qwen 3 Coder 480B
@@ -46,10 +51,11 @@ providers:
   ollama:
     base_url: http://localhost:11434/v1
     api_key_env: OLLAMA_API_KEY  # Usually not needed, can be "ollama" or empty
+    default_model: ollama
     models:
       ollama:
         model_id: llama2
-        description: Ollama Llama 2 (local)
+        description: Ollama Llama 2 (default)
       ollama-codellama:
         model_id: codellama
         description: Ollama Code Llama (local)
@@ -63,10 +69,11 @@ providers:
   together:
     base_url: https://api.together.xyz/v1
     api_key_env: TOGETHER_API_KEY
+    default_model: together-llama-8b
     models:
       together-llama-8b:
         model_id: meta-llama/Llama-3-8b-chat-hf
-        description: Together AI Llama 3 8B
+        description: Together AI Llama 3 8B (default)
       together-llama-70b:
         model_id: meta-llama/Llama-3-70b-chat-hf
         description: Together AI Llama 3 70B
@@ -74,10 +81,11 @@ providers:
   groq:
     base_url: https://api.groq.com/openai/v1
     api_key_env: GROQ_API_KEY
+    default_model: groq
     models:
       groq:
         model_id: llama3-70b-8192
-        description: Groq Llama 3 70B
+        description: Groq Llama 3 70B (default)
       groq-mixtral:
         model_id: mixtral-8x7b-32768
         description: Groq Mixtral 8x7B
@@ -85,10 +93,11 @@ providers:
   deepseek:
     base_url: https://api.deepseek.com/v1
     api_key_env: DEEPSEEK_API_KEY
+    default_model: deepseek
     models:
       deepseek:
         model_id: deepseek-coder
-        description: DeepSeek Coder
+        description: DeepSeek Coder (default)
       deepseek-chat:
         model_id: deepseek-chat
         description: DeepSeek Chat
