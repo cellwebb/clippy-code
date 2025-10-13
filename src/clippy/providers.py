@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class Spinner:
     """A simple terminal spinner for indicating loading status."""
-    
+
     def __init__(self, message: str = "Processing", enabled: bool = True):
         self.message = message
         self.spinner_chars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
@@ -32,7 +32,9 @@ class Spinner:
         """Internal method to run the spinner animation."""
         i = 0
         while self.running:
-            sys.stdout.write(f"\r[📎] {self.message} {self.spinner_chars[i % len(self.spinner_chars)]}")
+            sys.stdout.write(
+                f"\r[📎] {self.message} {self.spinner_chars[i % len(self.spinner_chars)]}"
+            )
             sys.stdout.flush()
             time.sleep(0.1)
             i += 1
@@ -41,7 +43,7 @@ class Spinner:
         """Start the spinner."""
         if not self.enabled or self.running:
             return
-        
+
         self.running = True
         self.thread = threading.Thread(target=self._spin, daemon=True)
         self.thread.start()
@@ -51,7 +53,7 @@ class Spinner:
         self.running = False
         if self.thread:
             self.thread.join()
-        
+
         # Clear the spinner line if enabled
         if self.enabled:
             sys.stdout.write("\r" + " " * (len(self.message) + 20) + "\r")
@@ -158,12 +160,14 @@ class LLMProvider:
         """
         # Check if we're in document mode by looking for Textual's console redirection
         # In document mode, stdout is redirected to a StringIO buffer
-        in_document_mode = hasattr(sys.stdout, '_original_stdstream_copy') or not sys.stdout.isatty()
-        
+        in_document_mode = (
+            hasattr(sys.stdout, "_original_stdstream_copy") or not sys.stdout.isatty()
+        )
+
         # Create and start spinner to indicate processing (disabled in document mode)
         spinner = Spinner("Thinking", enabled=not in_document_mode)
         spinner.start()
-        
+
         try:
             # Call with retry logic
             stream = self._create_completion_with_retry(

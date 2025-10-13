@@ -1,6 +1,5 @@
 """Tests for the agent model switching functionality."""
 
-
 import pytest
 
 from clippy.agent import ClippyAgent

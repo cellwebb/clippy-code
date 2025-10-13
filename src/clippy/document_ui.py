@@ -4,9 +4,9 @@ import re
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.widgets import Static, TextArea, Button
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Horizontal
 from textual.message import Message
+from textual.widgets import Button, Static, TextArea
 
 
 def strip_ansi_codes(text: str) -> str:
@@ -142,19 +142,21 @@ class DocumentApp(App):
 
     #toolbar Button {
         margin: 0 1;
-        width: 10;
+        width: 12;
         height: 1fr;
-        background: #e0e0e0;
-        color: #000000;
-        border: round #888888;
+        background: #f0f0f0;
+        color: #333333;
+        border: none;
+        text-style: bold;
+        content-align: center middle;
     }
 
     #toolbar Button:hover {
-        background: #d0d0d0;
+        background: #e6e6e6;
     }
 
     #toolbar Button:focus {
-        border: double #2b579a;
+        background: #e6e6e6;
     }
 
     #toolbar Button.-active {
@@ -202,15 +204,15 @@ class DocumentApp(App):
     def compose(self) -> ComposeResult:
         """Compose the document UI."""
         yield DocumentHeader()
-        
-        # Toolbar with Word-like buttons
+
+        # Toolbar with Word-like buttons (ribbon style)
         with Horizontal(id="toolbar"):
             yield Button("Send", id="submit-btn", variant="default")
             yield Button("Reset", id="reset-btn", variant="default")
             yield Button("Help", id="help-btn", variant="default")
             yield Button("Status", id="status-btn", variant="default")
             yield Button("Quit", id="quit-btn", variant="default")
-        
+
         yield DocumentTextArea(id="document-area", language="markdown")
         yield DocumentStatusBar()
 
@@ -224,7 +226,7 @@ class DocumentApp(App):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
         button_id = event.button.id
-        
+
         if button_id == "submit-btn":
             self.action_submit()
         elif button_id == "reset-btn":
@@ -279,7 +281,7 @@ class DocumentApp(App):
 
         # Add spacing before response
         text_area.insert("\n\n")
-        text_area.move_cursor_relative(rows=100)
+        text_area.move_cursor_relative(rows=1)
 
         # Run the agent
         self.run_worker(self.run_agent_async(user_input), exclusive=True)
@@ -339,7 +341,7 @@ class DocumentApp(App):
             # Add assistant response
             text_area.insert(clean_output)
             text_area.insert("\n\n")
-            text_area.move_cursor_relative(rows=100)
+            text_area.move_cursor_relative(rows=1)
 
             # Update the position where next user input starts
             self.input_start_position = len(text_area.text)
@@ -349,7 +351,7 @@ class DocumentApp(App):
 
         except Exception as e:
             text_area.insert(f"Error: {e}\n\n")
-            text_area.move_cursor_relative(rows=100)
+            text_area.move_cursor_relative(rows=1)
             self.input_start_position = len(text_area.text)
 
             # Update status bar to show error
@@ -375,7 +377,7 @@ class DocumentApp(App):
 
  toolbar buttons:
 • Send   - Submit your message
-• Reset  - Clear conversation history  
+• Reset  - Clear conversation history
 • Help   - Show/hide this help panel
 • Status - Display session information
 • Quit   - Exit clippy""",
@@ -408,11 +410,11 @@ Tokens: {status.get("total_tokens", 0):,}
 Context Usage: {status.get("usage_percent", 0):.1f}%"""
             text_area.insert(status_text)
             text_area.insert("\n\n")
-            text_area.move_cursor_relative(rows=100)
+            text_area.move_cursor_relative(rows=1)
             self.input_start_position = len(text_area.text)
         except Exception as e:
             text_area.insert(f"\nError getting status: {e}\n\n")
-            text_area.move_cursor_relative(rows=100)
+            text_area.move_cursor_relative(rows=1)
             self.input_start_position = len(text_area.text)
 
 

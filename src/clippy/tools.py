@@ -8,7 +8,8 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "read_file",
-            "description": "Read the contents of a file. Use this to examine existing code or files.",
+            "description": "Read the contents of a file. Use this to examine existing "
+            "code or files.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -22,7 +23,8 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "write_file",
-            "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does.",
+            "description": "Write content to a file. Creates the file if it doesn't "
+            "exist, overwrites if it does.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -60,7 +62,8 @@ TOOLS: list[dict[str, Any]] = [
                 "properties": {
                     "path": {
                         "type": "string",
-                        "description": "The path to the directory to list. Defaults to current directory.",
+                        "description": "The path to the directory to list. Defaults to "
+                        "current directory.",
                     },
                     "recursive": {
                         "type": "boolean",
@@ -96,7 +99,8 @@ TOOLS: list[dict[str, Any]] = [
                     "command": {"type": "string", "description": "The shell command to execute"},
                     "working_dir": {
                         "type": "string",
-                        "description": "The working directory for the command. Defaults to current directory.",
+                        "description": "The working directory for the command. Defaults to "
+                        "current directory.",
                     },
                 },
                 "required": ["command"],
@@ -107,13 +111,15 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "search_files",
-            "description": "Search for files matching a pattern (supports glob patterns like *.py).",
+            "description": "Search for files matching a pattern (supports glob patterns "
+            "like *.py).",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "pattern": {
                         "type": "string",
-                        "description": "The glob pattern to search for (e.g., '*.py', 'src/**/*.ts')",
+                        "description": "The glob pattern to search for (e.g., '*.py', "
+                        "'src/**/*.ts')",
                     },
                     "path": {
                         "type": "string",
