@@ -39,7 +39,6 @@ class LLMProvider:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
-        max_tokens: int | None = None,
         model: str = "gpt-4o",
         **kwargs,
     ) -> dict[str, Any]:
@@ -49,30 +48,20 @@ class LLMProvider:
         Args:
             messages: OpenAI-format messages (includes system message)
             tools: OpenAI-format tool definitions
-            max_tokens: Maximum tokens for response (None = use API default)
             model: Model identifier
             **kwargs: Additional provider-specific parameters
 
         Returns:
             Dict with keys: role, content, tool_calls, finish_reason
         """
-        # Build API call parameters
-        api_params = {
-            "model": model,
-            "messages": messages,
-            "tools": tools if tools else None,
-            "stream": True,
-        }
-
-        # Only include max_tokens if explicitly set
-        if max_tokens is not None:
-            api_params["max_tokens"] = max_tokens
-
-        # Add any additional kwargs
-        api_params.update(kwargs)
-
         # Call OpenAI API with streaming enabled
-        stream = self.client.chat.completions.create(**api_params)
+        stream = self.client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools if tools else None,
+            stream=True,
+            **kwargs,
+        )
 
         # Accumulate streaming response
         full_content = ""
