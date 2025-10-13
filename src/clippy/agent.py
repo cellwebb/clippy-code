@@ -116,10 +116,14 @@ You are running in a CLI environment. Be concise but informative in your respons
                 raise InterruptedException()
 
             # Call provider (returns OpenAI message dict)
+            # Only set max_tokens if explicitly configured
+            max_tokens_env = os.getenv("CLIPPY_MAX_TOKENS")
+            max_tokens = int(max_tokens_env) if max_tokens_env else None
+
             response = self.provider.create_message(
                 messages=self.conversation_history,
                 tools=TOOLS,
-                max_tokens=int(os.getenv("CLIPPY_MAX_TOKENS", "4096")),
+                max_tokens=max_tokens,
                 model=self.model,
             )
 
@@ -374,7 +378,9 @@ You are running in a CLI environment. Be concise but informative in your respons
                 # Add overhead for message formatting (~4 tokens per message)
                 total_tokens += 4
 
-            max_tokens = int(os.getenv("CLIPPY_MAX_TOKENS", "4096"))
+            # Get max_tokens if configured (otherwise None = using API default)
+            max_tokens_env = os.getenv("CLIPPY_MAX_TOKENS")
+            max_tokens = int(max_tokens_env) if max_tokens_env else None
 
             # Estimate context window (most models have 128k, some have 8k-32k)
             # This is a rough estimate
