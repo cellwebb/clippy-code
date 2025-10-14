@@ -41,8 +41,8 @@ def test_convert_rich_to_textual_markup() -> None:
     assert converted == "[bold yellow]⊘ Warning message[/bold yellow]"
 
 
-def test_strip_ansi_codes_removes_paperclip_prefix() -> None:
-    """Test that strip_ansi_codes removes paperclip emoji prefix."""
+def test_strip_ansi_codes_preserves_paperclip_prefix() -> None:
+    """Test that strip_ansi_codes preserves paperclip emoji prefix."""
     text_with_prefix = "[📎] Hello World"
     cleaned = strip_ansi_codes(text_with_prefix)
-    assert cleaned == "Hello World"
+    assert cleaned == "[📎] Hello World"

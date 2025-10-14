@@ -243,15 +243,31 @@ Focus on being genuinely helpful while maintaining Clippy's distinctive personal
                         continue
 
             # If no tool calls, we're done
+            # (content was already streamed by the provider)
             if not has_tool_calls:
                 content = response.get("content", "")
                 return content if isinstance(content, str) else ""
 
             # Check finish reason
+            # (content was already streamed by the provider)
             if response.get("finish_reason") == "stop":
                 content = response.get("content", "")
                 return content if isinstance(content, str) else ""
 
+        # Max iterations reached - display warning
+        self.console.print(
+            Panel(
+                "[bold yellow]⚠ Maximum Iterations Reached[/bold yellow]\n\n"
+                "The agent has reached the maximum number of iterations (25) and has stopped.\n"
+                "The task may be incomplete.\n\n"
+                "[dim]This limit prevents infinite loops. You can:\n"
+                "• Continue with a new request\n"
+                "• Break down the task into smaller steps\n"
+                "• Use /reset to start fresh[/dim]",
+                title="[bold yellow]Iteration Limit[/bold yellow]",
+                border_style="yellow",
+            )
+        )
         return "Maximum iterations reached. Task may be incomplete."
 
     def _handle_tool_use(

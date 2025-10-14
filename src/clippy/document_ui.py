@@ -28,7 +28,7 @@ def strip_ansi_codes(text: str) -> str:
     text = re.sub(r"\x1b\[[0-9;]*m", "", text)
     text = re.sub(r"[\u2500-\u257F]", "", text)
     text = re.sub(r"[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f-\x9f]", "", text)
-    text = re.sub(r"^\[📎\]\s*", "", text)
+    # text = re.sub(r"^\[📎\]\s*", "", text)
     text = convert_rich_to_textual_markup(text)
     return text.strip()
 
@@ -283,9 +283,43 @@ class DocumentApp(App[None]):
         """Run agent in thread, write output directly to log."""
         import asyncio
         import io
-        from contextlib import redirect_stderr, redirect_stdout
+        import sys
 
         conv_log = self.query_one("#conversation-log", RichLog)
+
+        # Create a custom stdout that writes to the log
+        class LogWriter:
+            def __init__(self, app: DocumentApp):
+                self.app = app
+                self.line_buffer = ""
+
+            def write(self, text: str) -> int:
+                # Accumulate text until we get a newline
+                self.line_buffer += text
+                if "\n" in self.line_buffer:
+                    # Split into lines
+                    lines = self.line_buffer.split("\n")
+                    # All but the last element are complete lines
+                    for line in lines[:-1]:
+                        if line.strip():
+                            clean_text = strip_ansi_codes(line)
+                            if clean_text:
+                                self.app.call_from_thread(
+                                    lambda t=clean_text: self.app.query_one(
+                                        "#conversation-log", RichLog
+                                    ).write(t)
+                                )
+                    # Keep the last element as the new buffer
+                    self.line_buffer = lines[-1]
+                return len(text)
+
+            def flush(self) -> None:
+                # Don't flush incomplete lines - wait for the newline
+                # This prevents [📎] from being written separately from the content
+                pass
+
+            def isatty(self) -> bool:
+                return False
 
         # Create a console that writes directly to the log
         class LiveConsole(Console):
@@ -308,20 +342,20 @@ class DocumentApp(App[None]):
                         lambda: self.app.query_one("#conversation-log", RichLog).write(clean_text)
                     )
 
+        log_writer = LogWriter(self)
         live_console = LiveConsole(self)
 
         old_console = self.agent.console
+        old_stdout = sys.stdout
         old_approval_callback = getattr(self.agent, "approval_callback", None)
 
         self.agent.console = live_console
+        sys.stdout = log_writer  # Redirect stdout to capture provider's print() calls
         if not self.auto_approve:
             self.agent.approval_callback = self.request_approval
 
         def run_in_thread() -> None:
-            output_buffer = io.StringIO()
-            error_buffer = io.StringIO()
-            with redirect_stdout(output_buffer), redirect_stderr(error_buffer):
-                self.agent.run(user_input, auto_approve_all=self.auto_approve)
+            self.agent.run(user_input, auto_approve_all=self.auto_approve)
 
         try:
             await asyncio.to_thread(run_in_thread)
@@ -329,6 +363,8 @@ class DocumentApp(App[None]):
             error_msg = str(err)
             self.call_from_thread(lambda: conv_log.write(f"\n[red]Error: {error_msg}[/red]"))
         finally:
+            log_writer.flush()  # Flush any remaining buffer
+            sys.stdout = old_stdout
             self.agent.console = old_console
             self.agent.approval_callback = old_approval_callback
             self.update_status_bar()
