@@ -35,6 +35,7 @@ class ActionExecutor:
             "execute_command": ActionType.EXECUTE_COMMAND,
             "search_files": ActionType.SEARCH_FILES,
             "get_file_info": ActionType.GET_FILE_INFO,
+            "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
         }
 
         action_type = action_map.get(tool_name)
@@ -65,6 +66,8 @@ class ActionExecutor:
                 return self._search_files(tool_input["pattern"], tool_input.get("path", "."))
             elif tool_name == "get_file_info":
                 return self._get_file_info(tool_input["path"])
+            elif tool_name == "read_files":
+                return self._read_files(tool_input["paths"])
             else:
                 return False, f"Unimplemented tool: {tool_name}", None
         except Exception as e:
@@ -78,6 +81,27 @@ class ActionExecutor:
             return True, f"Successfully read {path}", content
         except Exception as e:
             return False, f"Failed to read {path}: {str(e)}", None
+
+    def _read_files(self, paths: list[str]) -> tuple[bool, str, Any]:
+        """Read multiple files."""
+        try:
+            results = []
+            for path in paths:
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        content = f.read()
+                    results.append(
+                        f"--- Contents of {path} ---\n{content}\n--- End of {path} ---\n"
+                    )
+                except Exception as e:
+                    results.append(
+                        f"--- Failed to read {path} ---\nError: {str(e)}\n--- End of {path} ---\n"
+                    )
+
+            combined_content = "\n".join(results)
+            return True, f"Successfully read {len(paths)} files", combined_content
+        except Exception as e:
+            return False, f"Failed to read files: {str(e)}", None
 
     def _write_file(self, path: str, content: str) -> tuple[bool, str, Any]:
         """Write to a file."""

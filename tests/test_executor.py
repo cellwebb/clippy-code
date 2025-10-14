@@ -124,6 +124,57 @@ def test_get_file_info(executor: ActionExecutor, temp_dir: str) -> None:
     assert "size:" in content
 
 
+def test_read_files(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test reading multiple files."""
+    # Create test files
+    test_file1 = Path(temp_dir) / "test1.txt"
+    test_file1.write_text("Content of file 1")
+
+    test_file2 = Path(temp_dir) / "test2.txt"
+    test_file2.write_text("Content of file 2")
+
+    test_file3 = Path(temp_dir) / "test3.txt"
+    test_file3.write_text("Content of file 3")
+
+    # Read multiple files
+    success, message, content = executor.execute(
+        "read_files", {"paths": [str(test_file1), str(test_file2), str(test_file3)]}
+    )
+
+    assert success is True
+    assert "Successfully read 3 files" in message
+    assert "--- Contents of" in content
+    assert "Content of file 1" in content
+    assert "Content of file 2" in content
+    assert "Content of file 3" in content
+    assert "--- End of" in content
+
+
+def test_read_files_with_nonexistent_file(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test reading multiple files where one doesn't exist."""
+    # Create test files
+    test_file1 = Path(temp_dir) / "existing1.txt"
+    test_file1.write_text("Content of existing file 1")
+
+    test_file2 = Path(temp_dir) / "existing2.txt"
+    test_file2.write_text("Content of existing file 2")
+
+    nonexistent_file = Path(temp_dir) / "nonexistent.txt"
+
+    # Read multiple files including one that doesn't exist
+    success, message, content = executor.execute(
+        "read_files", {"paths": [str(test_file1), str(nonexistent_file), str(test_file2)]}
+    )
+
+    assert success is True
+    assert "Successfully read 3 files" in message
+    assert "--- Contents of" in content
+    assert "Content of existing file 1" in content
+    assert "Content of existing file 2" in content
+    assert "--- Failed to read" in content
+    assert "--- End of" in content
+
+
 def test_error_handling(executor: ActionExecutor) -> None:
     """Test error handling for non-existent file."""
     success, message, content = executor.execute("read_file", {"path": "/nonexistent/file.txt"})
