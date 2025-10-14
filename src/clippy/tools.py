@@ -142,12 +142,30 @@ TOOLS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_files",
+            "description": "Read the contents of multiple files at once.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "paths": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "The paths to the files to read",
+                    }
+                },
+                "required": ["paths"],
+            },
+        },
+    },
 ]
 
 
 def get_tool_by_name(name: str) -> dict[str, Any] | None:
     """Get a tool definition by name."""
     for tool in TOOLS:
-        if tool["name"] == name:
+        if tool["function"]["name"] == name:
             return tool
     return None
