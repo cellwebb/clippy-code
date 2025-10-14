@@ -137,3 +137,50 @@ def test_provider_recreated_on_switch(mock_agent: ClippyAgent) -> None:
 
     # Provider should be a new instance
     assert mock_agent.provider is not original_provider
+
+
+def test_approval_callback_is_used() -> None:
+    """Test that agent uses approval_callback when provided."""
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = ActionExecutor(permission_manager)
+
+    # Track if callback was called
+    callback_called = {"called": False, "tool_name": None, "tool_input": None}
+
+    def mock_approval_callback(tool_name: str, tool_input: dict) -> bool:
+        callback_called["called"] = True
+        callback_called["tool_name"] = tool_name
+        callback_called["tool_input"] = tool_input
+        return True  # Approve
+
+    agent = ClippyAgent(
+        permission_manager=permission_manager,
+        executor=executor,
+        api_key="test-key",
+        model="gpt-4o",
+        approval_callback=mock_approval_callback,
+    )
+
+    # Verify callback is set
+    assert agent.approval_callback is mock_approval_callback
+    assert agent.approval_callback == mock_approval_callback
+
+
+def test_approval_callback_respects_response() -> None:
+    """Test that agent respects approval callback response."""
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = ActionExecutor(permission_manager)
+
+    def deny_callback(tool_name: str, tool_input: dict) -> bool:
+        return False  # Deny all actions
+
+    agent = ClippyAgent(
+        permission_manager=permission_manager,
+        executor=executor,
+        api_key="test-key",
+        model="gpt-4o",
+        approval_callback=deny_callback,
+    )
+
+    # Verify the callback is set
+    assert agent.approval_callback is deny_callback

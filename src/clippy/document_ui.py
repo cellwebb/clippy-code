@@ -214,12 +214,18 @@ class DocumentApp(App[None]):
 
         conv_log = self.query_one("#conversation-log", RichLog)
 
+        # Show what's being approved
+        input_lines = [f"  {k}: {v}" for k, v in tool_input.items()]
+        input_text = "\n".join(input_lines)
+
         # Write approval prompt to the log
-        self.call_from_thread(
-            lambda: conv_log.write(
-                "\n[yellow]⚠ Approve? Type 'y' (yes), 'n' (no), or 'stop'[/yellow]"
-            )
-        )
+        def write_prompt() -> None:
+            conv_log.write(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
+            if input_text:
+                conv_log.write(f"[cyan]{input_text}[/cyan]")
+            conv_log.write("[yellow]⚠ Approve? Type 'y' (yes), 'n' (no), or 'stop'[/yellow]")
+
+        self.call_from_thread(write_prompt)
 
         self.waiting_for_approval = True
 
