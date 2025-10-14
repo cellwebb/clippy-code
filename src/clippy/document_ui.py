@@ -117,6 +117,17 @@ class DocumentApp(App[None]):
         padding: 0;
         scrollbar-size: 0 0;
     }
+    #thinking-indicator {
+        display: none;
+        height: auto;
+        background: white;
+        color: #999999;
+        padding: 1 0 0 0;
+        text-style: italic;
+    }
+    #thinking-indicator.visible {
+        display: block;
+    }
     #input-container {
         height: auto;
         background: white;
@@ -169,6 +180,7 @@ class DocumentApp(App[None]):
             yield Button("Quit", id="quit-btn")
         with Vertical(id="document-container"):
             yield RichLog(id="conversation-log", markup=True, wrap=True, highlight=False)
+            yield Static("[📎] Thinking...", id="thinking-indicator")
             with Horizontal(id="input-container"):
                 yield Static("[bold]\\[You] ➜[/bold] ", id="input-prompt", markup=True)
                 yield Input(id="user-input", placeholder="Type your message...")
@@ -177,6 +189,22 @@ class DocumentApp(App[None]):
     def on_mount(self) -> None:
         self.query_one("#user-input", Input).focus()
         self.update_status_bar()
+
+    def show_thinking(self) -> None:
+        """Show the thinking indicator."""
+        try:
+            indicator = self.query_one("#thinking-indicator", Static)
+            indicator.add_class("visible")
+        except Exception:
+            pass
+
+    def hide_thinking(self) -> None:
+        """Hide the thinking indicator."""
+        try:
+            indicator = self.query_one("#thinking-indicator", Static)
+            indicator.remove_class("visible")
+        except Exception:
+            pass
 
     def on_input_submitted(self, _event: Input.Submitted) -> None:
         self.action_submit()
@@ -290,6 +318,9 @@ class DocumentApp(App[None]):
         # Add a blank line before agent response for visual separation
         conv_log.write("")
 
+        # Show thinking indicator
+        self.show_thinking()
+
         # Create a custom stdout that writes to the log
         class LogWriter:
             def __init__(self, app: DocumentApp):
@@ -307,11 +338,20 @@ class DocumentApp(App[None]):
                         if line.strip():
                             clean_text = strip_ansi_codes(line)
                             if clean_text:
+                                # Hide thinking indicator when output arrives
+                                self.app.call_from_thread(self.app.hide_thinking)
+
+                                # Write the line
                                 self.app.call_from_thread(
                                     lambda t=clean_text: self.app.query_one(
                                         "#conversation-log", RichLog
                                     ).write(t)
                                 )
+
+                                # Show thinking indicator again after tool results
+                                # (agent will make another LLM call after executing tools)
+                                if clean_text.startswith("✓") or clean_text.startswith("✗"):
+                                    self.app.call_from_thread(self.app.show_thinking)
                     # Keep the last element as the new buffer
                     self.line_buffer = lines[-1]
                 return len(text)
@@ -364,12 +404,14 @@ class DocumentApp(App[None]):
             await asyncio.to_thread(run_in_thread)
         except Exception as err:
             error_msg = str(err)
-            self.call_from_thread(lambda: conv_log.write(f"\n[red]Error: {error_msg}[/red]"))
+            # Write directly since we're in async context, not a separate thread
+            conv_log.write(f"\n[red]Error: {error_msg}[/red]")
         finally:
             log_writer.flush()  # Flush any remaining buffer
             sys.stdout = old_stdout
             self.agent.console = old_console
             self.agent.approval_callback = old_approval_callback
+            self.hide_thinking()  # Hide thinking indicator when done
             self.update_status_bar()
 
     def action_reset(self) -> None:
