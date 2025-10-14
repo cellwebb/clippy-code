@@ -6,7 +6,7 @@ from typing import Any
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Input, RichLog, Static
 
 from .models import get_model_config, list_available_models
@@ -160,6 +160,8 @@ class DocumentApp(App[None]):
         padding: 2 4;
         height: 1fr;
         width: 1fr;
+        overflow-y: auto;
+        scrollbar-gutter: stable;
     }
 
     #conversation-log {
@@ -350,11 +352,10 @@ class DocumentApp(App[None]):
         if len(parts) == 1 or parts[1].lower() == "list":
             # Show available models
             models = list_available_models()
-            model_list = "\n".join(f"  [blue]{name:20}[/blue] - {desc}" for name, desc in models)
             current_model = self.agent.model
             current_provider = self.agent.base_url or "OpenAI"
 
-            conv_log.write(f"\n[bold]Available Model Presets:[/bold]\n")
+            conv_log.write("\n[bold]Available Model Presets:[/bold]\n")
             for name, desc in models:
                 conv_log.write(f"  [blue]{name:20}[/blue] - {desc}")
             conv_log.write(f"\n[bold]Current:[/bold] {current_model} ({current_provider})")
