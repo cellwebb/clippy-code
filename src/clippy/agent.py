@@ -79,7 +79,7 @@ class ClippyAgent:
                 try:
                     agents_content = doc_path.read_text(encoding="utf-8")
                     # Append the agent documentation content to the system prompt
-                    return f"{SYSTEM_PROMPT}\n\nPROJECT DOCUMENTATION:\n{agents_content}"
+                    return f"{SYSTEM_PROMPT}\n\nPROJECT_DOCUMENTATION:\n{agents_content}"
                 except Exception as e:
                     logger.warning(f"Failed to read {doc_file}: {e}")
                     # Continue to next file if reading fails
@@ -238,6 +238,8 @@ class ClippyAgent:
             "search_files": ActionType.SEARCH_FILES,
             "get_file_info": ActionType.GET_FILE_INFO,
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
+            "grep": ActionType.GREP,  # Dedicated action type for grep
+            "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
         }
 
         action_type = action_map.get(tool_name)
