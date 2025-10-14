@@ -36,7 +36,8 @@ class ActionExecutor:
             "search_files": ActionType.SEARCH_FILES,
             "get_file_info": ActionType.GET_FILE_INFO,
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
-            "grep": ActionType.SEARCH_FILES,  # Use same permission as search_files
+            "grep": ActionType.GREP,  # Use dedicated GREP action type
+            "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
         }
 
         action_type = action_map.get(tool_name)
@@ -72,6 +73,15 @@ class ActionExecutor:
             elif tool_name == "grep":
                 return self._grep(
                     tool_input["pattern"], tool_input["paths"], tool_input.get("flags", "")
+                )
+            elif tool_name == "edit_file":
+                return self._edit_file(
+                    tool_input["path"],
+                    tool_input["operation"],
+                    tool_input.get("content", ""),
+                    tool_input.get("line_number"),
+                    tool_input.get("pattern", ""),
+                    tool_input.get("match_pattern_line", True),
                 )
             else:
                 return False, f"Unimplemented tool: {tool_name}", None
@@ -169,83 +179,82 @@ class ActionExecutor:
                 # Load .gitignore patterns
                 gitignore_spec = self._load_gitignore(path)
 
-                files = []
-                skipped_dirs = []
+                if not gitignore_spec:
+                    # If no .gitignore, walk normally and show all directories
+                    files = []
+                    directories = []
+                    for root, dirs, filenames in os.walk(path):
+                        rel_root = os.path.relpath(root, path)
+                        if rel_root == ".":
+                            rel_root = ""
+
+                        for filename in filenames:
+                            if rel_root:
+                                files.append(os.path.join(rel_root, filename))
+                            else:
+                                files.append(filename)
+
+                        for dir_name in dirs:
+                            dir_path = os.path.join(rel_root, dir_name) if rel_root else dir_name
+                            directories.append(dir_path + "/")
+
+                    # Combine and sort all entries
+                    all_entries = files + directories
+                    all_entries.sort()
+                    result = "\n".join([entry for entry in all_entries if entry])
+                    return True, "Successfully listed directory contents (recursive)", result
 
                 # Use pathspec's built-in tree walking which handles filtering properly
-                if gitignore_spec:
-                    # Walk the tree and collect all entries
-                    for root, dirs, filenames in os.walk(path):
-                        # Get relative path from base
-                        rel_root = os.path.relpath(root, path)
-                        if rel_root == ".":
-                            rel_root = ""
+                files = []
+                directories = []
+                skipped_notes = []
 
-                        # Check each directory to see if it should be skipped
-                        dirs_to_remove = []
-                        for dirname in dirs:
-                            rel_dir_path = os.path.join(rel_root, dirname) if rel_root else dirname
+                for root, dirs, filenames in os.walk(path):
+                    rel_root = os.path.relpath(root, path)
+                    if rel_root == ".":
+                        rel_root = ""
 
-                            # Check if this directory should be skipped
-                            if gitignore_spec.match_file(rel_dir_path + "/"):
-                                skipped_dirs.append(rel_dir_path + "/")
-                                dirs_to_remove.append(dirname)
+                    # Check each directory for gitignore filtering
+                    for dir_name in dirs:
+                        dir_path = os.path.join(rel_root, dir_name) if rel_root else dir_name
+                        # pathspec uses trailing slash for directory matching
+                        if gitignore_spec.match_file(dir_path + "/"):
+                            skipped_notes.append(f"[skipped {dir_path}/ due to .gitignore]")
+                        else:
+                            directories.append(dir_path + "/")
 
-                        # Remove skipped directories from the walk
-                        for dirname in dirs_to_remove:
-                            dirs.remove(dirname)
+                    # Check each file for gitignore filtering
+                    for filename in filenames:
+                        file_path = os.path.join(rel_root, filename) if rel_root else filename
+                        if not gitignore_spec.match_file(file_path):
+                            files.append(file_path)
 
-                        # Add non-ignored directories to output
-                        for dirname in dirs:
-                            rel_dir_path = os.path.join(rel_root, dirname) if rel_root else dirname
-                            files.append(rel_dir_path + "/")
+                # Combine all entries and sort
+                all_entries = files + directories + skipped_notes
+                all_entries.sort()
 
-                        # Add non-ignored files to output
-                        for filename in filenames:
-                            rel_file_path = (
-                                os.path.join(rel_root, filename) if rel_root else filename
-                            )
-                            if not gitignore_spec.match_file(rel_file_path):
-                                files.append(rel_file_path)
-                else:
-                    # No .gitignore, do normal recursive listing
-                    for root, dirs, filenames in os.walk(path):
-                        rel_root = os.path.relpath(root, path)
-                        if rel_root == ".":
-                            rel_root = ""
-
-                        for dirname in dirs:
-                            rel_dir_path = os.path.join(rel_root, dirname) if rel_root else dirname
-                            files.append(rel_dir_path + "/")
-
-                        for filename in filenames:
-                            rel_file_path = (
-                                os.path.join(rel_root, filename) if rel_root else filename
-                            )
-                            files.append(rel_file_path)
-
-                # Add skip notes for large directories
-                for skipped_dir in sorted(skipped_dirs):
-                    files.append(f"[skipped {skipped_dir} due to .gitignore]")
-
-                result = "\n".join(sorted(files))
+                # Filter out empty strings and join with newlines
+                result = "\n".join([entry for entry in all_entries if entry])
+                return True, "Successfully listed directory contents (recursive)", result
             else:
-                items = os.listdir(path)
-                items_with_type = []
-                for item in sorted(items):
-                    full_path = os.path.join(path, item)
-                    if os.path.isdir(full_path):
-                        items_with_type.append(f"{item}/")
+                entries = os.listdir(path)
+                entries.sort()
+
+                # Add trailing slash to directories
+                formatted_entries = []
+                for entry in entries:
+                    entry_path = os.path.join(path, entry)
+                    if os.path.isdir(entry_path):
+                        formatted_entries.append(entry + "/")
                     else:
-                        items_with_type.append(item)
-                result = "\n".join(items_with_type)
-            return True, f"Successfully listed {path}", result
+                        formatted_entries.append(entry)
+
+                result = "\n".join(formatted_entries)
+                return True, "Successfully listed directory contents", result
         except PermissionError:
-            return False, f"Permission denied when listing: {path}", None
-        except FileNotFoundError:
-            return False, f"Directory not found: {path}", None
+            return False, f"Permission denied when listing directory: {path}", None
         except Exception as e:
-            return False, f"Failed to list {path}: {str(e)}", None
+            return False, f"Failed to list directory {path}: {str(e)}", None
 
     def _create_directory(self, path: str) -> tuple[bool, str, Any]:
         """Create a directory."""
@@ -254,50 +263,48 @@ class ActionExecutor:
             return True, f"Successfully created directory {path}", None
         except PermissionError:
             return False, f"Permission denied when creating directory: {path}", None
-        except FileExistsError:
-            return False, f"Path already exists and is not a directory: {path}", None
         except OSError as e:
             return False, f"OS error when creating directory {path}: {str(e)}", None
         except Exception as e:
             return False, f"Failed to create directory {path}: {str(e)}", None
 
-    def _execute_command(self, command: str, working_dir: str) -> tuple[bool, str, Any]:
+    def _execute_command(self, cmd: str, working_dir: str = ".") -> tuple[bool, str, Any]:
         """Execute a shell command."""
         try:
+            # Add safety check for directory traversal
+            if ".." in working_dir:
+                return False, "Directory traversal not allowed in working_dir", None
+
             result = subprocess.run(
-                command,
+                cmd,
                 shell=True,
-                cwd=working_dir,
                 capture_output=True,
                 text=True,
+                cwd=working_dir,
                 timeout=30,
             )
             output = result.stdout + result.stderr
             if result.returncode == 0:
                 return True, "Command executed successfully", output
             else:
-                return (
-                    False,
-                    f"Command failed with exit code {result.returncode}",
-                    output,
-                )
+                return False, f"Command failed with return code {result.returncode}", output
         except subprocess.TimeoutExpired:
             return False, "Command timed out after 30 seconds", None
-        except FileNotFoundError:
-            return False, f"Working directory not found: {working_dir}", None
-        except PermissionError:
-            return False, f"Permission denied for working directory: {working_dir}", None
         except Exception as e:
             return False, f"Failed to execute command: {str(e)}", None
 
-    def _search_files(self, pattern: str, path: str) -> tuple[bool, str, Any]:
+    def _search_files(self, pattern: str, path: str = ".") -> tuple[bool, str, Any]:
         """Search for files matching a pattern."""
         try:
-            search_pattern = os.path.join(path, pattern)
-            matches = glob(search_pattern, recursive=True)
-            result = "\n".join(sorted(matches))
-            count = len(matches)
-            return True, f"Found {count} matches", result
+            # Use glob.glob to find files matching the pattern
+            matches = glob(os.path.join(path, pattern), recursive=True)
+            if matches:
+                # Sort matches for consistent output
+                matches.sort()
+                result = "\n".join(matches)
+                return True, f"Found {len(matches)} matches", result
+            else:
+                return True, "No matches found", ""
         except Exception as e:
             return False, f"Failed to search files: {str(e)}", None
 
@@ -309,46 +316,219 @@ class ActionExecutor:
                 "size": stat.st_size,
                 "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
                 "created": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+                "is_directory": os.path.isdir(path),
                 "is_file": os.path.isfile(path),
-                "is_dir": os.path.isdir(path),
             }
-            result = "\n".join(f"{k}: {v}" for k, v in info.items())
-            return True, f"Got info for {path}", result
+
+            # Format the info as a string to match test expectations
+            info_str = "\n".join([f"{key}: {value}" for key, value in info.items()])
+            return True, f"Successfully retrieved file info for {path}", info_str
         except FileNotFoundError:
             return False, f"File not found: {path}", None
         except PermissionError:
             return False, f"Permission denied when getting info for: {path}", None
         except Exception as e:
-            return False, f"Failed to get info for {path}: {str(e)}", None
+            return False, f"Failed to get file info for {path}: {str(e)}", None
 
     def _grep(self, pattern: str, paths: list[str], flags: str = "") -> tuple[bool, str, Any]:
-        """Search for patterns in files using grep."""
+        """Search for pattern in files using grep or ripgrep."""
         try:
-            # Use regular grep exclusively
-            command = f"grep {flags} '{pattern}' {' '.join(paths)}"
+            # Check if ripgrep is available
+            use_rg = False
+            try:
+                subprocess.run(["rg", "--version"], capture_output=True, check=True)
+                use_rg = True
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                # ripgrep not available, fall back to grep
+                pass
 
-            result = subprocess.run(
-                command,
-                shell=True,
-                cwd=".",  # Explicitly set working directory
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
+            if use_rg:
+                # Use ripgrep with file names included
+                # Add flags to skip binary files and show line numbers and file names
+                rg_flags = "--no-heading --line-number -I --with-filename"
+                if flags:
+                    rg_flags += f" {flags}"
 
-            output = result.stdout + result.stderr
-            if result.returncode == 0:
-                return True, "grep search executed successfully", output
-            elif result.returncode == 1:
-                # grep returns 1 when no matches found, which is not an error
-                return True, "grep search completed (no matches found)", output
-            else:
-                return (
-                    False,
-                    f"grep search failed with exit code {result.returncode}",
-                    output,
+                cmd = ["rg", rg_flags, pattern] + paths
+                result = subprocess.run(
+                    " ".join(cmd),
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
                 )
+            else:
+                # Use standard grep - it includes file names when searching multiple files
+                # Always add flags to skip binary files and show line numbers
+                grep_flags = "-I -n"
+                if flags:
+                    grep_flags += f" {flags}"
+
+                cmd = ["grep", grep_flags, pattern] + paths
+                result = subprocess.run(
+                    " ".join(cmd),
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+
+            output = result.stdout if result.returncode == 0 or result.stdout else result.stderr
+
+            if result.returncode == 0:  # Found matches
+                return True, "grep search executed successfully", output
+            elif result.returncode == 1:  # No matches found (not an error)
+                return True, "grep search completed (no matches found)", ""
+            else:  # Actual error occurred
+                return False, f"Error in grep/rg command: {output}", None
+
         except subprocess.TimeoutExpired:
             return False, "Search timed out after 30 seconds", None
         except Exception as e:
-            return False, f"Failed to execute grep search: {str(e)}", None
+            return False, f"Failed to execute grep: {str(e)}", None
+
+    def _edit_file(
+        self,
+        path: str,
+        operation: str,
+        content: str = "",
+        line_number: int | None = None,
+        pattern: str = "",
+        match_pattern_line: bool = True,
+    ) -> tuple[bool, str, Any]:
+        """Edit a file with various operations (insert, replace, delete, append)."""
+        try:
+            # Read current file content
+            try:
+                with open(path, encoding="utf-8") as f:
+                    file_content = f.read()
+            except FileNotFoundError:
+                return False, f"File not found: {path}", None
+
+            lines = file_content.splitlines(keepends=True)
+
+            # Handle different operations
+            if operation == "insert":
+                if line_number is None:
+                    return False, "Line number required for insert operation", None
+
+                # Line numbers from user are 1-based, convert to 0-based indexing
+                # For insert, line_number 1 means insert at the beginning (index 0)
+                # line_number 2 means insert before the second line (index 1)
+                # etc. Special case: line_number 0 means insert at the beginning
+                if line_number < 0 or line_number > len(lines):
+                    msg = f"Invalid line number {line_number}. File has {len(lines)} lines"
+                    return False, msg, None
+
+                # Convert 1-based line number to 0-based index
+                idx = line_number - 1 if line_number > 0 else 0
+
+                # Add newline if content doesn't end with one
+                if content and not content.endswith("\n"):
+                    content += "\n"
+
+                lines.insert(idx, content)
+
+            elif operation == "replace":
+                if line_number is not None:
+                    # Convert from 1-based to 0-based indexing (1-based line numbers from user)
+                    idx = line_number - 1
+                    if idx < 0 or idx >= len(lines):
+                        msg = f"Invalid line number {line_number}. File has {len(lines)} lines"
+                        return False, msg, None
+
+                    # Add newline if content doesn't end with one
+                    if content and not content.endswith("\n"):
+                        content += "\n"
+
+                    lines[idx] = content
+                elif pattern:
+                    # Find and replace lines matching the pattern
+                    found = False
+                    for i, line in enumerate(lines):
+                        if match_pattern_line:
+                            # Case insensitive pattern matching like the test expects
+                            if pattern.lower() in line.lower():
+                                # Add newline if content doesn't end with one
+                                if content and not content.endswith("\n"):
+                                    content += "\n"
+
+                                lines[i] = content
+                                found = True
+                                break
+                        else:
+                            if line.strip() == pattern:
+                                # Add newline if content doesn't end with one
+                                if content and not content.endswith("\n"):
+                                    content += "\n"
+
+                                lines[i] = content
+                                found = True
+                                break
+
+                    if not found:
+                        return False, f"Pattern '{pattern}' not found in file", None
+                else:
+                    return (
+                        False,
+                        ("Either line_number or pattern is required for replace operation"),
+                        None,
+                    )
+
+            elif operation == "delete":
+                if line_number is not None:
+                    # Convert from 1-based to 0-based indexing (1-based line numbers from user)
+                    idx = line_number - 1
+                    if idx < 0 or idx >= len(lines):
+                        msg = f"Invalid line number {line_number}. File has {len(lines)} lines"
+                        return False, msg, None
+
+                    lines.pop(idx)
+                elif pattern:
+                    # Find and delete lines matching the pattern
+                    # Need to iterate backwards to avoid index shifting issues
+                    found = False
+                    for i in range(len(lines) - 1, -1, -1):
+                        line = lines[i]
+                        if match_pattern_line:
+                            # Case insensitive pattern matching like the test expects
+                            if pattern.lower() in line.lower():
+                                lines.pop(i)
+                                found = True
+                        else:
+                            if line.strip() == pattern:
+                                lines.pop(i)
+                                found = True
+
+                    if not found:
+                        return False, f"Pattern '{pattern}' not found in file", None
+                else:
+                    return (
+                        False,
+                        ("Either line_number or pattern is required for delete operation"),
+                        None,
+                    )
+
+            elif operation == "append":
+                # If the file doesn't end with newline but we're appending, add one first
+                if lines and lines[-1] and not lines[-1].endswith("\n"):
+                    lines[-1] += "\n"
+
+                # Add newline if content doesn't end with one
+                if content and not content.endswith("\n"):
+                    content += "\n"
+
+                lines.append(content)
+            else:
+                return False, f"Unknown operation: {operation}", None
+
+            # Write back to file
+            with open(path, "w", encoding="utf-8") as f:
+                f.writelines(lines)
+
+            return True, f"Successfully performed {operation} operation", None
+
+        except PermissionError:
+            return False, f"Permission denied when editing: {path}", None
+        except Exception as e:
+            return False, f"Failed to edit {path}: {str(e)}", None
