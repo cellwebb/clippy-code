@@ -17,7 +17,7 @@ cd clippy
 uv pip install -e .
 
 # Set up your API key
-echo "ANTHROPIC_API_KEY=your_key_here" > .env
+echo "OPENAI_API_KEY=your_key_here" > .env
 ```
 
 ## 2. First Command (One-Shot Mode)
@@ -36,7 +36,7 @@ clippy-code will:
 ## 3. Interactive Mode
 
 ```bash
-clippy
+clippy -i
 ```
 
 Now you can have a conversation:
@@ -137,7 +137,7 @@ clippy "refactor app.py to use dependency injection"
 ## Troubleshooting
 
 **Problem**: API key error
-**Solution**: Make sure `.env` file exists with `ANTHROPIC_API_KEY=...`
+**Solution**: Make sure `.env` file exists with `OPENAI_API_KEY=...`
 
 **Problem**: clippy-code wants to modify the wrong file
 **Solution**: Type `N` to reject, then provide more specific instructions
