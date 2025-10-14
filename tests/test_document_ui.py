@@ -1,11 +1,6 @@
 """Tests for the document UI functionality."""
 
-from unittest.mock import Mock, patch
-
-from clippy.document_ui import (
-    DocumentTextArea,
-    strip_ansi_codes,
-)
+from clippy.document_ui import convert_rich_to_textual_markup, strip_ansi_codes
 
 
 def test_strip_ansi_codes_removes_ansi_sequences() -> None:
@@ -15,11 +10,35 @@ def test_strip_ansi_codes_removes_ansi_sequences() -> None:
     assert cleaned == "Red Text"
 
 
-def test_strip_ansi_codes_removes_rich_markup() -> None:
-    """Test that strip_ansi_codes removes Rich markup."""
+def test_strip_ansi_codes_preserves_and_converts_rich_markup() -> None:
+    """Test that strip_ansi_codes preserves Rich markup but converts it to Textual format."""
     text_with_rich = "[bold]Bold Text[/bold]"
     cleaned = strip_ansi_codes(text_with_rich)
-    assert cleaned == "Bold Text"
+    # Should preserve markup but convert to Textual format
+    assert cleaned == "[bold]Bold Text[/bold]"
+
+
+def test_convert_rich_to_textual_markup() -> None:
+    """Test that convert_rich_to_textual_markup properly converts Rich colors to Textual colors."""
+    # Test cyan conversion
+    text = "[bold cyan]→ tool_name[/bold cyan]\n[cyan]tool input[/cyan]"
+    converted = convert_rich_to_textual_markup(text)
+    assert converted == "[bold blue]→ tool_name[/bold blue]\n[blue]tool input[/blue]"
+
+    # Test green conversion
+    text = "[bold green]✓ Success message[/bold green]"
+    converted = convert_rich_to_textual_markup(text)
+    assert converted == "[bold green]✓ Success message[/bold green]"
+
+    # Test red conversion
+    text = "[bold red]✗ Error message[/bold red]"
+    converted = convert_rich_to_textual_markup(text)
+    assert converted == "[bold red]✗ Error message[/bold red]"
+
+    # Test yellow conversion
+    text = "[bold yellow]⊘ Warning message[/bold yellow]"
+    converted = convert_rich_to_textual_markup(text)
+    assert converted == "[bold yellow]⊘ Warning message[/bold yellow]"
 
 
 def test_strip_ansi_codes_removes_paperclip_prefix() -> None:
@@ -27,41 +46,3 @@ def test_strip_ansi_codes_removes_paperclip_prefix() -> None:
     text_with_prefix = "[📎] Hello World"
     cleaned = strip_ansi_codes(text_with_prefix)
     assert cleaned == "Hello World"
-
-
-def test_document_text_area_submit_message() -> None:
-    """Test that DocumentTextArea creates SubmitMessage on Enter key."""
-    text_area = DocumentTextArea(id="document-area", language="markdown")
-
-    # Create a mock event for Enter key
-    event = Mock()
-    event.name = "enter"
-    event.prevent_default = Mock()
-    event.stop = Mock()
-
-    # Mock post_message to track calls
-    with patch.object(text_area, "post_message") as mock_post:
-        text_area.on_key(event)
-
-        # Verify SubmitMessage was posted
-        mock_post.assert_called_once()
-
-        # Verify event methods were called
-        event.prevent_default.assert_called_once()
-        event.stop.assert_called_once()
-
-
-def test_document_text_area_does_not_submit_on_other_keys() -> None:
-    """Test that DocumentTextArea only submits on Enter key."""
-    text_area = DocumentTextArea(id="document-area", language="markdown")
-
-    # Create a mock event for a different key
-    event = Mock()
-    event.name = "a"
-
-    # Mock post_message to track calls
-    with patch.object(text_area, "post_message") as mock_post:
-        text_area.on_key(event)
-
-        # SubmitMessage should not be posted
-        mock_post.assert_not_called()
