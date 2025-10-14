@@ -78,7 +78,7 @@ All LLM interactions go through a single `LLMProvider` class (~100 lines total).
 
 ### Using Alternate LLM Providers
 
-CLIppy uses OpenAI format natively, so any OpenAI-compatible provider works out-of-the-box:
+clippy-code uses OpenAI format natively, so any OpenAI-compatible provider works out-of-the-box:
 
 1. Set provider-specific API key environment variable (OPENAI_API_KEY, CEREBRAS_API_KEY, etc.)
 2. Use model presets from `models.yaml` or specify custom model/base_url
@@ -97,11 +97,11 @@ Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, 
 
 ### UI Modes
 
-CLIppy supports three UI modes:
+clippy-code supports three UI modes:
 
-1. **One-shot mode**: `python -m clippy "your task here"`
-2. **Interactive mode**: `python -m clippy -i` (REPL-style interface)
-3. **Document mode**: `python -m clippy -d` (Word-like TUI interface)
+1. **One-shot mode**: `clippy "your task here"`
+2. **Interactive mode**: `clippy -i` (REPL-style interface)
+3. **Document mode**: `clippy -d` (Word-like TUI interface)
 
 Document mode features:
 - Word-inspired interface using Textual framework
