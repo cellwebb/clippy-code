@@ -330,6 +330,9 @@ Focus on being genuinely helpful while maintaining Clippy's distinctive personal
         # Add result to conversation
         self._add_tool_result(tool_use_id, success, message, result)
 
+        # Add blank line after tool result for visual separation
+        self.console.print("")
+
         return success
 
     def _display_tool_request(self, tool_name: str, tool_input: dict[str, Any]) -> None:
@@ -387,8 +390,12 @@ Focus on being genuinely helpful while maintaining Clippy's distinctive personal
                 APITimeoutError,
                 AuthenticationError,
                 BadRequestError,
+                ConflictError,
                 InternalServerError,
+                NotFoundError,
+                PermissionDeniedError,
                 RateLimitError,
+                UnprocessableEntityError,
             )
 
             if isinstance(error, AuthenticationError):
@@ -417,6 +424,25 @@ Focus on being genuinely helpful while maintaining Clippy's distinctive personal
                 return (
                     "Server error. The API encountered an internal error.\n\n"
                     "The system will automatically retry."
+                )
+            elif isinstance(error, PermissionDeniedError):
+                return (
+                    "Permission denied. Your API key doesn't have permission to access "
+                    "this resource.\n\n"
+                    "Check your API key permissions with your provider."
+                )
+            elif isinstance(error, NotFoundError):
+                return f"Resource not found. Check if the model exists.\n\nDetails: {str(error)}"
+            elif isinstance(error, ConflictError):
+                return (
+                    "Conflict error. The request conflicts with the current state.\n\n"
+                    f"Details: {error}"
+                )
+            elif isinstance(error, UnprocessableEntityError):
+                return (
+                    "Unprocessable entity. The request was well-formed but was unable to be "
+                    "processed.\n\n"
+                    f"Details: {error}"
                 )
             else:
                 return f"{type(error).__name__}: {str(error)}"

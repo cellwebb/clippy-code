@@ -79,11 +79,17 @@ class ActionExecutor:
             return False, f"Error executing {tool_name}: {str(e)}", None
 
     def _read_file(self, path: str) -> tuple[bool, str, Any]:
-        """Read a file barring"""
+        """Read a file."""
         try:
             with open(path, encoding="utf-8") as f:
                 content = f.read()
             return True, f"Successfully read {path}", content
+        except FileNotFoundError:
+            return False, f"File not found: {path}", None
+        except PermissionError:
+            return False, f"Permission denied when reading: {path}", None
+        except UnicodeDecodeError:
+            return False, f"Unable to decode file (might be binary): {path}", None
         except Exception as e:
             return False, f"Failed to read {path}: {str(e)}", None
 
@@ -116,6 +122,10 @@ class ActionExecutor:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
             return True, f"Successfully wrote to {path}", None
+        except PermissionError:
+            return False, f"Permission denied when writing to: {path}", None
+        except OSError as e:
+            return False, f"OS error when writing to {path}: {str(e)}", None
         except Exception as e:
             return False, f"Failed to write to {path}: {str(e)}", None
 
@@ -124,6 +134,12 @@ class ActionExecutor:
         try:
             os.remove(path)
             return True, f"Successfully deleted {path}", None
+        except FileNotFoundError:
+            return False, f"File not found: {path}", None
+        except PermissionError:
+            return False, f"Permission denied when deleting: {path}", None
+        except OSError as e:
+            return False, f"OS error when deleting {path}: {str(e)}", None
         except Exception as e:
             return False, f"Failed to delete {path}: {str(e)}", None
 
@@ -143,6 +159,12 @@ class ActionExecutor:
     def _list_directory(self, path: str, recursive: bool) -> tuple[bool, str, Any]:
         """List directory contents."""
         try:
+            if not os.path.exists(path):
+                return False, f"Directory not found: {path}", None
+
+            if not os.path.isdir(path):
+                return False, f"Path is not a directory: {path}", None
+
             if recursive:
                 # Load .gitignore patterns
                 gitignore_spec = self._load_gitignore(path)
@@ -218,6 +240,10 @@ class ActionExecutor:
                         items_with_type.append(item)
                 result = "\n".join(items_with_type)
             return True, f"Successfully listed {path}", result
+        except PermissionError:
+            return False, f"Permission denied when listing: {path}", None
+        except FileNotFoundError:
+            return False, f"Directory not found: {path}", None
         except Exception as e:
             return False, f"Failed to list {path}: {str(e)}", None
 
@@ -226,6 +252,12 @@ class ActionExecutor:
         try:
             Path(path).mkdir(parents=True, exist_ok=True)
             return True, f"Successfully created directory {path}", None
+        except PermissionError:
+            return False, f"Permission denied when creating directory: {path}", None
+        except FileExistsError:
+            return False, f"Path already exists and is not a directory: {path}", None
+        except OSError as e:
+            return False, f"OS error when creating directory {path}: {str(e)}", None
         except Exception as e:
             return False, f"Failed to create directory {path}: {str(e)}", None
 
@@ -251,6 +283,10 @@ class ActionExecutor:
                 )
         except subprocess.TimeoutExpired:
             return False, "Command timed out after 30 seconds", None
+        except FileNotFoundError:
+            return False, f"Working directory not found: {working_dir}", None
+        except PermissionError:
+            return False, f"Permission denied for working directory: {working_dir}", None
         except Exception as e:
             return False, f"Failed to execute command: {str(e)}", None
 
@@ -278,6 +314,10 @@ class ActionExecutor:
             }
             result = "\n".join(f"{k}: {v}" for k, v in info.items())
             return True, f"Got info for {path}", result
+        except FileNotFoundError:
+            return False, f"File not found: {path}", None
+        except PermissionError:
+            return False, f"Permission denied when getting info for: {path}", None
         except Exception as e:
             return False, f"Failed to get info for {path}: {str(e)}", None
 

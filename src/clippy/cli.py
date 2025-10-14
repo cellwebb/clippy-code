@@ -350,7 +350,12 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             console.print("\n[yellow]Goodbye![/yellow]")
             break
         except Exception as e:
-            console.print(f"\n[bold red]Error: {e}[/bold red]")
+            console.print(f"\n[bold red]Unexpected error: {e}[/bold red]")
+            logger = logging.getLogger(__name__)
+            logger.error(
+                f"Unexpected error in interactive mode: {type(e).__name__}: {e}", exc_info=True
+            )
+            console.print("[dim]Please report this error with the above details.[/dim]")
             continue
 
 
