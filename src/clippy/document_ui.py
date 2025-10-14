@@ -36,12 +36,41 @@ def strip_ansi_codes(text: str) -> str:
 class DocumentHeader(Static):
     """Document header."""
 
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.update("📎 clippy - 📄 Document Mode\nType directly, press Enter to send • Type 'y'/'n'/'stop' when prompted for approval")
+
+
+class DocumentRibbon(Vertical):
+    """Microsoft Word-style ribbon."""
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
     def compose(self) -> ComposeResult:
-        yield Static("📎 clippy - 📄 Document Mode", classes="doc-title")
-        yield Static(
-            "Type directly, press Enter to send • Type 'y'/'n'/'stop' when prompted for approval",
-            classes="doc-commands",
-        )
+        # Tab row (removed for cleaner look)
+
+        # Ribbon content with groups
+        with Horizontal(classes="ribbon-content"):
+            # Clipboard group
+            with Vertical(classes="ribbon-group"):
+                yield Static("📋 Paste", classes="ribbon-item")
+                yield Static("Clipboard", classes="ribbon-group-label")
+
+            # Font group
+            with Vertical(classes="ribbon-group"):
+                yield Static("🗛 Bold  Italic  Underline", classes="ribbon-item")
+                yield Static("Font", classes="ribbon-group-label")
+
+            # Paragraph group
+            with Vertical(classes="ribbon-group"):
+                yield Static("≡ Bullets  Numbering  Align", classes="ribbon-item")
+                yield Static("Paragraph", classes="ribbon-group-label")
+
+            # Styles group
+            with Vertical(classes="ribbon-group"):
+                yield Static("✎ Heading  Normal  Title", classes="ribbon-item")
+                yield Static("Styles", classes="ribbon-group-label")
 
 
 class DocumentStatusBar(Static):
@@ -61,29 +90,62 @@ class DocumentApp(App[None]):
     Screen {
         background: #f0f0f0;
     }
-    DocumentHeader {
+    #top-bar {
         dock: top;
-        height: 4;
+        height: auto;
+    }
+    #header {
+        height: 3;
         background: #2b579a;
         color: white;
-        padding: 1;
-    }
-    .doc-title {
+        padding: 0 1;
         text-align: center;
-        text-style: bold;
-        color: white;
+        content-align: center middle;
     }
-    .doc-commands {
+    #ribbon {
+        height: 3;
+        background: #f5f5f5;
+        border-bottom: solid #d0d0d0;
+        padding: 0;
+    }
+    .ribbon-tabs {
+        height: 1;
+        background: #f5f5f5;
+        color: #555555;
+        padding: 0 1;
+        text-align: left;
+    }
+    .ribbon-content {
+        height: 3;
+        background: white;
+        padding: 0 1;
+    }
+    .ribbon-group {
+        width: auto;
+        height: 1fr;
+        border-right: solid #e0e0e0;
+        padding: 0 1;
+        margin: 0 1 0 0;
+    }
+    .ribbon-item {
+        width: auto;
+        height: 1;
+        color: #333333;
+        text-align: left;
+        padding: 0 1;
+    }
+    .ribbon-group-label {
+        width: auto;
+        height: 1;
+        color: #666666;
         text-align: center;
-        color: #e0e0e0;
+        text-style: italic;
     }
     #toolbar {
-        dock: top;
         height: 2;
         background: #f0f0f0;
         border-bottom: solid #d0d0d0;
         padding: 0 1;
-        margin-top: 4;
     }
     #toolbar Button {
         margin: 0 1;
@@ -170,14 +232,20 @@ class DocumentApp(App[None]):
         self.waiting_for_approval = False
 
     def compose(self) -> ComposeResult:
-        yield DocumentHeader()
-        with Horizontal(id="toolbar"):
-            yield Button("Send", id="submit-btn")
-            yield Button("Reset", id="reset-btn")
-            yield Button("Help", id="help-btn")
-            yield Button("Status", id="status-btn")
-            yield Button("Models", id="models-btn")
-            yield Button("Quit", id="quit-btn")
+        with Vertical(id="top-bar"):
+            yield Static(
+                "📎 clippy - 📄 Document Mode\n"
+                "Type directly, press Enter to send • Type 'y'/'n'/'stop' when prompted",
+                id="header",
+            )
+            with Horizontal(id="toolbar"):
+                yield Button("Send", id="submit-btn")
+                yield Button("Reset", id="reset-btn")
+                yield Button("Help", id="help-btn")
+                yield Button("Status", id="status-btn")
+                yield Button("Models", id="models-btn")
+                yield Button("Quit", id="quit-btn")
+            yield DocumentRibbon(id="ribbon")
         with Vertical(id="document-container"):
             yield RichLog(id="conversation-log", markup=True, wrap=True, highlight=False)
             yield Static("[📎] Thinking...", id="thinking-indicator")
