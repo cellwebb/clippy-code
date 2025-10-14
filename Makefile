@@ -20,7 +20,7 @@ help:
 	@echo "  make cov          Run tests with coverage report"
 	@echo ""
 	@echo "Code Quality:"
-	@echo "  make format       Format code with ruff"
+	@echo "  make format       Autofix and format code with ruff"
 	@echo "  make lint         Lint code with ruff"
 	@echo "  make type-check   Run type checking with mypy"
 	@echo "  make check        Run all checks (format, lint, type-check)"
@@ -70,6 +70,7 @@ cov:
 
 # Code quality
 format:
+	uv run ruff check . --fix
 	uv run ruff format .
 
 lint:
