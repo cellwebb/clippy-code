@@ -36,6 +36,7 @@ class ActionExecutor:
             "search_files": ActionType.SEARCH_FILES,
             "get_file_info": ActionType.GET_FILE_INFO,
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
+            "grep": ActionType.SEARCH_FILES,  # Use same permission as search_files
         }
 
         action_type = action_map.get(tool_name)
@@ -68,13 +69,17 @@ class ActionExecutor:
                 return self._get_file_info(tool_input["path"])
             elif tool_name == "read_files":
                 return self._read_files(tool_input["paths"])
+            elif tool_name == "grep":
+                return self._grep(
+                    tool_input["pattern"], tool_input["paths"], tool_input.get("flags", "")
+                )
             else:
                 return False, f"Unimplemented tool: {tool_name}", None
         except Exception as e:
             return False, f"Error executing {tool_name}: {str(e)}", None
 
     def _read_file(self, path: str) -> tuple[bool, str, Any]:
-        """Read a file."""
+        """Read a file barring"""
         try:
             with open(path, encoding="utf-8") as f:
                 content = f.read()
@@ -275,3 +280,35 @@ class ActionExecutor:
             return True, f"Got info for {path}", result
         except Exception as e:
             return False, f"Failed to get info for {path}: {str(e)}", None
+
+    def _grep(self, pattern: str, paths: list[str], flags: str = "") -> tuple[bool, str, Any]:
+        """Search for patterns in files using grep."""
+        try:
+            # Use regular grep exclusively
+            command = f"grep {flags} '{pattern}' {' '.join(paths)}"
+
+            result = subprocess.run(
+                command,
+                shell=True,
+                cwd=".",  # Explicitly set working directory
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            output = result.stdout + result.stderr
+            if result.returncode == 0:
+                return True, "grep search executed successfully", output
+            elif result.returncode == 1:
+                # grep returns 1 when no matches found, which is not an error
+                return True, "grep search completed (no matches found)", output
+            else:
+                return (
+                    False,
+                    f"grep search failed with exit code {result.returncode}",
+                    output,
+                )
+        except subprocess.TimeoutExpired:
+            return False, "Search timed out after 30 seconds", None
+        except Exception as e:
+            return False, f"Failed to execute grep search: {str(e)}", None

@@ -24,6 +24,7 @@ class ActionType(str, Enum):
     EXECUTE_COMMAND = "execute_command"
     SEARCH_FILES = "search_files"
     GET_FILE_INFO = "get_file_info"
+    GREP = "grep"
 
 
 class PermissionConfig(BaseModel):
@@ -34,6 +35,7 @@ class PermissionConfig(BaseModel):
         ActionType.LIST_DIR,
         ActionType.SEARCH_FILES,
         ActionType.GET_FILE_INFO,
+        ActionType.GREP,  # Add grep to auto-approved actions
     }
     require_approval: set[ActionType] = {
         ActionType.WRITE_FILE,

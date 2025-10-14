@@ -160,6 +160,33 @@ TOOLS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "grep",
+            "description": "Search for patterns in files using grep. "
+            "This is a safe read-only operation that requires no approval.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {
+                        "type": "string",
+                        "description": "The pattern to search for in files",
+                    },
+                    "paths": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "The file paths or glob patterns to search in",
+                    },
+                    "flags": {
+                        "type": "string",
+                        "description": "Optional flags for grep command (e.g., '-i', '-r', etc.)",
+                    },
+                },
+                "required": ["pattern", "paths"],
+            },
+        },
+    },
 ]
 
 
