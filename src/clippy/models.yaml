@@ -101,3 +101,15 @@ providers:
       deepseek-chat:
         model_id: deepseek-chat
         description: DeepSeek Chat
+
+  zai:
+    base_url: https://api.z.ai/api/coding/paas/v4/
+    api_key_env: ZAI_API_KEY
+    default_model: glm-4.6
+    models:
+      glm-4.6:
+        model_id: glm-4.6
+        description: ZAI GLM 4.6 (default)
+      glm-4.5-air:
+        model_id: glm-4.5-air
+        description: ZAI GLM 4.5 Air
