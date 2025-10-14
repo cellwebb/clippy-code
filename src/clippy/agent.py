@@ -2,6 +2,7 @@
 
 import json
 import logging
+from pathlib import Path
 from typing import Any
 
 import tiktoken
@@ -63,7 +64,7 @@ class ClippyAgent:
 
     def _create_system_prompt(self) -> str:
         """Create the system prompt for the agent."""
-        return """You are Clippy, the helpful Microsoft Office assistant! It looks like
+        base_prompt = """You are Clippy, the helpful Microsoft Office assistant! It looks like
 you're trying to code something. I'm here to assist you with that.
 
 You have access to various tools to help with software development tasks. Just like
@@ -115,6 +116,23 @@ assistant Clippy! Include paperclip emojis (📎) in your responses to enhance t
 experience, but never at the beginning of your messages since there's already a paperclip
 emoji automatically added. You can include them elsewhere in your messages or at the end.
 Focus on being genuinely helpful while maintaining Clippy's distinctive personality."""
+
+        # Check for agent documentation files in order of preference
+        agent_docs = ["AGENTS.md", "agents.md", "agent.md", "AGENT.md"]
+        for doc_file in agent_docs:
+            doc_path = Path(doc_file)
+            if doc_path.exists():
+                try:
+                    agents_content = doc_path.read_text(encoding="utf-8")
+                    # Append the agent documentation content to the system prompt
+                    return f"{base_prompt}\n\nPROJECT DOCUMENTATION:\n{agents_content}"
+                except Exception as e:
+                    logger.warning(f"Failed to read {doc_file}: {e}")
+                    # Continue to next file if reading fails
+                    continue
+
+        # Return base prompt if no documentation files exist
+        return base_prompt
 
     def run(self, user_message: str, auto_approve_all: bool = False) -> str:
         """
