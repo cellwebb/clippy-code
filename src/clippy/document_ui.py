@@ -1,9 +1,11 @@
-"""Microsoft Word-inspired document interface using Textual."""
+"""Simplified document UI that works like interactive mode."""
 
 import os
+import queue
 import re
 from typing import Any
 
+from rich.console import Console
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -13,92 +15,52 @@ from .models import get_model_config, list_available_models
 
 
 def convert_rich_to_textual_markup(text: str) -> str:
-    """Convert Rich markup to Textual markup for better visibility in document mode."""
-    # Convert Rich color markup to Textual markup
-    # For tool calls, make them more prominent
-    text = text.replace("[bold cyan]→", "[bold blue]→")  # Make arrow more prominent
-    text = text.replace("[/bold cyan]", "[/bold blue]")  # Fix closing tag
-    text = text.replace("[cyan]", "[blue]")  # Make cyan brighter
-    text = text.replace("[/cyan]", "[/blue]")  # Fix closing tag
-    text = text.replace("[bold green]", "[bold green]")  # Make green more visible
-    text = text.replace("[/bold green]", "[/bold green]")  # Fix closing tag
-    text = text.replace("[green]", "[green]")  # Make green more visible
-    text = text.replace("[/green]", "[/green]")  # Fix closing tag
-    text = text.replace("[bold red]", "[bold red]")  # Make red more visible
-    text = text.replace("[/bold red]", "[/bold red]")  # Fix closing tag
-    text = text.replace("[red]", "[red]")  # Make red more visible
-    text = text.replace("[/red]", "[/red]")  # Fix closing tag
-    text = text.replace("[bold yellow]", "[bold yellow]")  # Make yellow more visible
-    text = text.replace("[/bold yellow]", "[/bold yellow]")  # Fix closing tag
-    text = text.replace("[yellow]", "[yellow]")  # Make yellow more visible
-    text = text.replace("[/yellow]", "[/yellow]")  # Fix closing tag
-    text = text.replace("[bold blue]", "[bold blue]")  # Make blue more visible
-    text = text.replace("[/bold blue]", "[/bold blue]")  # Fix closing tag
-    text = text.replace("[blue]", "[blue]")  # Make blue more visible
-    text = text.replace("[/blue]", "[/blue]")  # Fix closing tag
-    text = text.replace("[dim]", "[dim]")  # Make dim text more visible
-    text = text.replace("[/dim]", "[/dim]")  # Fix closing tag
-
-    # Handle panel titles and borders (used in API error display)
-    text = text.replace("[bold red]Error[/bold red]", "[bold red]Error[/bold red]")
-
+    """Convert Rich markup to Textual markup."""
+    text = text.replace("[bold cyan]", "[bold blue]")
+    text = text.replace("[/bold cyan]", "[/bold blue]")
+    text = text.replace("[cyan]", "[blue]")
+    text = text.replace("[/cyan]", "[/blue]")
     return text
 
 
 def strip_ansi_codes(text: str) -> str:
-    """Remove terminal control codes and box-drawing characters while preserving markup."""
-    # Remove ANSI escape sequences (like \x1b[31m)
+    """Remove ANSI codes and convert markup."""
     text = re.sub(r"\x1b\[[0-9;]*m", "", text)
-
-    # Remove Unicode box-drawing characters
     text = re.sub(r"[\u2500-\u257F]", "", text)
-
-    # Remove zero-width characters
     text = re.sub(r"[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f-\x9f]", "", text)
-
-    # Remove paperclip emoji prefix (used in interactive mode)
     text = re.sub(r"^\[📎\]\s*", "", text)
-
-    # Convert Rich markup to Textual markup for better visibility
     text = convert_rich_to_textual_markup(text)
-
-    # No longer filtering out "You" lines or user messages
-    # They should be preserved in document mode
-
     return text.strip()
 
 
 class DocumentHeader(Static):
-    """Word-like document header."""
+    """Document header."""
 
     def compose(self) -> ComposeResult:
         yield Static("📎 clippy - 📄 Document Mode", classes="doc-title")
         yield Static(
-            "Type directly in the document, press Enter to send message",
+            "Type directly, press Enter to send • Type 'y'/'n'/'stop' when prompted for approval",
             classes="doc-commands",
         )
 
 
 class DocumentStatusBar(Static):
-    """Status bar showing model info."""
+    """Status bar."""
 
     def update_status(self, model: str, messages: int, tokens: int = 0) -> None:
-        """Update status bar with model info."""
         self.update(f"Model: {model} | Messages: {messages} | Tokens: {tokens:,}")
 
     def update_message(self, message: str) -> None:
-        """Update status bar with a simple message."""
         self.update(message)
 
 
 class DocumentApp(App[None]):
-    """A Textual app that looks like Microsoft Word."""
+    """Simplified document mode - works like interactive mode."""
 
     CSS = """
     Screen {
         background: #f0f0f0;
     }
-
     DocumentHeader {
         dock: top;
         height: 4;
@@ -106,18 +68,15 @@ class DocumentApp(App[None]):
         color: white;
         padding: 1;
     }
-
     .doc-title {
         text-align: center;
         text-style: bold;
         color: white;
     }
-
     .doc-commands {
         text-align: center;
         color: #e0e0e0;
     }
-
     #toolbar {
         dock: top;
         height: 2;
@@ -126,7 +85,6 @@ class DocumentApp(App[None]):
         padding: 0 1;
         margin-top: 4;
     }
-
     #toolbar Button {
         margin: 0 1;
         width: 12;
@@ -137,20 +95,9 @@ class DocumentApp(App[None]):
         text-style: bold;
         content-align: center middle;
     }
-
     #toolbar Button:hover {
         background: #e6e6e6;
     }
-
-    #toolbar Button:focus {
-        background: #e6e6e6;
-    }
-
-    #toolbar Button.-active {
-        background: #2b579a;
-        color: white;
-    }
-
     #document-container {
         layout: vertical;
         background: white;
@@ -161,26 +108,21 @@ class DocumentApp(App[None]):
         height: 1fr;
         width: 1fr;
         overflow-y: auto;
-        scrollbar-gutter: stable;
     }
-
     #conversation-log {
         height: auto;
-        min-height: 0;
         background: white;
         color: #000000;
         border: none;
         padding: 0;
         scrollbar-size: 0 0;
     }
-
     #input-container {
         height: auto;
         background: white;
         border: none;
         padding: 1 0 0 0;
     }
-
     #input-prompt {
         width: auto;
         height: 1;
@@ -189,7 +131,6 @@ class DocumentApp(App[None]):
         padding: 0;
         margin: 0;
     }
-
     #user-input {
         width: 1fr;
         background: white;
@@ -199,12 +140,6 @@ class DocumentApp(App[None]):
         padding: 0;
         margin: 0;
     }
-
-    #user-input:focus {
-        border: none;
-        color: #000000;
-    }
-
     DocumentStatusBar {
         dock: bottom;
         height: 1;
@@ -212,113 +147,110 @@ class DocumentApp(App[None]):
         color: white;
         text-align: center;
     }
-
-    #help-panel {
-        background: #ffffcc;
-        border: round #cccc99;
-        padding: 1 2;
-        margin: 2 4;
-    }
-
-    #models-panel {
-        background: #e6f3ff;
-        border: round #99ccff;
-        padding: 1 2;
-        margin: 2 4;
-    }
     """
 
-    BINDINGS = [
-        Binding("ctrl+q", "quit", "Quit"),
-    ]
+    BINDINGS = [Binding("ctrl+q", "quit", "Quit")]
 
     def __init__(self, agent: Any, auto_approve: bool = False) -> None:
         super().__init__()
         self.agent = agent
         self.auto_approve = auto_approve
-        self.help_visible = False
-        self.models_visible = False
-        self.document_content = ""
-        self.input_start_pos = 0  # Track where current input starts
+        self.approval_queue: queue.Queue[str] = queue.Queue()
+        self.waiting_for_approval = False
 
     def compose(self) -> ComposeResult:
-        """Compose the document UI."""
         yield DocumentHeader()
-
-        # Toolbar with Word-like buttons (ribbon style)
         with Horizontal(id="toolbar"):
-            yield Button("Send", id="submit-btn", variant="default")
-            yield Button("Reset", id="reset-btn", variant="default")
-            yield Button("Help", id="help-btn", variant="default")
-            yield Button("Status", id="status-btn", variant="default")
-            yield Button("Models", id="models-btn", variant="default")
-            yield Button("Quit", id="quit-btn", variant="default")
-
-        # Document container with conversation display and input
+            yield Button("Send", id="submit-btn")
+            yield Button("Reset", id="reset-btn")
+            yield Button("Help", id="help-btn")
+            yield Button("Status", id="status-btn")
+            yield Button("Models", id="models-btn")
+            yield Button("Quit", id="quit-btn")
         with Vertical(id="document-container"):
             yield RichLog(id="conversation-log", markup=True, wrap=True, highlight=False)
             with Horizontal(id="input-container"):
                 yield Static("[bold]\\[You] ➜[/bold] ", id="input-prompt", markup=True)
                 yield Input(id="user-input", placeholder="Type your message...")
-
         yield DocumentStatusBar()
 
     def on_mount(self) -> None:
-        """Initialize the document."""
-        user_input = self.query_one("#user-input", Input)
-
-        # Focus the input
-        user_input.focus()
+        self.query_one("#user-input", Input).focus()
         self.update_status_bar()
 
     def on_input_submitted(self, _event: Input.Submitted) -> None:
-        """Handle when user presses Enter in the input field."""
         self.action_submit()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle button presses."""
         button_id = event.button.id
-
         if button_id == "submit-btn":
             self.action_submit()
         elif button_id == "reset-btn":
             self.action_reset()
         elif button_id == "help-btn":
-            self.action_toggle_help()
+            self.show_help()
         elif button_id == "status-btn":
-            self.action_show_status()
+            self.show_status()
         elif button_id == "models-btn":
-            self.action_toggle_models()
+            self.show_models()
         elif button_id == "quit-btn":
             self.exit()
 
     def update_status_bar(self) -> None:
-        """Update status bar."""
         status_bar = self.query_one(DocumentStatusBar)
         try:
             status = self.agent.get_token_count()
-            model = status.get("model", "unknown")
-            messages = status.get("message_count", 0)
-            tokens = status.get("total_tokens", 0)
-            status_bar.update_status(model, messages, tokens)
+            status_bar.update_status(
+                status.get("model", "unknown"),
+                status.get("message_count", 0),
+                status.get("total_tokens", 0),
+            )
         except Exception:
             status_bar.update_status("unknown", 0, 0)
 
+    def request_approval(self, tool_name: str, tool_input: dict[str, Any]) -> bool:
+        """Simple approval - just like CLI."""
+        from .agent import InterruptedExceptionError
+
+        conv_log = self.query_one("#conversation-log", RichLog)
+
+        # Write approval prompt to the log
+        self.call_from_thread(
+            lambda: conv_log.write(
+                "\n[yellow]⚠ Approve? Type 'y' (yes), 'n' (no), or 'stop'[/yellow]"
+            )
+        )
+
+        self.waiting_for_approval = True
+
+        # Block until we get a response
+        response = self.approval_queue.get()
+        self.waiting_for_approval = False
+
+        if response == "stop":
+            raise InterruptedExceptionError()
+
+        return response == "y"
+
     def action_submit(self) -> None:
-        """Submit the message to the agent."""
         conv_log = self.query_one("#conversation-log", RichLog)
         user_input_widget = self.query_one("#user-input", Input)
-
         user_input = user_input_widget.value.strip()
 
         if not user_input:
             return
 
-        # Show what user typed with the prompt
-        conv_log.write(f"[bold][You] ➜[/bold] {user_input}")
-        conv_log.write("")  # Add blank line after
+        # Check if waiting for approval
+        if self.waiting_for_approval:
+            response = user_input.lower()
+            if response in ["y", "n", "stop"]:
+                self.approval_queue.put(response)
+                user_input_widget.value = ""
+                return
 
-        # Clear the input
+        # Show user input
+        conv_log.write(f"[bold][You] ➜[/bold] {user_input}")
+        conv_log.write("")
         user_input_widget.value = ""
 
         # Handle commands
@@ -329,265 +261,123 @@ class DocumentApp(App[None]):
             self.action_reset()
             return
         elif user_input.lower() == "/help":
-            self.action_toggle_help()
+            self.show_help()
             return
         elif user_input.lower() == "/status":
-            self.action_show_status()
-            return
-        elif user_input.lower() == "/compact":
-            self.handle_compact_command()
+            self.show_status()
             return
         elif user_input.lower().startswith("/model"):
             self.handle_model_command(user_input)
             return
 
-        # Run the agent
+        # Run agent in thread (non-blocking)
         self.run_worker(self.run_agent_async(user_input), exclusive=True)
 
-    def handle_model_command(self, user_input: str) -> None:
-        """Handle model switching command."""
+    async def run_agent_async(self, user_input: str) -> None:
+        """Run agent in thread, write output directly to log."""
+        import asyncio
+        import io
+        from contextlib import redirect_stderr, redirect_stdout
+
         conv_log = self.query_one("#conversation-log", RichLog)
 
-        # Handle model switching
+        # Create a console that writes directly to the log
+        class LiveConsole(Console):
+            def __init__(self, app: DocumentApp):
+                super().__init__(force_terminal=False, no_color=True, markup=False)
+                self.app = app
+
+            def print(self, *args: Any, **kwargs: Any) -> None:
+                # Capture output
+                output = io.StringIO()
+                temp_console = Console(
+                    file=output, force_terminal=False, no_color=True, markup=False
+                )
+                temp_console.print(*args, **kwargs)
+                text = output.getvalue().strip()
+                if text:
+                    clean_text = strip_ansi_codes(text)
+                    # Write to log from main thread
+                    self.app.call_from_thread(
+                        lambda: self.app.query_one("#conversation-log", RichLog).write(clean_text)
+                    )
+
+        live_console = LiveConsole(self)
+
+        old_console = self.agent.console
+        old_approval_callback = getattr(self.agent, "approval_callback", None)
+
+        self.agent.console = live_console
+        if not self.auto_approve:
+            self.agent.approval_callback = self.request_approval
+
+        def run_in_thread() -> None:
+            output_buffer = io.StringIO()
+            error_buffer = io.StringIO()
+            with redirect_stdout(output_buffer), redirect_stderr(error_buffer):
+                self.agent.run(user_input, auto_approve_all=self.auto_approve)
+
+        try:
+            await asyncio.to_thread(run_in_thread)
+        except Exception as err:
+            error_msg = str(err)
+            self.call_from_thread(lambda: conv_log.write(f"\n[red]Error: {error_msg}[/red]"))
+        finally:
+            self.agent.console = old_console
+            self.agent.approval_callback = old_approval_callback
+            self.update_status_bar()
+
+    def action_reset(self) -> None:
+        self.agent.reset_conversation()
+        conv_log = self.query_one("#conversation-log", RichLog)
+        conv_log.clear()
+        conv_log.write("[green]✓ Conversation reset[/green]\n")
+        self.update_status_bar()
+
+    def show_help(self) -> None:
+        conv_log = self.query_one("#conversation-log", RichLog)
+        conv_log.write("\n📎 Document Mode Help\n")
+        conv_log.write("• Enter - Send message")
+        conv_log.write("• Ctrl+Q - Quit")
+        conv_log.write("• /help, /status, /reset, /model, /quit\n")
+
+    def show_status(self) -> None:
+        conv_log = self.query_one("#conversation-log", RichLog)
+        status = self.agent.get_token_count()
+        conv_log.write("\n📎 Status")
+        conv_log.write(f"Model: {status.get('model', 'unknown')}")
+        conv_log.write(f"Messages: {status.get('message_count', 0)}")
+        conv_log.write(f"Tokens: {status.get('total_tokens', 0):,}\n")
+
+    def show_models(self) -> None:
+        conv_log = self.query_one("#conversation-log", RichLog)
+        models = list_available_models()
+        conv_log.write("\n📎 Available Models\n")
+        for name, desc in models:
+            conv_log.write(f"• [blue]{name:20}[/blue] - {desc}")
+        conv_log.write("")
+
+    def handle_model_command(self, user_input: str) -> None:
+        conv_log = self.query_one("#conversation-log", RichLog)
         parts = user_input.split(maxsplit=1)
         if len(parts) == 1 or parts[1].lower() == "list":
-            # Show available models
-            models = list_available_models()
-            current_model = self.agent.model
-            current_provider = self.agent.base_url or "OpenAI"
-
-            conv_log.write("\n[bold]Available Model Presets:[/bold]\n")
-            for name, desc in models:
-                conv_log.write(f"  [blue]{name:20}[/blue] - {desc}")
-            conv_log.write(f"\n[bold]Current:[/bold] {current_model} ({current_provider})")
-            conv_log.write("\n[dim]Usage: /model <name>[/dim]")
-            conv_log.write("")  # Add blank line after
+            self.show_models()
         else:
-            # Switch to specified model
             model_name = parts[1].strip()
             config = get_model_config(model_name)
-
             if config:
-                # Use preset configuration
-                api_key = os.getenv(config.api_key_env)
-
-                if not api_key:
-                    warning_text = (
-                        f"\n[yellow]⚠ Warning: {config.api_key_env} "
-                        f"not set in environment[/yellow]\n"
-                        f"[dim]The model may fail if it requires "
-                        f"authentication.[/dim]"
-                    )
-                    conv_log.write(f"{warning_text}")
-                    # Continue anyway - some providers like Ollama might not need a key
-                    api_key = "not-set"
-
+                api_key = os.getenv(config.api_key_env) or "not-set"
                 success, message = self.agent.switch_model(
                     model=config.model_id, base_url=config.base_url, api_key=api_key
                 )
             else:
-                # Treat as custom model ID (keep current base_url and api_key)
                 success, message = self.agent.switch_model(model=model_name)
-
-            if success:
-                conv_log.write(f"[green]✓ {message}[/green]")
-            else:
-                conv_log.write(f"[red]✗ {message}[/red]")
-            conv_log.write("")  # Add blank line after
-
-        # Update status
-        self.update_status_bar()
-
-    def handle_compact_command(self) -> None:
-        """Handle compact command."""
-        conv_log = self.query_one("#conversation-log", RichLog)
-
-        # Show compacting message
-        conv_log.write("[cyan]Compacting conversation...[/cyan]")
-        conv_log.write("")  # Add blank line after
-
-        # Update status
-        self.update_status_bar()
-
-    def action_show_status(self) -> None:
-        """Show status information."""
-        conv_log = self.query_one("#conversation-log", RichLog)
-        status_bar = self.query_one(DocumentStatusBar)
-
-        try:
-            status = self.agent.get_token_count()
-
-            conv_log.write("\n📎 clippy - Session Status\n")
-            conv_log.write(f"[bold]Model:[/bold] {status.get('model', 'unknown')}")
-            conv_log.write(f"[bold]Provider:[/bold] {status.get('base_url') or 'OpenAI'}")
-            conv_log.write(f"[bold]Messages:[/bold] {status.get('message_count', 0)}")
-            conv_log.write(f"[bold]Tokens:[/bold] {status.get('total_tokens', 0):,}")
-            conv_log.write(f"[bold]Context Usage:[/bold] {status.get('usage_percent', 0):.1f}%")
-            conv_log.write("")  # Add blank line after
-
-        except Exception as e:
-            conv_log.write(f"[red]Error getting status: {e}[/red]")
-            conv_log.write("")  # Add blank line after
-            status_bar.update_message("❌ Error occurred")
-
-        # Update status
-        self.update_status_bar()
-
-    async def run_agent_async(self, user_input: str) -> None:
-        """Run agent asynchronously."""
-        conv_log = self.query_one("#conversation-log", RichLog)
-        status_bar = self.query_one(DocumentStatusBar)
-
-        try:
-            # Show processing status in status bar
-            status_bar.update_message("💡 Thinking...")
-
-            import io
-            from contextlib import redirect_stderr, redirect_stdout
-
-            from rich.console import Console
-
-            # Capture agent output in buffers
-            output_buffer = io.StringIO()
-            error_buffer = io.StringIO()
-
-            # Create console that preserves markup tags as literal text
-            markup_console = Console(
-                file=output_buffer,
-                force_terminal=False,
-                no_color=True,  # Don't convert to ANSI
-                markup=False,  # Don't process markup tags
-                legacy_windows=False,
-            )
-
-            old_console = None
-            if hasattr(self.agent, "console"):
-                old_console = self.agent.console
-                self.agent.console = markup_console
-
-            try:
-                with redirect_stdout(output_buffer), redirect_stderr(error_buffer):
-                    self.agent.run(user_input, auto_approve_all=self.auto_approve)
-            finally:
-                if old_console:
-                    self.agent.console = old_console
-
-            # Get output
-            response = output_buffer.getvalue()
-            errors = error_buffer.getvalue()
-
-            full_output = response
-            if errors.strip():
-                full_output += "\n" + errors
-
-            # Clean output and convert to Textual markup
-            clean_output = (
-                strip_ansi_codes(full_output) if full_output.strip() else "Task completed."
-            )
-
-            # Add assistant response to document
-            if clean_output:
-                # Write entire output at once to preserve multi-line markup
-                conv_log.write(clean_output + "\n")
-
-            # Update status
-            self.update_status_bar()
-
-        except Exception as e:
-            import traceback
-            error_msg = f"Error: {str(e)}"
-            conv_log.write(error_msg)
-            conv_log.write("")  # Add blank line after
-
-            # Log full traceback for debugging
-            self.log.error(f"Agent error: {e}\n{traceback.format_exc()}")
-
-            # Update status bar to show error
-            status_bar.update_message("❌ Error occurred")
-
-    def action_reset(self) -> None:
-        """Reset conversation."""
-        self.agent.reset_conversation()
-        conv_log = self.query_one("#conversation-log", RichLog)
-
-        # Clear the conversation log
-        conv_log.clear()
-        conv_log.write("[green]✓ Conversation history reset[/green]")
-        conv_log.write("")  # Add blank line after
-
-        # Update status
-        self.update_status_bar()
-
-    def action_toggle_help(self) -> None:
-        """Toggle help panel."""
-        conv_log = self.query_one("#conversation-log", RichLog)
-
-        if self.help_visible:
-            try:
-                help_panel = self.query_one("#help-panel")
-                help_panel.remove()
-            except Exception:
-                pass
-            self.help_visible = False
-        else:
-            conv_log.write("\n📎 clippy - Document Mode Help\n")
-            conv_log.write("[bold]Shortcuts:[/bold]")
-            conv_log.write("• Enter        - Send message to clippy")
-            conv_log.write("• Ctrl+Q       - Quit application")
+            conv_log.write(f"[green]✓ {message}[/green]" if success else f"[red]✗ {message}[/red]")
             conv_log.write("")
-            conv_log.write("[bold]Toolbar buttons:[/bold]")
-            conv_log.write("• Send   - Submit your message")
-            conv_log.write("• Reset  - Clear conversation history")
-            conv_log.write("• Help   - Show/hide this help panel")
-            conv_log.write("• Status - Display session information")
-            conv_log.write("• Models - Show model switching options")
-            conv_log.write("• Quit   - Exit clippy")
-            conv_log.write("")
-            conv_log.write("[bold]Slash commands:[/bold]")
-            conv_log.write("• /exit, /quit     - Exit clippy")
-            conv_log.write("• /reset, /clear, /new - Reset conversation history")
-            conv_log.write("• /help           - Show this help message")
-            conv_log.write("• /status         - Show session information")
-            conv_log.write("• /compact        - Summarize conversation to reduce context usage")
-            conv_log.write("• /model list     - Show available models")
-            conv_log.write("• /model <name>   - Switch to a different model")
-            conv_log.write("")  # Add blank line after
-            self.help_visible = True
-
-    def action_toggle_models(self) -> None:
-        """Toggle models panel."""
-        conv_log = self.query_one("#conversation-log", RichLog)
-
-        if self.models_visible:
-            try:
-                models_panel = self.query_one("#models-panel")
-                models_panel.remove()
-            except Exception:
-                pass
-            self.models_visible = False
-        else:
-            models = list_available_models()
-            current_model = self.agent.model
-            current_provider = self.agent.base_url or "OpenAI"
-
-            conv_log.write("\n📎 clippy - Available Models\n")
-            for name, desc in models:
-                conv_log.write(f"• [blue]{name:20}[/blue] - {desc}")
-            conv_log.write("")
-            conv_log.write(f"[bold]Current Model:[/bold] {current_model}")
-            conv_log.write(f"[bold]Provider:[/bold] {current_provider}")
-            conv_log.write("")
-            conv_log.write("To switch models:")
-            conv_log.write("1. Type \"/model <name>\" and press Enter")
-            conv_log.write("2. Or use the Models button to close this panel")
-            conv_log.write("")  # Add blank line after
-            self.models_visible = True
-
-        # Update status
         self.update_status_bar()
 
 
 def run_document_mode(agent: Any, auto_approve: bool = False) -> None:
-    """Run the Textual document mode interface."""
+    """Run the document mode interface."""
     app = DocumentApp(agent, auto_approve)
     app.run()
