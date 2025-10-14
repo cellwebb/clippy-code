@@ -171,6 +171,7 @@ class DocumentApp(App[None]):
         color: #000000;
         border: none;
         padding: 0;
+        scrollbar-size: 0 0;
     }
 
     #input-container {
