@@ -34,6 +34,7 @@ class ClippyAgent:
         api_key: str | None = None,
         model: str | None = None,
         base_url: str | None = None,
+        approval_callback: Any = None,
     ) -> None:
         """
         Initialize the ClippyAgent.
@@ -44,6 +45,10 @@ class ClippyAgent:
             api_key: API key for OpenAI-compatible provider
             model: Model identifier to use
             base_url: Base URL for OpenAI-compatible API (for alternate providers)
+            approval_callback: Optional callback function for approval requests
+                             (used in document mode). Should accept (tool_name, tool_input)
+                             and return bool (True for approve, False for deny).
+                             Can raise InterruptedExceptionError to stop execution.
         """
         self.permission_manager = permission_manager
         self.executor = executor
@@ -61,6 +66,7 @@ class ClippyAgent:
         self.console = Console()
         self.conversation_history: list[dict[str, Any]] = []
         self.interrupted = False
+        self.approval_callback = approval_callback
 
     def _create_system_prompt(self) -> str:
         """Create the system prompt for the agent."""
@@ -318,6 +324,16 @@ Focus on being genuinely helpful while maintaining Clippy's distinctive personal
 
     def _ask_approval(self, tool_name: str, tool_input: dict[str, Any]) -> bool:
         """Ask user for approval to execute an action."""
+        # Use callback if provided (for document mode)
+        if self.approval_callback:
+            try:
+                result = self.approval_callback(tool_name, tool_input)
+                return bool(result)  # Ensure we return a bool
+            except InterruptedExceptionError:
+                self.interrupted = True
+                raise
+
+        # Default behavior: use input() (for interactive mode)
         try:
             response = input("\n[?] Approve this action? [y/N/stop]: ").strip().lower()
             if response == "stop":
