@@ -297,14 +297,16 @@ Focus on being genuinely helpful while maintaining Clippy's distinctive personal
             self._add_tool_result(tool_use_id, False, f"Unknown tool: {tool_name}", None)
             return False
 
-        # Show what the agent wants to do
-        self._display_tool_request(tool_name, tool_input)
-
         # Check if we need approval
         needs_approval = (
             not auto_approve_all
             and not self.permission_manager.config.can_auto_execute(action_type)
         )
+
+        # Show what the agent wants to do
+        # (Skip if using approval callback - it will display as part of the approval prompt)
+        if not (needs_approval and self.approval_callback):
+            self._display_tool_request(tool_name, tool_input)
 
         if self.permission_manager.config.is_denied(action_type):
             self.console.print("[bold red]✗ Action denied by policy[/bold red]")
