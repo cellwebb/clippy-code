@@ -287,6 +287,9 @@ class DocumentApp(App[None]):
 
         conv_log = self.query_one("#conversation-log", RichLog)
 
+        # Add a blank line before agent response for visual separation
+        conv_log.write("")
+
         # Create a custom stdout that writes to the log
         class LogWriter:
             def __init__(self, app: DocumentApp):

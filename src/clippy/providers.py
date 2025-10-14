@@ -118,20 +118,19 @@ class LLMProvider:
             from openai import (
                 APIConnectionError,
                 APITimeoutError,
+                AuthenticationError,
+                BadRequestError,
+                ConflictError,
                 InternalServerError,
+                NotFoundError,
+                PermissionDeniedError,
                 RateLimitError,
+                UnprocessableEntityError,
             )
         except ImportError:
             raise ImportError("openai package is required. Install it with: pip install openai")
 
         try:
-            from openai import (
-                APIConnectionError,
-                APITimeoutError,
-                InternalServerError,
-                RateLimitError,
-            )
-
             # Call OpenAI API with streaming enabled
             return self.client.chat.completions.create(
                 model=model,
@@ -142,6 +141,15 @@ class LLMProvider:
             )
         except (APIConnectionError, APITimeoutError, RateLimitError, InternalServerError) as e:
             logger.warning(f"API error (will retry): {type(e).__name__}: {e}")
+            raise
+        except (AuthenticationError, PermissionDeniedError) as e:
+            logger.error(f"Authentication error: {type(e).__name__}: {e}")
+            raise
+        except (NotFoundError, ConflictError, UnprocessableEntityError) as e:
+            logger.error(f"Request error: {type(e).__name__}: {e}")
+            raise
+        except BadRequestError as e:
+            logger.error(f"Bad request error: {type(e).__name__}: {e}")
             raise
         except Exception as e:
             # For other errors, log and re-raise without retry

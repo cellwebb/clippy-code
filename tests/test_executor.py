@@ -38,6 +38,14 @@ def test_read_file(executor: ActionExecutor, temp_dir: str) -> None:
     assert content == "Hello, World!"
 
 
+def test_read_file_not_found(executor: ActionExecutor) -> None:
+    """Test reading a non-existent file."""
+    success, message, content = executor.execute("read_file", {"path": "/nonexistent/file.txt"})
+
+    assert success is False
+    assert "File not found" in message
+
+
 def test_write_file(executor: ActionExecutor, temp_dir: str) -> None:
     """Test writing a file."""
     test_file = Path(temp_dir) / "output.txt"
@@ -51,6 +59,25 @@ def test_write_file(executor: ActionExecutor, temp_dir: str) -> None:
     assert "Successfully wrote" in message
     assert test_file.exists()
     assert test_file.read_text() == "Test content"
+
+
+def test_write_file_permission_denied(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test writing to a file without permission."""
+    # Try to write to a protected path
+    test_file = "/root/protected_file.txt"
+
+    # This might not work on all systems, so we just check that it handles the error gracefully
+    success, message, content = executor.execute(
+        "write_file", {"path": test_file, "content": "Test content"}
+    )
+
+    # Should fail, but gracefully
+    assert success is False
+    assert (
+        "Error executing write_file" in message
+        or "Permission denied" in message
+        or "OS error" in message
+    )
 
 
 def test_list_directory(executor: ActionExecutor, temp_dir: str) -> None:
@@ -72,6 +99,16 @@ def test_list_directory(executor: ActionExecutor, temp_dir: str) -> None:
     assert "subdir/" in content
 
 
+def test_list_directory_not_found(executor: ActionExecutor) -> None:
+    """Test listing a non-existent directory."""
+    success, message, content = executor.execute(
+        "list_directory", {"path": "/nonexistent/directory", "recursive": False}
+    )
+
+    assert success is False
+    assert "Directory not found" in message
+
+
 def test_delete_file(executor: ActionExecutor, temp_dir: str) -> None:
     """Test deleting a file."""
     # Create a test file
@@ -84,6 +121,14 @@ def test_delete_file(executor: ActionExecutor, temp_dir: str) -> None:
     assert success is True
     assert "Successfully deleted" in message
     assert not test_file.exists()
+
+
+def test_delete_file_not_found(executor: ActionExecutor) -> None:
+    """Test deleting a non-existent file."""
+    success, message, content = executor.execute("delete_file", {"path": "/nonexistent/file.txt"})
+
+    assert success is False
+    assert "File not found" in message
 
 
 def test_create_directory(executor: ActionExecutor, temp_dir: str) -> None:
@@ -122,6 +167,14 @@ def test_get_file_info(executor: ActionExecutor, temp_dir: str) -> None:
     assert success is True
     assert "is_file: True" in content
     assert "size:" in content
+
+
+def test_get_file_info_not_found(executor: ActionExecutor) -> None:
+    """Test getting info for a non-existent file."""
+    success, message, content = executor.execute("get_file_info", {"path": "/nonexistent/file.txt"})
+
+    assert success is False
+    assert "File not found" in message
 
 
 def test_read_files(executor: ActionExecutor, temp_dir: str) -> None:
@@ -172,12 +225,38 @@ def test_read_files_with_nonexistent_file(executor: ActionExecutor, temp_dir: st
     assert "Content of existing file 1" in content
     assert "Content of existing file 2" in content
     assert "--- Failed to read" in content
+    assert str(nonexistent_file) in content
     assert "--- End of" in content
 
 
-def test_error_handling(executor: ActionExecutor) -> None:
-    """Test error handling for non-existent file."""
-    success, message, content = executor.execute("read_file", {"path": "/nonexistent/file.txt"})
+def test_grep(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test grep functionality."""
+    # Create test files
+    test_file = Path(temp_dir) / "grep_test.txt"
+    test_file.write_text("Hello World\nThis is a test\nAnother line")
 
-    assert success is False
-    assert "Failed to read" in message
+    # Search for pattern in file
+    success, message, content = executor.execute(
+        "grep", {"pattern": "test", "paths": [str(test_file)], "flags": "-i"}
+    )
+
+    # grep returns 0 when matches are found
+    assert success is True
+    assert "grep search executed successfully" in message or "grep search completed" in message
+    assert "This is a test" in content
+
+
+def test_grep_no_matches(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test grep with no matches."""
+    # Create test file
+    test_file = Path(temp_dir) / "grep_test.txt"
+    test_file.write_text("Hello World\nThis is a test\nAnother line")
+
+    # Search for pattern that doesn't exist
+    success, message, content = executor.execute(
+        "grep", {"pattern": "nonexistent", "paths": [str(test_file)], "flags": ""}
+    )
+
+    # grep returns 1 when no matches found, which we treat as success
+    assert success is True
+    assert "no matches found" in message
