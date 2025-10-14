@@ -220,11 +220,16 @@ class LLMProvider:
 
             # Stream text content to user in real-time
             if hasattr(delta, "content") and delta.content:
-                # Print prefix before first content chunk
+                # Strip leading newlines from first chunk to keep paperclip on same line
                 if not content_started:
-                    print("\n[📎] ", end="", flush=True)
-                    content_started = True
-                print(delta.content, end="", flush=True)
+                    content_to_print = delta.content.lstrip("\n")
+                    # Only print prefix and set started if we have actual content
+                    if content_to_print:
+                        # Print prefix and content together to avoid split in document mode
+                        print(f"\n[📎] {content_to_print}", end="", flush=True)
+                        content_started = True
+                else:
+                    print(delta.content, end="", flush=True)
                 full_content += delta.content
 
             # Accumulate tool calls
