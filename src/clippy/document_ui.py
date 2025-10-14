@@ -120,7 +120,7 @@ class DocumentApp(App[None]):
 
     #toolbar {
         dock: top;
-        height: 3;
+        height: 2;
         background: #f0f0f0;
         border-bottom: solid #d0d0d0;
         padding: 0 1;
@@ -447,15 +447,16 @@ class DocumentApp(App[None]):
 
             from rich.console import Console
 
-            # Capture agent output
+            # Capture agent output in buffers
             output_buffer = io.StringIO()
             error_buffer = io.StringIO()
 
-            # Create console for capturing output
+            # Create console that preserves markup tags as literal text
             markup_console = Console(
                 file=output_buffer,
                 force_terminal=False,
-                no_color=True,  # Strip colors for plain text
+                no_color=True,  # Don't convert to ANSI
+                markup=False,  # Don't process markup tags
                 legacy_windows=False,
             )
 
@@ -479,23 +480,27 @@ class DocumentApp(App[None]):
             if errors.strip():
                 full_output += "\n" + errors
 
-            # Clean output
+            # Clean output and convert to Textual markup
             clean_output = (
                 strip_ansi_codes(full_output) if full_output.strip() else "Task completed."
             )
 
             # Add assistant response to document
             if clean_output:
-                for line in clean_output.split("\n"):
-                    conv_log.write(line)
-                conv_log.write("")  # Add blank line after
+                # Write entire output at once to preserve multi-line markup
+                conv_log.write(clean_output + "\n")
 
             # Update status
             self.update_status_bar()
 
         except Exception as e:
-            conv_log.write(f"[red]Error: {e}[/red]")
+            import traceback
+            error_msg = f"Error: {str(e)}"
+            conv_log.write(error_msg)
             conv_log.write("")  # Add blank line after
+
+            # Log full traceback for debugging
+            self.log.error(f"Agent error: {e}\n{traceback.format_exc()}")
 
             # Update status bar to show error
             status_bar.update_message("❌ Error occurred")
