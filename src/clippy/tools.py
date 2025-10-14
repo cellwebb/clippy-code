@@ -187,6 +187,51 @@ TOOLS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "edit_file",
+            "description": "Edit a file by inserting, replacing, or deleting lines. "
+            "More efficient than rewriting entire files for small changes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "The path to the file to edit"},
+                    "operation": {
+                        "type": "string",
+                        "description": (
+                            "The edit operation to perform: 'insert', 'replace', 'delete', "
+                            "or 'append'"
+                        ),
+                        "enum": ["insert", "replace", "delete", "append"],
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Content to insert, replace with, or append",
+                    },
+                    "line_number": {
+                        "type": "integer",
+                        "description": (
+                            "Line number for insert/replace/delete operations (1-indexed)"
+                        ),
+                    },
+                    "pattern": {
+                        "type": "string",
+                        "description": "Pattern to match lines for replace/delete operations",
+                    },
+                    "match_pattern_line": {
+                        "type": "boolean",
+                        "description": (
+                            "Whether to match the pattern against entire lines (true) or "
+                            "just substrings (false)"
+                        ),
+                        "default": True,
+                    },
+                },
+                "required": ["path", "operation"],
+            },
+        },
+    },
 ]
 
 

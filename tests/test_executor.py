@@ -242,7 +242,7 @@ def test_grep(executor: ActionExecutor, temp_dir: str) -> None:
 
     # grep returns 0 when matches are found
     assert success is True
-    assert "grep search executed successfully" in message or "grep search completed" in message
+    assert "search executed successfully" in message or "search completed" in message
     assert "This is a test" in content
 
 
@@ -260,3 +260,192 @@ def test_grep_no_matches(executor: ActionExecutor, temp_dir: str) -> None:
     # grep returns 1 when no matches found, which we treat as success
     assert success is True
     assert "no matches found" in message
+
+
+def test_edit_file_insert(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test inserting lines into a file."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nLine 2\nLine 3\n")
+
+    # Insert a line at position 2
+    success, message, content = executor.execute(
+        "edit_file",
+        {
+            "path": str(test_file),
+            "operation": "insert",
+            "content": "Inserted line",
+            "line_number": 2,
+        },
+    )
+
+    assert success is True
+    assert "Successfully performed insert operation" in message
+    # Should insert "Inserted line\n" before "Line 2"
+    expected = "Line 1\nInserted line\nLine 2\nLine 3\n"
+    assert test_file.read_text() == expected
+
+
+def test_edit_file_replace_by_line_number(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test replacing a line by line number."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nLine 2\nLine 3\n")
+
+    # Replace line 2
+    success, message, content = executor.execute(
+        "edit_file",
+        {
+            "path": str(test_file),
+            "operation": "replace",
+            "content": "Replaced line",
+            "line_number": 2,
+        },
+    )
+
+    assert success is True
+    assert "Successfully performed replace operation" in message
+    # Should replace "Line 2" with "Replaced line\n"
+    expected = "Line 1\nReplaced line\nLine 3\n"
+    assert test_file.read_text() == expected
+
+
+def test_edit_file_replace_by_pattern(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test replacing a line by pattern."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nLine 2\nLine 3\n")
+
+    # Replace line containing "Line 2"
+    success, message, content = executor.execute(
+        "edit_file",
+        {
+            "path": str(test_file),
+            "operation": "replace",
+            "content": "Replaced line",
+            "pattern": "Line 2",
+        },
+    )
+
+    assert success is True
+    assert "Successfully performed replace operation" in message
+    # Should replace "Line 2" with "Replaced line\n"
+    expected = "Line 1\nReplaced line\nLine 3\n"
+    assert test_file.read_text() == expected
+
+
+def test_edit_file_delete_by_line_number(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test deleting a line by line number."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nLine 2\nLine 3\n")
+
+    # Delete line 2
+    success, message, content = executor.execute(
+        "edit_file", {"path": str(test_file), "operation": "delete", "line_number": 2}
+    )
+
+    assert success is True
+    assert "Successfully performed delete operation" in message
+    # Should remove "Line 2\n"
+    expected = "Line 1\nLine 3\n"
+    assert test_file.read_text() == expected
+
+
+def test_edit_file_delete_by_pattern(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test deleting lines by pattern."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nTest line\nLine 3\nAnother test line\n")
+
+    # Delete lines containing "test" (case insensitive)
+    success, message, content = executor.execute(
+        "edit_file", {"path": str(test_file), "operation": "delete", "pattern": "Test"}
+    )
+
+    assert success is True
+    assert "Successfully performed delete operation" in message
+    # Should remove "Test line\n" and "Another test line\n"
+    expected = "Line 1\nLine 3\n"
+    assert test_file.read_text() == expected
+
+
+def test_edit_file_append(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test appending content to a file."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nLine 2\nLine 3")
+
+    # Append content
+    success, message, content = executor.execute(
+        "edit_file", {"path": str(test_file), "operation": "append", "content": "Appended line"}
+    )
+
+    assert success is True
+    assert "Successfully performed append operation" in message
+    # Should append with proper line ending
+    expected = "Line 1\nLine 2\nLine 3\nAppended line\n"
+    assert test_file.read_text() == expected
+
+
+def test_edit_file_not_found(executor: ActionExecutor) -> None:
+    """Test editing a non-existent file."""
+    success, message, content = executor.execute(
+        "edit_file",
+        {"path": "/nonexistent/file.txt", "operation": "append", "content": "Test content"},
+    )
+
+    assert success is False
+    assert "File not found" in message
+
+
+def test_edit_file_invalid_operation(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test edit file with invalid operation."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nLine 2\nLine 3\n")
+
+    # Try invalid operation
+    success, message, content = executor.execute(
+        "edit_file",
+        {"path": str(test_file), "operation": "invalid_operation", "content": "Test content"},
+    )
+
+    assert success is False
+    assert "Unknown operation" in message
+
+
+def test_edit_file_insert_invalid_line_number(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test inserting at an invalid line number."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nLine 2\nLine 3\n")
+
+    # Try to insert at invalid line number (beyond the file)
+    success, message, content = executor.execute(
+        "edit_file",
+        {
+            "path": str(test_file),
+            "operation": "insert",
+            "content": "Test content",
+            "line_number": 10,
+        },
+    )
+
+    assert success is False
+    assert "Invalid line number" in message
+
+
+def test_edit_file_replace_missing_parameters(executor: ActionExecutor, temp_dir: str) -> None:
+    """Test replace operation without required parameters."""
+    # Create a test file
+    test_file = Path(temp_dir) / "edit_test.txt"
+    test_file.write_text("Line 1\nLine 2\nLine 3\n")
+
+    # Try replace without line_number or pattern
+    success, message, content = executor.execute(
+        "edit_file", {"path": str(test_file), "operation": "replace", "content": "Test content"}
+    )
+
+    assert success is False
+    assert "Either line_number or pattern is required" in message

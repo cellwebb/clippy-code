@@ -25,6 +25,7 @@ class ActionType(str, Enum):
     SEARCH_FILES = "search_files"
     GET_FILE_INFO = "get_file_info"
     GREP = "grep"
+    EDIT_FILE = "edit_file"
 
 
 class PermissionConfig(BaseModel):
@@ -35,13 +36,14 @@ class PermissionConfig(BaseModel):
         ActionType.LIST_DIR,
         ActionType.SEARCH_FILES,
         ActionType.GET_FILE_INFO,
-        ActionType.GREP,  # Add grep to auto-approved actions
+        ActionType.GREP,
     }
     require_approval: set[ActionType] = {
         ActionType.WRITE_FILE,
         ActionType.DELETE_FILE,
         ActionType.CREATE_DIR,
         ActionType.EXECUTE_COMMAND,
+        ActionType.EDIT_FILE,
     }
     deny: set[ActionType] = set()
 

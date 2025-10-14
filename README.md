@@ -79,7 +79,7 @@ clippy-code implements safety-first design with a three-tier permission system:
 
 **Require approval** (potentially destructive operations):
 
-- write_file, delete_file, create_directory, execute_command
+- write_file, delete_file, create_directory, execute_command, edit_file
 
 **Blocked actions** (currently empty but configurable)
 
@@ -252,18 +252,19 @@ Testing philosophy:
 
 clippy-code has access to these tools:
 
-| Tool               | Description               | Auto-Approved |
-| ------------------ | ------------------------- | ------------- |
-| `read_file`        | Read file contents        | ✅            |
-| `write_file`       | Write/modify files        | ❌            |
-| `delete_file`      | Delete files              | ❌            |
-| `list_directory`   | List directory contents   | ✅            |
-| `create_directory` | Create directories        | ❌            |
-| `execute_command`  | Run shell commands        | ❌            |
-| `search_files`     | Search with glob patterns | ✅            |
-| `get_file_info`    | Get file metadata         | ✅            |
-| `read_files`       | Read multiple files       | ✅            |
-| `grep`             | Search patterns in files  | ✅            |
+| Tool               | Description                                       | Auto-Approved |
+| ------------------ | ------------------------------------------------- | ------------- |
+| `read_file`        | Read file contents                                | ✅            |
+| `write_file`       | Write/modify entire files                         | ❌            |
+| `delete_file`      | Delete files                                      | ❌            |
+| `list_directory`   | List directory contents                           | ✅            |
+| `create_directory` | Create directories                                | ❌            |
+| `execute_command`  | Run shell commands                                | ❌            |
+| `search_files`     | Search with glob patterns                         | ✅            |
+| `get_file_info`    | Get file metadata                                 | ✅            |
+| `read_files`       | Read multiple files at once                       | ✅            |
+| `grep`             | Search patterns in files                          | ✅            |
+| `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            |
 
 ## Design Principles
 
