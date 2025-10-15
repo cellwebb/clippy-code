@@ -15,14 +15,11 @@ providers:
   openai:
     base_url: null  # null = use default OpenAI endpoint
     api_key_env: OPENAI_API_KEY
-    default_model: gpt-5-codex
+    default_model: gpt-5
     models:
-      gpt-5-codex:
-        model_id: gpt-5-codex
-        description: OpenAI GPT-5 Codex (default)
       gpt-5:
         model_id: gpt-5
-        description: OpenAI GPT-5
+        description: OpenAI GPT-5 (default)
       gpt-5-mini:
         model_id: gpt-5-mini
         description: OpenAI GPT-5 mini

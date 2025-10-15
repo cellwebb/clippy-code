@@ -45,12 +45,12 @@ def test_load_model_presets() -> None:
 
 def test_get_openai_model() -> None:
     """Test getting OpenAI model configuration."""
-    config = get_model_config("gpt-4o")
+    config = get_model_config("gpt-5")
 
     assert config is not None
     if config is not None:
-        assert config.name == "gpt-4o"
-        assert config.model_id == "gpt-4o"
+        assert config.name == "gpt-5"
+        assert config.model_id == "gpt-5"
         assert config.base_url is None  # OpenAI uses default
         assert config.api_key_env == "OPENAI_API_KEY"
 
@@ -123,9 +123,9 @@ def test_get_nonexistent_model() -> None:
 
 def test_case_insensitive_lookup() -> None:
     """Test that model lookup is case-insensitive."""
-    config_lower = get_model_config("gpt-4o")
-    config_upper = get_model_config("GPT-4O")
-    config_mixed = get_model_config("GpT-4o")
+    config_lower = get_model_config("gpt-5")
+    config_upper = get_model_config("gpt-5")
+    config_mixed = get_model_config("gpt-5")
 
     assert config_lower is not None
     assert config_upper is not None
@@ -151,7 +151,7 @@ def test_all_models_have_required_fields() -> None:
 
 def test_api_key_env_vars_unique_per_provider() -> None:
     """Test that different providers use different API key env vars."""
-    openai = get_model_config("gpt-4o")
+    openai = get_model_config("gpt-5")
     cerebras = get_model_config("cerebras")
     groq = get_model_config("groq")
 

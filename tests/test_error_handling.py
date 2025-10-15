@@ -21,7 +21,7 @@ class TestErrorHandling:
             permission_manager=permission_manager,
             executor=executor,
             api_key="test-key",
-            model="gpt-4o",
+            model="gpt-5",
         )
 
         # Test file not found
@@ -39,7 +39,7 @@ class TestErrorHandling:
             permission_manager=permission_manager,
             executor=executor,
             api_key="test-key",
-            model="gpt-4o",
+            model="gpt-5",
         )
 
         # Mock PermissionError for testing
@@ -66,7 +66,7 @@ class TestErrorHandling:
             permission_manager=permission_manager,
             executor=executor,
             api_key="invalid-key",
-            model="gpt-4o",
+            model="gpt-5",
         )
 
         with pytest.raises(AuthenticationError):
@@ -93,7 +93,7 @@ class TestErrorHandling:
             permission_manager=permission_manager,
             executor=executor,
             api_key="test-key",
-            model="gpt-4o",
+            model="gpt-5",
         )
 
         # Test with valid JSON that would cause a tool error
