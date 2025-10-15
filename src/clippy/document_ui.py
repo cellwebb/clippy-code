@@ -242,10 +242,10 @@ class DocumentApp(App[None]):
             )
             with Horizontal(id="toolbar"):
                 yield Button("Send", id="submit-btn")
-                yield Button("Reset", id="reset-btn")
-                yield Button("Help", id="help-btn")
                 yield Button("Status", id="status-btn")
                 yield Button("Models", id="models-btn")
+                yield Button("Help", id="help-btn")
+                yield Button("Reset", id="reset-btn")
                 yield Button("Quit", id="quit-btn")
             yield DocumentRibbon(id="ribbon")
         with Vertical(id="document-container"):
