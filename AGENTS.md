@@ -104,6 +104,7 @@ clippy-code supports three UI modes:
 3. **Document mode**: `clippy -d` (Word-like TUI interface)
 
 Document mode features:
+
 - Word-inspired interface using Textual framework
 - Editable document area for conversations
 - Toolbar with buttons for common actions
@@ -119,13 +120,14 @@ Document mode features:
 ## Configuration
 
 Environment variables:
+
 - `OPENAI_API_KEY`: API key for OpenAI or OpenAI-compatible provider (required for OpenAI)
 - `CEREBRAS_API_KEY`: API key for Cerebras provider
 - `TOGETHER_API_KEY`: API key for Together AI provider
 - `GROQ_API_KEY`: API key for Groq provider
 - `DEEPSEEK_API_KEY`: API key for DeepSeek provider
 - `OPENAI_BASE_URL`: Base URL for alternate providers (e.g., https://api.cerebras.ai/v1)
-- `CLIPPY_MODEL`: Model identifier (default: gpt-4o)
+- `CLIPPY_MODEL`: Model identifier (default: gpt-5-codex)
 
 Config files (priority order): `.env` → `~/.clippy.env` → system env
 

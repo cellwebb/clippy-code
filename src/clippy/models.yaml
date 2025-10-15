@@ -15,26 +15,17 @@ providers:
   openai:
     base_url: null  # null = use default OpenAI endpoint
     api_key_env: OPENAI_API_KEY
-    default_model: gpt-4o
+    default_model: gpt-5-codex
     models:
+      gpt-5-codex:
+        model_id: gpt-5-codex
+        description: OpenAI GPT-5 Codex (default)
       gpt-5:
         model_id: gpt-5
         description: OpenAI GPT-5
       gpt-5-mini:
         model_id: gpt-5-mini
-        description: OpenAI GPT-5 Mini
-      gpt-4o:
-        model_id: gpt-4o
-        description: OpenAI GPT-4o (default)
-      gpt-4:
-        model_id: gpt-4
-        description: OpenAI GPT-4
-      gpt-4-turbo:
-        model_id: gpt-4-turbo-preview
-        description: OpenAI GPT-4 Turbo
-      gpt-3.5:
-        model_id: gpt-3.5-turbo
-        description: OpenAI GPT-3.5 Turbo
+        description: OpenAI GPT-5 mini
 
   cerebras:
     base_url: https://api.cerebras.ai/v1
