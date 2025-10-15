@@ -36,15 +36,18 @@ def strip_ansi_codes(text: str) -> str:
 class DocumentHeader(Static):
     """Document header."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.update("📎 clippy - 📄 Document Mode\nType directly, press Enter to send • Type 'y'/'n'/'stop' when prompted for approval")
+        self.update(
+            "📎 clippy - 📄 Document Mode\n"
+            "Type directly, press Enter to send • Type 'y'/'n'/'stop' when prompted"
+        )
 
 
 class DocumentRibbon(Vertical):
     """Microsoft Word-style ribbon."""
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
@@ -370,6 +373,22 @@ class DocumentApp(App[None]):
         elif user_input.lower() == "/status":
             self.show_status()
             return
+        elif user_input.lower() == "/compact":
+            # Compact conversation history
+            conv_log.write("[cyan]Compacting conversation...[/cyan]")
+            success, message, stats = self.agent.compact_conversation()
+
+            if success:
+                conv_log.write(
+                    f"[green]✓ Conversation Compacted[/green]\n"
+                    f"[cyan]Token Reduction:[/cyan] {stats['tokens_saved']:,} tokens saved "
+                    f"({stats['reduction_percent']:.1f}%)\n"
+                    f"[cyan]Messages:[/cyan] {stats['messages_before']} → "
+                    f"{stats['messages_after']} (summarized {stats['messages_summarized']})"
+                )
+            else:
+                conv_log.write(f"[yellow]⚠ Cannot Compact: {message}[/yellow]")
+            return
         elif user_input.lower().startswith("/model"):
             self.handle_model_command(user_input)
             return
@@ -493,26 +512,121 @@ class DocumentApp(App[None]):
 
     def show_help(self) -> None:
         conv_log = self.query_one("#conversation-log", RichLog)
-        conv_log.write("\n📎 Document Mode Help\n")
-        conv_log.write("• Enter - Send message")
-        conv_log.write("• Ctrl+Q - Quit")
-        conv_log.write("• /help, /status, /reset, /model, /quit\n")
+        current_model = self.agent.model
+        current_provider = self.agent.base_url or "OpenAI"
+
+        conv_log.write("\n📎 [bold]Document Mode Help[/bold]\n")
+        conv_log.write("")
+        conv_log.write("[bold]🎯 Basic Usage[/bold]")
+        conv_log.write("• Type your message in the input field and press Enter to send")
+        conv_log.write("• Click the [bold]Send[/bold] button or press Enter to send messages")
+        conv_log.write("• Responses appear in the document area with Clippy's paperclip 📎")
+        conv_log.write("")
+        conv_log.write("[bold]⚡ Commands[/bold]")
+        conv_log.write("• /[bold]help[/bold] - Show this help message")
+        conv_log.write("• /[bold]status[/bold] - Show current session and token usage")
+        conv_log.write(
+            "• /[bold]reset[/bold] or /[bold]clear[/bold] or /[bold]new[/bold] - Reset conversation"
+        )
+        conv_log.write("• /[bold]compact[/bold] - Reduce token usage in long conversations")
+        conv_log.write("• /[bold]model list[/bold] - Show available model presets")
+        conv_log.write("• /[bold]model <name>[/bold] - Switch to a specific model")
+        conv_log.write("• /[bold]quit[/bold] or /[bold]exit[/bold] - Exit clippy-code")
+        conv_log.write("")
+        conv_log.write("[bold]⌨️ Keyboard Shortcuts[/bold]")
+        conv_log.write("• [bold]Enter[/bold] - Send message")
+        conv_log.write("• [bold]Ctrl+Q[/bold] - Quit application")
+        conv_log.write("• [bold]Ctrl+C[/bold] - Interrupt current operation")
+        conv_log.write("")
+        conv_log.write("[bold]🔘 Toolbar Buttons[/bold]")
+        conv_log.write("• [bold]Send[/bold] - Send your current message")
+        conv_log.write("• [bold]Status[/bold] - View current session information")
+        conv_log.write("• [bold]Models[/bold] - Browse and switch between models")
+        conv_log.write("• [bold]Help[/bold] - Show this help message")
+        conv_log.write("• [bold]Reset[/bold] - Clear conversation history")
+        conv_log.write("• [bold]Quit[/bold] - Exit the application")
+        conv_log.write("")
+        conv_log.write("[bold]✅ Approval System[/bold]")
+        conv_log.write("• When a tool requires approval, you'll see a yellow warning")
+        conv_log.write(
+            "• Type [bold]y[/bold] (yes), [bold]n[/bold] (no), or [bold]stop[/bold] to interrupt"
+        )
+        conv_log.write("• File operations (write, delete) and commands need approval")
+        conv_log.write("• Read operations are auto-approved")
+        conv_log.write("")
+        conv_log.write("[bold]🤖 Current Session[/bold]")
+        conv_log.write(f"• Model: [cyan]{current_model}[/cyan]")
+        conv_log.write(f"• Provider: [cyan]{current_provider}[/cyan]")
+        conv_log.write("• Mode: Document Mode (Word-like interface)")
+        conv_log.write("")
+        conv_log.write("[bold]💡 Tips[/bold]")
+        conv_log.write("• The status bar shows current model, message count, and tokens")
+        conv_log.write("• Scroll through the conversation using your mouse or arrow keys")
+        conv_log.write("• Paperclip appears when Clippy is thinking about your request")
+        conv_log.write("")
+        conv_log.write("[dim]Made with ❤️ by the clippy-code team[/dim]\n")
 
     def show_status(self) -> None:
         conv_log = self.query_one("#conversation-log", RichLog)
         status = self.agent.get_token_count()
-        conv_log.write("\n📎 Status")
-        conv_log.write(f"Model: {status.get('model', 'unknown')}")
-        conv_log.write(f"Messages: {status.get('message_count', 0)}")
-        conv_log.write(f"Tokens: {status.get('total_tokens', 0):,}\n")
+
+        conv_log.write("\n📎 [bold]Session Status[/bold]\n")
+
+        if "error" in status:
+            conv_log.write("[bold red]⚠ Error counting tokens[/bold red]")
+            conv_log.write(status["error"])
+            conv_log.write("")
+            conv_log.write("[bold]Session Info:[/bold]")
+            conv_log.write(f"• Model: [cyan]{status['model']}[/cyan]")
+            conv_log.write(f"• Provider: [cyan]{status.get('base_url') or 'OpenAI'}[/cyan]")
+            conv_log.write(f"• Messages: [cyan]{status['message_count']}[/cyan]")
+        else:
+            provider = status.get("base_url") or "OpenAI"
+            usage_bar_length = 20
+            usage_filled = int((status["usage_percent"] / 100) * usage_bar_length)
+            usage_bar = "█" * usage_filled + "░" * (usage_bar_length - usage_filled)
+            usage_pct = f"{status['usage_percent']:.1f}%"
+
+            conv_log.write("[bold]Current Session:[/bold]")
+            conv_log.write(f"• Model: [cyan]{status['model']}[/cyan]")
+            conv_log.write(f"• Provider: [cyan]{provider}[/cyan]")
+            conv_log.write(f"• Messages: [cyan]{status['message_count']}[/cyan]")
+            conv_log.write("")
+            conv_log.write("[bold]Token Usage:[/bold]")
+            conv_log.write(f"• Context: [cyan]{status['total_tokens']:,}[/cyan] tokens")
+            conv_log.write(f"• Usage: [{usage_bar}] [cyan]{usage_pct}[/cyan]")
+            conv_log.write("")
+            conv_log.write("[dim]💡 Usage % is estimated for ~128k context window[/dim]")
+
+        conv_log.write("")
 
     def show_models(self) -> None:
         conv_log = self.query_one("#conversation-log", RichLog)
         models = list_available_models()
-        conv_log.write("\n📎 Available Models\n")
+        current_model = self.agent.model
+        current_provider = self.agent.base_url or "OpenAI"
+
+        conv_log.write("\n📎 [bold]Available Model Presets[/bold]\n")
+
         for name, desc in models:
-            conv_log.write(f"• [blue]{name:20}[/blue] - {desc}")
+            if name == current_model:
+                conv_log.write(f"• [green]★ {name:20}[/green] - {desc} [dim](current)[/dim]")
+            else:
+                conv_log.write(f"• [cyan]{name:20}[/cyan] - {desc}")
+
         conv_log.write("")
+        conv_log.write("[bold]Current Configuration:[/bold]")
+        conv_log.write(f"• Model: [cyan]{current_model}[/cyan]")
+        conv_log.write(f"• Provider: [cyan]{current_provider}[/cyan]")
+        conv_log.write("")
+        conv_log.write("[bold]Usage:[/bold]")
+        conv_log.write("• /[bold]model list[/bold] - Show this model list")
+        conv_log.write("• /[bold]model <name>[/bold] - Switch to specific model")
+        conv_log.write("• /[bold]model <provider>/<model>[/bold] - Custom provider")
+        conv_log.write("")
+        conv_log.write(
+            "[dim]💡 Some models may require specific API keys in your environment[/dim]\n"
+        )
 
     def handle_model_command(self, user_input: str) -> None:
         conv_log = self.query_one("#conversation-log", RichLog)
