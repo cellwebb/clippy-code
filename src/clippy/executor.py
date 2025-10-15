@@ -352,7 +352,6 @@ class ActionExecutor:
             "--word-regexp": "--word-regexp",
             "-x": "--line-regexp",
             "--line-regexp": "--line-regexp",
-
             # Output control
             "-n": "--line-number",
             "--line-number": "--line-number",
@@ -364,7 +363,6 @@ class ActionExecutor:
             "--only-matching": "--only-matching",
             "-q": "--quiet",
             "--quiet": "--quiet",
-
             # File inclusion/exclusion
             "-r": "--recursive",
             "--recursive": "--recursive",
@@ -372,7 +370,6 @@ class ActionExecutor:
             "--files-without-match": "--files-without-match",
             "--include": "--glob",  # -r and --include need special handling
             "--exclude": "--glob",
-
             # Context control
             "-A": "--after-context",
             "--after-context": "--after-context",
@@ -530,11 +527,11 @@ class ActionExecutor:
             # Read current file content
             try:
                 with open(path, encoding="utf-8") as f:
-                    file_content = f.read()
+                    original_content = f.read()
             except FileNotFoundError:
                 return False, f"File not found: {path}", None
 
-            lines = file_content.splitlines(keepends=True)
+            lines = original_content.splitlines(keepends=True)
 
             # Handle different operations
             if operation == "insert":
@@ -545,7 +542,8 @@ class ActionExecutor:
                 # For insert, line_number 1 means insert at the beginning (index 0)
                 # line_number 2 means insert before the second line (index 1)
                 # etc. Special case: line_number 0 means insert at the beginning
-                if line_number < 0 or line_number > len(lines):
+                # Allow line_number up to len(lines) + 1 to support inserting at the end
+                if line_number < 0 or line_number > len(lines) + 1:
                     msg = f"Invalid line number {line_number}. File has {len(lines)} lines"
                     return False, msg, None
 
@@ -572,31 +570,34 @@ class ActionExecutor:
 
                     lines[idx] = content
                 elif pattern:
-                    # Find and replace lines matching the pattern
-                    found = False
+                    # Find all lines matching the pattern to ensure exactly one match
+                    matching_indices = []
                     for i, line in enumerate(lines):
                         if match_pattern_line:
                             # Case insensitive pattern matching like the test expects
                             if pattern.lower() in line.lower():
-                                # Add newline if content doesn't end with one
-                                if content and not content.endswith("\n"):
-                                    content += "\n"
-
-                                lines[i] = content
-                                found = True
-                                break
+                                matching_indices.append(i)
                         else:
                             if line.strip() == pattern:
-                                # Add newline if content doesn't end with one
-                                if content and not content.endswith("\n"):
-                                    content += "\n"
+                                matching_indices.append(i)
 
-                                lines[i] = content
-                                found = True
-                                break
-
-                    if not found:
+                    if len(matching_indices) == 0:
                         return False, f"Pattern '{pattern}' not found in file", None
+                    elif len(matching_indices) > 1:
+                        return (
+                            False,
+                            f"Pattern '{pattern}' found {len(matching_indices)} times, "
+                            f"expected exactly one match",
+                            None,
+                        )
+
+                    # Exactly one match - proceed with replacement
+                    idx = matching_indices[0]
+                    # Add newline if content doesn't end with one
+                    if content and not content.endswith("\n"):
+                        content += "\n"
+
+                    lines[idx] = content
                 else:
                     return (
                         False,
@@ -652,8 +653,26 @@ class ActionExecutor:
                 return False, f"Unknown operation: {operation}", None
 
             # Write back to file
+            new_content = "".join(lines)
             with open(path, "w", encoding="utf-8") as f:
-                f.writelines(lines)
+                f.write(new_content)
+
+            # Validate that the file wasn't corrupted by the edit
+            try:
+                with open(path, encoding="utf-8") as f:
+                    validation_content = f.read()
+                # Basic validation - check that we can still parse it as lines
+                _ = validation_content.splitlines(keepends=True)
+            except Exception as validation_error:
+                # If validation fails, restore the original content
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(original_content)
+                return (
+                    False,
+                    f"Edit caused file corruption. Reverted changes. "
+                    f"Error: {str(validation_error)}",
+                    None,
+                )
 
             return True, f"Successfully performed {operation} operation", None
 
