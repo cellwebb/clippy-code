@@ -7,14 +7,6 @@ from pathlib import Path
 import pytest
 
 from clippy.executor import ActionExecutor
-from clippy.permissions import PermissionManager
-
-
-@pytest.fixture
-def executor() -> ActionExecutor:
-    """Create an executor instance."""
-    manager = PermissionManager()
-    return ActionExecutor(manager)
 
 
 @pytest.fixture
