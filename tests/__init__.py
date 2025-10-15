@@ -1,1 +1,1 @@
-"""Tests for CLIppy."""
+"""Tests for clippy-code."""
