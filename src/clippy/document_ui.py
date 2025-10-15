@@ -107,6 +107,7 @@ class DocumentApp(App[None]):
         background: #f5f5f5;
         border-bottom: solid #d0d0d0;
         padding: 0;
+        margin: 0;
     }
     .ribbon-tabs {
         height: 1;
@@ -119,6 +120,7 @@ class DocumentApp(App[None]):
         height: 3;
         background: white;
         padding: 0 1;
+        margin: 0;
     }
     .ribbon-group {
         width: auto;
@@ -142,10 +144,10 @@ class DocumentApp(App[None]):
         text-style: italic;
     }
     #toolbar {
-        height: 2;
+        height: 1;
         background: #f0f0f0;
-        border-bottom: solid #d0d0d0;
         padding: 0 1;
+        margin: 0;
     }
     #toolbar Button {
         margin: 0 1;
