@@ -55,7 +55,7 @@ clippy -i
 clippy -d
 
 # Specify a model
-clippy --model gpt-4o "refactor main.py to use async/await"
+clippy --model gpt-5-codex "refactor main.py to use async/await"
 
 # Auto-approve all actions (use with caution!)
 clippy -y "write unit tests for utils.py"
@@ -172,13 +172,13 @@ src/clippy/
 
 ### Environment Variables
 
-- `CLIPPY_MODEL` - Model identifier (default: gpt-4o)
+- `CLIPPY_MODEL` - Model identifier (default: gpt-5-codex)
 - `OPENAI_BASE_URL` - Base URL for alternate providers
 - Provider-specific API keys: `OPENAI_API_KEY`, `CEREBRAS_API_KEY`, etc.
 
 ### Available Models
 
-**OpenAI**: gpt-4o (default), gpt-4-turbo, gpt-4, gpt-3.5-turbo
+**OpenAI**: gpt-5-codex (default), gpt-4-turbo, gpt-4, gpt-3.5-turbo
 
 **Cerebras**: cerebras (default), qwen-3-coder-480b
 
