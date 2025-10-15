@@ -86,7 +86,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--model",
         type=str,
-        help="Model to use (e.g., gpt-4o, llama3.1-8b for Cerebras)",
+        help="Model to use (e.g., gpt-5, llama3.1-8b for Cerebras)",
     )
 
     parser.add_argument(

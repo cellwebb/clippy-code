@@ -127,7 +127,7 @@ class LLMProvider:
 
     def get_default_model(self) -> str:
         """Get the default model."""
-        return "gpt-5-codex"
+        return "gpt-5"
 ```
 
 **That's it!** No ContentBlock, no LLMResponse, no conversions, no factory pattern.
@@ -302,7 +302,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--model",
         type=str,
-        help="Model to use (e.g., gpt-5-codex, llama3.1-8b)",
+        help="Model to use (e.g., gpt-5, llama3.1-8b)",
     )
 
     parser.add_argument(

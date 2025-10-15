@@ -127,7 +127,7 @@ Environment variables:
 - `GROQ_API_KEY`: API key for Groq provider
 - `DEEPSEEK_API_KEY`: API key for DeepSeek provider
 - `OPENAI_BASE_URL`: Base URL for alternate providers (e.g., https://api.cerebras.ai/v1)
-- `CLIPPY_MODEL`: Model identifier (default: gpt-5-codex)
+- `CLIPPY_MODEL`: Model identifier (default: gpt-5)
 
 Config files (priority order): `.env` → `~/.clippy.env` → system env
 

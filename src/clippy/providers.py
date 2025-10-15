@@ -160,7 +160,7 @@ class LLMProvider:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
-        model: str = "gpt-4o",
+        model: str = "gpt-5",
         **kwargs: Any,
     ) -> dict[str, Any]:
         """
@@ -282,4 +282,4 @@ class LLMProvider:
     def get_default_model(self) -> str:
         """Get the default model."""
         # Check for model in environment first
-        return os.getenv("CLIPPY_MODEL", "gpt-4o")  # Fixed default model
+        return os.getenv("CLIPPY_MODEL", "gpt-5")  # Fixed default model

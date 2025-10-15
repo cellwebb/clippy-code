@@ -17,7 +17,7 @@ def mock_agent() -> ClippyAgent:
         permission_manager=permission_manager,
         executor=executor,
         api_key="test-key",
-        model="gpt-4o",
+        model="gpt-5",
         base_url=None,
     )
 
@@ -26,7 +26,7 @@ def mock_agent() -> ClippyAgent:
 
 def test_agent_initialization(mock_agent: ClippyAgent) -> None:
     """Test that agent initializes with correct values."""
-    assert mock_agent.model == "gpt-4o"
+    assert mock_agent.model == "gpt-5"
     assert mock_agent.base_url is None
     assert mock_agent.api_key == "test-key"
     assert mock_agent.provider is not None
@@ -157,7 +157,7 @@ def test_approval_callback_is_used() -> None:
         permission_manager=permission_manager,
         executor=executor,
         api_key="test-key",
-        model="gpt-4o",
+        model="gpt-5",
         approval_callback=mock_approval_callback,
     )
 
@@ -178,7 +178,7 @@ def test_approval_callback_respects_response() -> None:
         permission_manager=permission_manager,
         executor=executor,
         api_key="test-key",
-        model="gpt-4o",
+        model="gpt-5",
         approval_callback=deny_callback,
     )
 
