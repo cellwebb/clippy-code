@@ -1,372 +1,33 @@
-"""Simplified document UI that works like interactive mode."""
+"""Main DocumentApp class for the document UI."""
 
+import io
 import os
 import queue
-import re
+import sys
 from typing import Any
 
 from rich.console import Console
-from textual.app import App, ComposeResult
+from textual.app import App
 from textual.binding import Binding
-from textual.containers import Container, Horizontal, Vertical
-from textual.widgets import Button, Input, RichLog, Static, TextArea
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Button, Input, RichLog, Static
 
-from .models import get_model_config, list_available_models
-from .permissions import ActionType
-
-
-def convert_rich_to_textual_markup(text: str) -> str:
-    """Convert Rich markup to Textual markup."""
-    text = text.replace("[bold cyan]", "[bold blue]")
-    text = text.replace("[/bold cyan]", "[/bold blue]")
-    text = text.replace("[cyan]", "[blue]")
-    text = text.replace("[/cyan]", "[/blue]")
-    return text
-
-
-def strip_ansi_codes(text: str) -> str:
-    """Remove ANSI codes and convert markup."""
-    text = re.sub(r"\x1b\[[0-9;]*m", "", text)
-    text = re.sub(r"[\u2500-\u257F]", "", text)
-    text = re.sub(r"[\x00-\x08\x0b-\x0c\x0e-\x1f\x7f-\x9f]", "", text)
-    # text = re.sub(r"^\[📎\]\s*", "", text)
-    text = convert_rich_to_textual_markup(text)
-    return text.strip()
-
-
-class DocumentHeader(Static):
-    """Document header."""
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.update(
-            "📎 clippy - 📄 Document Mode\n"
-            "Type directly, press Enter to send • Type 'y'/'n'/'stop' when prompted"
-        )
-
-
-class DocumentRibbon(Vertical):
-    """Microsoft Word-style ribbon."""
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-
-    def compose(self) -> ComposeResult:
-        # Tab row (removed for cleaner look)
-
-        # Ribbon content with groups
-        with Horizontal(classes="ribbon-content"):
-            # Clipboard group
-            with Vertical(classes="ribbon-group"):
-                yield Static("📋 Paste", classes="ribbon-item")
-                yield Static("Clipboard", classes="ribbon-group-label")
-
-            # Font group
-            with Vertical(classes="ribbon-group"):
-                yield Static("🗛 Bold  Italic  Underline", classes="ribbon-item")
-                yield Static("Font", classes="ribbon-group-label")
-
-            # Paragraph group
-            with Vertical(classes="ribbon-group"):
-                yield Static("≡ Bullets  Numbering  Align", classes="ribbon-item")
-                yield Static("Paragraph", classes="ribbon-group-label")
-
-            # Styles group
-            with Vertical(classes="ribbon-group"):
-                yield Static("✎ Heading  Normal  Title", classes="ribbon-item")
-                yield Static("Styles", classes="ribbon-group-label")
-
-
-class DocumentStatusBar(Static):
-    """Status bar."""
-
-    def update_status(self, model: str, messages: int, tokens: int = 0) -> None:
-        self.update(f"Model: {model} | Messages: {messages} | Tokens: {tokens:,}")
-
-    def update_message(self, message: str) -> None:
-        self.update(message)
-
-
-class DiffDisplay(TextArea):
-    """TextArea widget specialized for displaying diffs with syntax highlighting."""
-
-    def __init__(self, diff_content: str, **kwargs: Any) -> None:
-        # Set the content and make it read-only
-        super().__init__(diff_content, language="diff", theme="monokai", read_only=True, **kwargs)
-        self.diff_content = diff_content
-        self.show_line_numbers = True
-
-
-class ApprovalBackdrop(Container):
-    """Semi-transparent backdrop for modal dialogs."""
-
-    pass
-
-
-class ApprovalDialog(Container):
-    """Dialog for approval requests with diff display."""
-
-    def __init__(
-        self,
-        tool_name: str,
-        tool_input: dict[str, Any],
-        diff_content: str | None = None,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(**kwargs)
-        self.tool_name = tool_name
-        self.tool_input = tool_input
-        self.diff_content = diff_content
-
-    def compose(self) -> ComposeResult:
-        # Title bar
-        yield Static("⚠️  APPROVAL REQUIRED  ⚠️", id="approval-title")
-
-        # Scrollable content area
-        with Vertical(id="approval-content"):
-            # Show tool name
-            yield Static(f"→ {self.tool_name}", id="approval-tool-name")
-
-            # Show tool input
-            input_lines = [f"  {k}: {v}" for k, v in self.tool_input.items()]
-            input_text = "\n".join(input_lines)
-            if input_text:
-                yield Static(input_text, id="approval-tool-input")
-
-            # Display diff if available
-            if self.diff_content:
-                yield Static("Preview of changes:", id="diff-preview-header")
-                if self.diff_content == "":
-                    yield Static(
-                        "No changes (content identical)",
-                        id="diff-no-changes",
-                    )
-                else:
-                    # Create a scrollable diff display
-                    diff_display = DiffDisplay(self.diff_content, id="diff-display")
-                    yield diff_display
-            elif self.tool_name in ["write_file", "edit_file"]:
-                yield Static(
-                    "No preview available for this change",
-                    id="diff-preview-unavailable",
-                )
-
-        # Approval buttons - always at bottom, outside scrollable area
-        with Horizontal(id="approval-buttons"):
-            yield Button("✓ Yes", id="approval-yes", variant="success")
-            yield Button("✓ Yes (Allow All)", id="approval-allow", variant="primary")
-            yield Button("✗ No", id="approval-no", variant="error")
-            yield Button("⊗ Stop", id="approval-stop", variant="warning")
+from ..models import get_model_config, list_available_models
+from ..permissions import ActionType
+from .styles import DOCUMENT_APP_CSS
+from .utils import strip_ansi_codes
+from .widgets import (
+    ApprovalBackdrop,
+    ApprovalDialog,
+    DocumentRibbon,
+    DocumentStatusBar,
+)
 
 
 class DocumentApp(App[None]):
     """Simplified document mode - works like interactive mode."""
 
-    CSS = """
-    Screen {
-        background: #f0f0f0;
-    }
-    #top-bar {
-        dock: top;
-        height: auto;
-    }
-    #header {
-        height: 3;
-        background: #2b579a;
-        color: white;
-        padding: 0 1;
-        text-align: center;
-        content-align: center middle;
-    }
-    #ribbon {
-        height: 3;
-        background: #f5f5f5;
-        border-bottom: solid #d0d0d0;
-        padding: 0;
-        margin: 0;
-    }
-    .ribbon-tabs {
-        height: 1;
-        background: #f5f5f5;
-        color: #555555;
-        padding: 0 1;
-        text-align: left;
-    }
-    .ribbon-content {
-        height: 3;
-        background: white;
-        padding: 0 1;
-        margin: 0;
-    }
-    .ribbon-group {
-        width: auto;
-        height: 1fr;
-        border-right: solid #e0e0e0;
-        padding: 0 1;
-        margin: 0 1 0 0;
-    }
-    .ribbon-item {
-        width: auto;
-        height: 1;
-        color: #333333;
-        text-align: left;
-        padding: 0 1;
-    }
-    .ribbon-group-label {
-        width: auto;
-        height: 1;
-        color: #666666;
-        text-align: center;
-        text-style: italic;
-    }
-    #toolbar {
-        height: 1;
-        background: #f0f0f0;
-        padding: 0 1;
-        margin: 0;
-    }
-    #toolbar Button {
-        margin: 0 1;
-        width: 12;
-        height: 1fr;
-        background: #f0f0f0;
-        color: #333333;
-        border: none;
-        text-style: bold;
-        content-align: center middle;
-    }
-    #toolbar Button:hover {
-        background: #e6e6e6;
-    }
-    #document-container {
-        layout: vertical;
-        background: white;
-        color: #000000;
-        border: solid #d0d0d0;
-        margin: 1 2;
-        padding: 2 4;
-        height: 1fr;
-        width: 1fr;
-        overflow-y: auto;
-    }
-    #conversation-log {
-        height: auto;
-        background: white;
-        color: #000000;
-        border: none;
-        padding: 0;
-        scrollbar-size: 0 0;
-    }
-    #thinking-indicator {
-        display: none;
-        height: auto;
-        background: white;
-        color: #999999;
-        padding: 1 0 0 0;
-        text-style: italic;
-    }
-    #thinking-indicator.visible {
-        display: block;
-    }
-    #input-container {
-        height: auto;
-        background: white;
-        border: none;
-        padding: 1 0 0 0;
-    }
-    #input-prompt {
-        width: auto;
-        height: 1;
-        background: white;
-        color: #000000;
-        padding: 0;
-        margin: 0;
-    }
-    #user-input {
-        width: 1fr;
-        background: white;
-        color: #000000;
-        border: none;
-        height: 1;
-        padding: 0;
-        margin: 0;
-    }
-    DocumentStatusBar {
-        dock: bottom;
-        height: 1;
-        background: #1e3c72;
-        color: white;
-        text-align: center;
-    }
-    ApprovalBackdrop {
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        layer: overlay;
-        align: center middle;
-    }
-    #approval-dialog {
-        width: 85%;
-        height: auto;
-        max-height: 70%;
-        max-width: 120;
-        background: #fffef0;
-        border: thick #ff9500;
-        padding: 0 2 1 2;
-        margin: 2 4;
-    }
-    #approval-title {
-        width: 100%;
-        height: auto;
-        background: #ff9500;
-        color: #000000;
-        text-align: center;
-        text-style: bold;
-        padding: 1 0;
-        margin: 0;
-    }
-    #approval-content {
-        width: 100%;
-        height: auto;
-        max-height: 25;
-        overflow-y: auto;
-        padding: 1 0;
-    }
-    #approval-tool-name {
-        color: #0066cc;
-        text-style: bold;
-        padding: 0 0 1 0;
-    }
-    #approval-tool-input {
-        color: #666666;
-        padding: 0 0 1 0;
-    }
-    #diff-preview-header {
-        color: #ff9500;
-        text-style: bold;
-        padding: 1 0 0 0;
-    }
-    #diff-display {
-        height: auto;
-        max-height: 12;
-        border: solid #cccccc;
-        background: #1e1e1e;
-        padding: 0;
-        margin: 0 0 1 0;
-    }
-    #approval-buttons {
-        width: 100%;
-        height: auto;
-        align: center middle;
-        padding: 1 0 0 0;
-        background: #fffef0;
-    }
-    #approval-buttons Button {
-        margin: 0 1;
-        min-width: 14;
-        height: 3;
-    }
-    """
+    CSS = DOCUMENT_APP_CSS
 
     BINDINGS = [Binding("ctrl+q", "quit", "Quit")]
 
@@ -379,7 +40,7 @@ class DocumentApp(App[None]):
         self.current_approval_dialog: ApprovalDialog | None = None
         self.current_approval_backdrop: ApprovalBackdrop | None = None
 
-    def compose(self) -> ComposeResult:
+    def compose(self):
         with Vertical(id="top-bar"):
             yield Static(
                 "📎 clippy - 📄 Document Mode\n"
@@ -479,7 +140,7 @@ class DocumentApp(App[None]):
         self, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
     ) -> bool:
         """Request approval with enhanced UI."""
-        from .agent import InterruptedExceptionError
+        from ..agent import InterruptedExceptionError
 
         conv_log = self.query_one("#conversation-log", RichLog)
 
@@ -547,7 +208,7 @@ class DocumentApp(App[None]):
             raise InterruptedExceptionError()
         elif response == "allow":
             # Auto-approve this tool type
-            from .permissions import ActionType, PermissionLevel
+            from ..permissions import PermissionLevel
 
             # Map tool names to action types
             action_map = {
@@ -668,7 +329,7 @@ class DocumentApp(App[None]):
                 conv_log.write("[dim]No actions auto-approved[/dim]")
         elif subcommand.startswith("revoke "):
             # Revoke auto-approval for an action
-            from .permissions import PermissionLevel
+            from ..permissions import PermissionLevel
 
             action_to_revoke = subcommand.split(" ", 1)[1].strip()
             # Find the action type
@@ -688,7 +349,7 @@ class DocumentApp(App[None]):
                 conv_log.write(f"[red]Unknown action type: {action_to_revoke}[/red]")
         elif subcommand == "clear":
             # Clear all auto-approvals
-            from .permissions import PermissionLevel
+            from ..permissions import PermissionLevel
 
             revoked_count = 0
             for action_type in ActionType:
@@ -705,8 +366,6 @@ class DocumentApp(App[None]):
     async def run_agent_async(self, user_input: str) -> None:
         """Run agent in thread, write output directly to log."""
         import asyncio
-        import io
-        import sys
 
         conv_log = self.query_one("#conversation-log", RichLog)
 

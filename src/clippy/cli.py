@@ -441,7 +441,7 @@ def main() -> None:
     # Determine mode
     if args.document:
         # Document mode (Word-like TUI)
-        from .document_ui import run_document_mode
+        from .ui import run_document_mode
 
         run_document_mode(agent, args.yes)
     elif args.interactive or not args.prompt:
