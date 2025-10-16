@@ -140,7 +140,7 @@ DocumentStatusBar {
 ApprovalBackdrop {
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     layer: overlay;
     align: center middle;
 }
@@ -149,19 +149,23 @@ ApprovalBackdrop {
     height: auto;
     max-height: 70%;
     max-width: 120;
-    background: #fffef0;
-    border: thick #ff9500;
-    padding: 0 2 1 2;
+    background: #f0f0f0;
+    border: solid #003c74;
+    border-title-align: left;
+    border-title-color: white;
+    border-title-background: #003c74;
+    border-title-style: bold;
+    padding: 0;
     margin: 2 4;
 }
 #approval-title {
     width: 100%;
     height: auto;
-    background: #ff9500;
-    color: #000000;
-    text-align: center;
+    background: #0078d4;
+    color: white;
+    text-align: left;
     text-style: bold;
-    padding: 1 0;
+    padding: 1 2;
     margin: 0;
 }
 #approval-content {
@@ -169,26 +173,48 @@ ApprovalBackdrop {
     height: auto;
     max-height: 25;
     overflow-y: auto;
-    padding: 1 0;
+    background: white;
+    padding: 2 3;
+}
+#approval-main-message {
+    color: #003c74;
+    text-style: bold;
+    padding: 0 0 2 0;
 }
 #approval-tool-name {
-    color: #0066cc;
+    color: #505050;
     text-style: bold;
     padding: 0 0 1 0;
 }
 #approval-tool-input {
-    color: #666666;
+    color: #505050;
     padding: 0 0 1 0;
+    background: #f5f5f5;
+    border: solid #d0d0d0;
+    margin: 0 0 1 0;
 }
 #diff-preview-header {
-    color: #ff9500;
+    color: #0078d4;
     text-style: bold;
     padding: 1 0 0 0;
+}
+#diff-no-changes {
+    color: #707070;
+    text-style: italic;
+    padding: 0 0 1 0;
+    background: #f9f9f9;
+    border: solid #e0e0e0;
+    margin: 0 0 1 0;
+}
+#diff-preview-unavailable {
+    color: #707070;
+    text-style: italic;
+    padding: 0 0 1 0;
 }
 #diff-display {
     height: auto;
     max-height: 12;
-    border: solid #cccccc;
+    border: solid #d0d0d0;
     background: #1e1e1e;
     padding: 0;
     margin: 0 0 1 0;
@@ -197,12 +223,48 @@ ApprovalBackdrop {
     width: 100%;
     height: auto;
     align: center middle;
-    padding: 1 0 0 0;
-    background: #fffef0;
+    padding: 2 3;
+    background: #f0f0f0;
+    border-top: solid #d0d0d0;
 }
 #approval-buttons Button {
     margin: 0 1;
-    min-width: 14;
+    min-width: 16;
     height: 3;
+}
+#approval-yes {
+    background: #0078d4;
+    color: white;
+    text-style: bold;
+    border: solid #003c74;
+}
+#approval-yes:hover {
+    background: #005a9e;
+}
+#approval-allow {
+    background: #107c10;
+    color: white;
+    text-style: bold;
+    border: solid #0e6b0e;
+}
+#approval-allow:hover {
+    background: #0d5e0d;
+}
+#approval-no {
+    background: #e1e1e1;
+    color: #000000;
+    border: solid #adadad;
+}
+#approval-no:hover {
+    background: #d0d0d0;
+}
+#approval-stop {
+    background: #d13438;
+    color: white;
+    text-style: bold;
+    border: solid #a02c2f;
+}
+#approval-stop:hover {
+    background: #a92326;
 }
 """
