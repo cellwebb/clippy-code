@@ -269,7 +269,7 @@ class ClippyAgent:
             return False
 
         if needs_approval:
-            approved = self._ask_approval(tool_name, tool_input, diff_content)
+            approved = self._ask_approval(tool_name, tool_input, diff_content, action_type)
             if not approved:
                 self.console.print("[bold yellow]⊘ Action rejected by user[/bold yellow]")
                 self._add_tool_result(tool_use_id, False, "Action rejected by user", None)
@@ -311,7 +311,11 @@ class ClippyAgent:
                 self.console.print(f"[yellow]{formatted_diff}[/yellow]")
 
     def _ask_approval(
-        self, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
+        self,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        diff_content: str | None = None,
+        action_type: ActionType | None = None,
     ) -> bool:
         """Ask user for approval to execute an action."""
         # Use callback if provided (for document mode)
@@ -322,17 +326,25 @@ class ClippyAgent:
             except InterruptedExceptionError:
                 self.interrupted = True
                 raise
-        # Display diff if available
-        if diff_content:
-            self.console.print("\n[bold yellow]Preview of changes:[/bold yellow]")
-            self.console.print(f"[yellow]{diff_content}[/yellow]")
 
         # Default behavior: use input() (for interactive mode)
         try:
-            response = input("\n[?] Approve this action? [y/N/stop]: ").strip().lower()
+            response = input("\n[?] Approve this action? [y/N/stop/allow]: ").strip().lower()
             if response == "stop":
                 self.interrupted = True
                 raise InterruptedExceptionError()
+            elif response == "allow" or response == "a":
+                # Auto-approve this action type for the rest of the session
+                from .permissions import PermissionLevel
+
+                if action_type:
+                    self.permission_manager.update_permission(
+                        action_type, PermissionLevel.AUTO_APPROVE
+                    )
+                    self.console.print(
+                        f"[green]Auto-approving {tool_name} for this session[/green]"
+                    )
+                return True
             return response == "y"
         except (KeyboardInterrupt, EOFError):
             self.interrupted = True
