@@ -4,84 +4,72 @@ import shlex
 from pathlib import Path
 
 from clippy.executor import ActionExecutor
-from clippy.permissions import PermissionManager
+from clippy.tools.grep import translate_grep_flags_to_rg
 
 
 def test_grep_flag_translation_basic_flags() -> None:
     """Test translation of basic grep flags to ripgrep equivalents."""
-    manager = PermissionManager()
-    executor = ActionExecutor(manager)
-
     # Test individual flag translations
-    assert "--ignore-case" == executor._translate_grep_flags_to_rg("-i")
-    assert "--invert-match" == executor._translate_grep_flags_to_rg("-v")
-    assert "--word-regexp" == executor._translate_grep_flags_to_rg("-w")
-    assert "--line-regexp" == executor._translate_grep_flags_to_rg("-x")
+    assert "--ignore-case" == translate_grep_flags_to_rg("-i")
+    assert "--invert-match" == translate_grep_flags_to_rg("-v")
+    assert "--word-regexp" == translate_grep_flags_to_rg("-w")
+    assert "--line-regexp" == translate_grep_flags_to_rg("-x")
 
     # Test line number and filename flags
-    assert "--line-number" == executor._translate_grep_flags_to_rg("-n")
-    assert "--with-filename" == executor._translate_grep_flags_to_rg("-H")
-    assert "--no-filename" == executor._translate_grep_flags_to_rg("-h")
-    assert "--only-matching" == executor._translate_grep_flags_to_rg("-o")
+    assert "--line-number" == translate_grep_flags_to_rg("-n")
+    assert "--with-filename" == translate_grep_flags_to_rg("-H")
+    assert "--no-filename" == translate_grep_flags_to_rg("-h")
+    assert "--only-matching" == translate_grep_flags_to_rg("-o")
 
     # Test file recursion flags
-    assert "--recursive" == executor._translate_grep_flags_to_rg("-r")
-    assert "--files-without-match" == executor._translate_grep_flags_to_rg("-L")
+    assert "--recursive" == translate_grep_flags_to_rg("-r")
+    assert "--files-without-match" == translate_grep_flags_to_rg("-L")
 
     # Test long form flags remain unchanged
-    assert "--ignore-case" == executor._translate_grep_flags_to_rg("--ignore-case")
-    assert "--invert-match" == executor._translate_grep_flags_to_rg("--invert-match")
+    assert "--ignore-case" == translate_grep_flags_to_rg("--ignore-case")
+    assert "--invert-match" == translate_grep_flags_to_rg("--invert-match")
 
 
 def test_grep_flag_translation_context_flags() -> None:
     """Test translation of context-related grep flags."""
-    manager = PermissionManager()
-    executor = ActionExecutor(manager)
-
     # Test context flag translations with arguments
-    assert "--after-context 3" == executor._translate_grep_flags_to_rg("-A 3")
-    assert "--before-context 2" == executor._translate_grep_flags_to_rg("-B 2")
-    assert "--context 5" == executor._translate_grep_flags_to_rg("-C 5")
+    assert "--after-context 3" == translate_grep_flags_to_rg("-A 3")
+    assert "--before-context 2" == translate_grep_flags_to_rg("-B 2")
+    assert "--context 5" == translate_grep_flags_to_rg("-C 5")
 
     # Test long form context flags
-    assert "--after-context 3" == executor._translate_grep_flags_to_rg("--after-context 3")
-    assert "--before-context 2" == executor._translate_grep_flags_to_rg("--before-context 2")
-    assert "--context 5" == executor._translate_grep_flags_to_rg("--context 5")
+    assert "--after-context 3" == translate_grep_flags_to_rg("--after-context 3")
+    assert "--before-context 2" == translate_grep_flags_to_rg("--before-context 2")
+    assert "--context 5" == translate_grep_flags_to_rg("--context 5")
 
 
 def test_grep_flag_translation_include_exclude() -> None:
     """Test translation of --include and --exclude flags."""
-    manager = PermissionManager()
-    executor = ActionExecutor(manager)
-
     # Test include flag translation
-    assert "--glob *.py" == executor._translate_grep_flags_to_rg("--include *.py")
-    assert "--glob *.txt" == executor._translate_grep_flags_to_rg("--include *.txt")
+    assert "--glob *.py" == translate_grep_flags_to_rg("--include *.py")
+    assert "--glob *.txt" == translate_grep_flags_to_rg("--include *.txt")
 
     # Test exclude flag translation (ripgrep uses ! prefix for negation)
-    assert "--glob !*.log" == executor._translate_grep_flags_to_rg("--exclude *.log")
-    assert "--glob !*.tmp" == executor._translate_grep_flags_to_rg("--exclude *.tmp")
+    assert "--glob !*.log" == translate_grep_flags_to_rg("--exclude *.log")
+    assert "--glob !*.tmp" == translate_grep_flags_to_rg("--exclude *.tmp")
 
 
 def test_grep_flag_translation_multiple_flags() -> None:
     """Test translation of multiple grep flags at once."""
-    manager = PermissionManager()
-    executor = ActionExecutor(manager)
-
     # Test multiple simple flags
-    result = executor._translate_grep_flags_to_rg("-i -v -w")
+    result = translate_grep_flags_to_rg("-i -v -w")
     expected_flags = {"--ignore-case", "--invert-match", "--word-regexp"}
     result_flags = set(shlex.split(result))
     assert result_flags == expected_flags
 
     # Test mix of simple and context flags
-    result = executor._translate_grep_flags_to_rg("-i -A 3 -n")
+    result = translate_grep_flags_to_rg("-i -A 3 -n")
     expected_flags = {"--ignore-case", "--after-context", "3", "--line-number"}
     result_flags = set(shlex.split(result))
     assert result_flags == expected_flags
 
     # Test complex combination
-    result = executor._translate_grep_flags_to_rg("--ignore-case --include *.py -B 2")
+    result = translate_grep_flags_to_rg("--ignore-case --include *.py -B 2")
     expected_flags = {"--ignore-case", "--glob", "*.py", "--before-context", "2"}
     result_flags = set(shlex.split(result))
     assert result_flags == expected_flags
@@ -89,15 +77,12 @@ def test_grep_flag_translation_multiple_flags() -> None:
 
 def test_grep_flag_translation_unknown_flags() -> None:
     """Test that unknown flags are passed through unchanged."""
-    manager = PermissionManager()
-    executor = ActionExecutor(manager)
-
     # Test unknown flag passes through
-    assert "--unknown-flag" == executor._translate_grep_flags_to_rg("--unknown-flag")
-    assert "-X" == executor._translate_grep_flags_to_rg("-X")
+    assert "--unknown-flag" == translate_grep_flags_to_rg("--unknown-flag")
+    assert "-X" == translate_grep_flags_to_rg("-X")
 
     # Test mix of known and unknown flags
-    result = executor._translate_grep_flags_to_rg("-i --unknown-flag -v")
+    result = translate_grep_flags_to_rg("-i --unknown-flag -v")
     result_flags = set(shlex.split(result))
     assert result_flags == {"--ignore-case", "--unknown-flag", "--invert-match"}
 
