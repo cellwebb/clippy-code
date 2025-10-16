@@ -212,8 +212,15 @@ TOOLS: list[dict[str, Any]] = [
                     "pattern": {
                         "type": "string",
                         "description": (
-                            "Pattern to match lines for all operations "
-                            "(required for replace, delete, insert_before, insert_after)"
+                            "Pattern to match lines for all operations (required for replace, "
+                            "delete, insert_before, insert_after). This pattern must match "
+                            "exactly one line in the file for replace, delete, insert_before, "
+                            "and insert_after operations. For delete, insert_before, and "
+                            "insert_after operations, the pattern matches whole lines by "
+                            "default (match_pattern_line=true). For replace operations with "
+                            "match_pattern_line=false, the pattern can match substrings "
+                            "within lines (required for replace, delete, insert_before, "
+                            "insert_after)"
                         ),
                     },
                     "match_pattern_line": {
