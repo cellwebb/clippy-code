@@ -1,6 +1,6 @@
-"""Tests for the document UI functionality."""
+"""Tests for UI utility functions."""
 
-from clippy.document_ui import convert_rich_to_textual_markup, strip_ansi_codes
+from clippy.ui import convert_rich_to_textual_markup, strip_ansi_codes
 
 
 def test_strip_ansi_codes_removes_ansi_sequences() -> None:
@@ -46,3 +46,31 @@ def test_strip_ansi_codes_preserves_paperclip_prefix() -> None:
     text_with_prefix = "[📎] Hello World"
     cleaned = strip_ansi_codes(text_with_prefix)
     assert cleaned == "[📎] Hello World"
+
+
+def test_strip_ansi_codes_removes_box_drawing_characters() -> None:
+    """Test that strip_ansi_codes removes box drawing characters."""
+    text_with_box = "┌─────┐\n│Text │\n└─────┘"
+    cleaned = strip_ansi_codes(text_with_box)
+    # Box drawing characters should be removed
+    assert "─" not in cleaned
+    assert "│" not in cleaned
+    assert "┌" not in cleaned
+
+
+def test_convert_rich_to_textual_markup_multiple_colors() -> None:
+    """Test conversion with multiple color markups in one string."""
+    text = "[cyan]Info:[/cyan] [bold cyan]Important[/bold cyan]"
+    converted = convert_rich_to_textual_markup(text)
+    assert converted == "[blue]Info:[/blue] [bold blue]Important[/bold blue]"
+
+
+def test_strip_ansi_codes_with_control_characters() -> None:
+    """Test that strip_ansi_codes removes control characters."""
+    text_with_control = "Hello\x00\x08\x0b\x0cWorld"
+    cleaned = strip_ansi_codes(text_with_control)
+    # Control characters should be removed, but the text preserved
+    assert "Hello" in cleaned
+    assert "World" in cleaned
+    assert "\x00" not in cleaned
+    assert "\x08" not in cleaned
