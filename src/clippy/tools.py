@@ -191,8 +191,8 @@ TOOLS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "edit_file",
-            "description": "Edit a file by inserting, replacing, or deleting lines. "
-            "More efficient than rewriting entire files for small changes.",
+            "description": "Edit a file by inserting, replacing, deleting, or appending content. "
+            "Uses pattern-anchored operations for safer editing.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -200,30 +200,35 @@ TOOLS: list[dict[str, Any]] = [
                     "operation": {
                         "type": "string",
                         "description": (
-                            "The edit operation to perform: 'insert', 'replace', 'delete', "
-                            "or 'append'"
+                            "The edit operation to perform: 'replace', 'delete', 'append', "
+                            "'insert_before', or 'insert_after'"
                         ),
-                        "enum": ["insert", "replace", "delete", "append"],
+                        "enum": ["replace", "delete", "append", "insert_before", "insert_after"],
                     },
                     "content": {
                         "type": "string",
                         "description": "Content to insert, replace with, or append",
                     },
-                    "line_number": {
-                        "type": "integer",
-                        "description": (
-                            "Line number for insert/replace/delete operations (1-indexed)"
-                        ),
-                    },
                     "pattern": {
                         "type": "string",
-                        "description": "Pattern to match lines for replace/delete operations",
+                        "description": (
+                            "Pattern to match lines for all operations "
+                            "(required for replace, delete, insert_before, insert_after)"
+                        ),
                     },
                     "match_pattern_line": {
                         "type": "boolean",
                         "description": (
                             "Whether to match the pattern against entire lines (true) or "
                             "just substrings (false)"
+                        ),
+                        "default": True,
+                    },
+                    "inherit_indent": {
+                        "type": "boolean",
+                        "description": (
+                            "For insert_before/insert_after operations, whether to copy "
+                            "leading whitespace from the anchor line to the inserted content"
                         ),
                         "default": True,
                     },
