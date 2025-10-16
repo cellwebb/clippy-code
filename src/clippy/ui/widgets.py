@@ -92,15 +92,20 @@ class ApprovalDialog(Container):
         self.diff_content = diff_content
 
     def compose(self) -> ComposeResult:
-        # Title bar
-        yield Static("⚠️  APPROVAL REQUIRED  ⚠️", id="approval-title")
+        # Title bar with Windows-style shield icon
+        yield Static("🛡️  Permission Required", id="approval-title")
 
         # Scrollable content area
         with Vertical(id="approval-content"):
-            # Show tool name
-            yield Static(f"→ {self.tool_name}", id="approval-tool-name")
+            # Main message with Windows-style phrasing
+            yield Static(
+                "Do you want to allow this app to make changes?", id="approval-main-message"
+            )
 
-            # Show tool input
+            # Show tool name as the "program name"
+            yield Static(f"Action: {self.tool_name}", id="approval-tool-name")
+
+            # Show tool input in a bordered box
             input_lines = [f"  {k}: {v}" for k, v in self.tool_input.items()]
             input_text = "\n".join(input_lines)
             if input_text:
@@ -108,7 +113,7 @@ class ApprovalDialog(Container):
 
             # Display diff if available
             if self.diff_content:
-                yield Static("Preview of changes:", id="diff-preview-header")
+                yield Static("Show details ▼", id="diff-preview-header")
                 if self.diff_content == "":
                     yield Static(
                         "No changes (content identical)",
@@ -126,7 +131,7 @@ class ApprovalDialog(Container):
 
         # Approval buttons - always at bottom, outside scrollable area
         with Horizontal(id="approval-buttons"):
-            yield Button("✓ Yes", id="approval-yes", variant="success")
-            yield Button("✓ Yes (Allow All)", id="approval-allow", variant="primary")
-            yield Button("✗ No", id="approval-no", variant="error")
-            yield Button("⊗ Stop", id="approval-stop", variant="warning")
+            yield Button("Yes", id="approval-yes", variant="primary")
+            yield Button("Yes (Allow All)", id="approval-allow", variant="success")
+            yield Button("No", id="approval-no", variant="default")
+            yield Button("Cancel", id="approval-stop", variant="error")

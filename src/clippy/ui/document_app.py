@@ -7,7 +7,7 @@ import sys
 from typing import Any
 
 from rich.console import Console
-from textual.app import App
+from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Input, RichLog, Static
@@ -40,7 +40,7 @@ class DocumentApp(App[None]):
         self.current_approval_dialog: ApprovalDialog | None = None
         self.current_approval_backdrop: ApprovalBackdrop | None = None
 
-    def compose(self):
+    def compose(self) -> ComposeResult:
         with Vertical(id="top-bar"):
             yield Static(
                 "📎 clippy - 📄 Document Mode\n"
@@ -183,8 +183,9 @@ class DocumentApp(App[None]):
 
         # Mount backdrop with dialog from main thread to avoid event loop issues
         def mount_modal() -> None:
-            self.mount(self.current_approval_backdrop)
-            self.current_approval_backdrop.mount(self.current_approval_dialog)
+            if self.current_approval_backdrop and self.current_approval_dialog:
+                self.mount(self.current_approval_backdrop)
+                self.current_approval_backdrop.mount(self.current_approval_dialog)
 
         self.call_from_thread(mount_modal)
 
