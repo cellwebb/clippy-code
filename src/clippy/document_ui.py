@@ -8,10 +8,11 @@ from typing import Any
 from rich.console import Console
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Input, RichLog, Static
+from textual.containers import Container, Horizontal, Vertical
+from textual.widgets import Button, Input, RichLog, Static, TextArea
 
 from .models import get_model_config, list_available_models
+from .permissions import ActionType
 
 
 def convert_rich_to_textual_markup(text: str) -> str:
@@ -84,6 +85,78 @@ class DocumentStatusBar(Static):
 
     def update_message(self, message: str) -> None:
         self.update(message)
+
+
+class DiffDisplay(TextArea):
+    """TextArea widget specialized for displaying diffs with syntax highlighting."""
+
+    def __init__(self, diff_content: str, **kwargs: Any) -> None:
+        # Set the content and make it read-only
+        super().__init__(diff_content, language="diff", theme="monokai", read_only=True, **kwargs)
+        self.diff_content = diff_content
+        self.show_line_numbers = True
+
+
+class ApprovalBackdrop(Container):
+    """Semi-transparent backdrop for modal dialogs."""
+
+    pass
+
+
+class ApprovalDialog(Container):
+    """Dialog for approval requests with diff display."""
+
+    def __init__(
+        self,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        diff_content: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.tool_name = tool_name
+        self.tool_input = tool_input
+        self.diff_content = diff_content
+
+    def compose(self) -> ComposeResult:
+        # Title bar
+        yield Static("⚠️  APPROVAL REQUIRED  ⚠️", id="approval-title")
+
+        # Scrollable content area
+        with Vertical(id="approval-content"):
+            # Show tool name
+            yield Static(f"→ {self.tool_name}", id="approval-tool-name")
+
+            # Show tool input
+            input_lines = [f"  {k}: {v}" for k, v in self.tool_input.items()]
+            input_text = "\n".join(input_lines)
+            if input_text:
+                yield Static(input_text, id="approval-tool-input")
+
+            # Display diff if available
+            if self.diff_content:
+                yield Static("Preview of changes:", id="diff-preview-header")
+                if self.diff_content == "":
+                    yield Static(
+                        "No changes (content identical)",
+                        id="diff-no-changes",
+                    )
+                else:
+                    # Create a scrollable diff display
+                    diff_display = DiffDisplay(self.diff_content, id="diff-display")
+                    yield diff_display
+            elif self.tool_name in ["write_file", "edit_file"]:
+                yield Static(
+                    "No preview available for this change",
+                    id="diff-preview-unavailable",
+                )
+
+        # Approval buttons - always at bottom, outside scrollable area
+        with Horizontal(id="approval-buttons"):
+            yield Button("✓ Yes", id="approval-yes", variant="success")
+            yield Button("✓ Yes (Allow All)", id="approval-allow", variant="primary")
+            yield Button("✗ No", id="approval-no", variant="error")
+            yield Button("⊗ Stop", id="approval-stop", variant="warning")
 
 
 class DocumentApp(App[None]):
@@ -225,6 +298,74 @@ class DocumentApp(App[None]):
         color: white;
         text-align: center;
     }
+    ApprovalBackdrop {
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        layer: overlay;
+        align: center middle;
+    }
+    #approval-dialog {
+        width: 85%;
+        height: auto;
+        max-height: 70%;
+        max-width: 120;
+        background: #fffef0;
+        border: thick #ff9500;
+        padding: 0 2 1 2;
+        margin: 2 4;
+    }
+    #approval-title {
+        width: 100%;
+        height: auto;
+        background: #ff9500;
+        color: #000000;
+        text-align: center;
+        text-style: bold;
+        padding: 1 0;
+        margin: 0;
+    }
+    #approval-content {
+        width: 100%;
+        height: auto;
+        max-height: 25;
+        overflow-y: auto;
+        padding: 1 0;
+    }
+    #approval-tool-name {
+        color: #0066cc;
+        text-style: bold;
+        padding: 0 0 1 0;
+    }
+    #approval-tool-input {
+        color: #666666;
+        padding: 0 0 1 0;
+    }
+    #diff-preview-header {
+        color: #ff9500;
+        text-style: bold;
+        padding: 1 0 0 0;
+    }
+    #diff-display {
+        height: auto;
+        max-height: 12;
+        border: solid #cccccc;
+        background: #1e1e1e;
+        padding: 0;
+        margin: 0 0 1 0;
+    }
+    #approval-buttons {
+        width: 100%;
+        height: auto;
+        align: center middle;
+        padding: 1 0 0 0;
+        background: #fffef0;
+    }
+    #approval-buttons Button {
+        margin: 0 1;
+        min-width: 14;
+        height: 3;
+    }
     """
 
     BINDINGS = [Binding("ctrl+q", "quit", "Quit")]
@@ -235,6 +376,8 @@ class DocumentApp(App[None]):
         self.auto_approve = auto_approve
         self.approval_queue: queue.Queue[str] = queue.Queue()
         self.waiting_for_approval = False
+        self.current_approval_dialog: ApprovalDialog | None = None
+        self.current_approval_backdrop: ApprovalBackdrop | None = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="top-bar"):
@@ -296,6 +439,29 @@ class DocumentApp(App[None]):
             self.show_models()
         elif button_id == "quit-btn":
             self.exit()
+        elif button_id == "approval-allow":
+            self.handle_approval_response("allow")
+        elif button_id == "approval-yes":
+            self.handle_approval_response("y")
+        elif button_id == "approval-no":
+            self.handle_approval_response("n")
+        elif button_id == "approval-stop":
+            self.handle_approval_response("stop")
+
+    def handle_approval_response(self, response: str) -> None:
+        """Handle approval response from UI buttons."""
+        if self.waiting_for_approval and self.current_approval_dialog:
+            # Remove the approval dialog and backdrop
+            try:
+                if self.current_approval_backdrop:
+                    self.current_approval_backdrop.remove()
+                    self.current_approval_backdrop = None
+            except Exception:
+                pass
+
+            self.current_approval_dialog = None
+            self.approval_queue.put(response)
+            self.waiting_for_approval = False
 
     def update_status_bar(self) -> None:
         status_bar = self.query_one(DocumentStatusBar)
@@ -312,32 +478,54 @@ class DocumentApp(App[None]):
     def request_approval(
         self, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
     ) -> bool:
-        """Simple approval - just like CLI."""
+        """Request approval with enhanced UI."""
         from .agent import InterruptedExceptionError
 
         conv_log = self.query_one("#conversation-log", RichLog)
 
-        # Show what's being approved
+        # Show what's being approved in conversation log
         input_lines = [f"  {k}: {v}" for k, v in tool_input.items()]
         input_text = "\n".join(input_lines)
 
-        # Write approval prompt to the log
         def write_prompt() -> None:
             conv_log.write(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
             if input_text:
                 conv_log.write(f"[cyan]{input_text}[/cyan]")
 
-            # Display diff if available
-            if diff_content:
-                conv_log.write("[bold yellow]Preview of changes:[/bold yellow]")
-                # Split diff into lines for better display
-                diff_lines = diff_content.splitlines()
-                for line in diff_lines:
-                    conv_log.write(f"[yellow]{line}[/yellow]")
-
-            conv_log.write("[yellow]⚠ Approve? Type 'y' (yes), 'n' (no), or 'stop'[/yellow]")
+            # Mention that diff preview is available in the approval dialog
+            # to avoid duplicate display of the same information
+            if diff_content is not None:
+                conv_log.write(
+                    "[bold yellow]Preview of changes:[/bold yellow] "
+                    "See approval dialog below for details"
+                )
+            else:
+                conv_log.write("[yellow]⚠ Approve? Check approval dialog below[/yellow]")
 
         self.call_from_thread(write_prompt)
+
+        # Hide input container while waiting for approval
+        def hide_input() -> None:
+            try:
+                input_container = self.query_one("#input-container")
+                input_container.display = False
+            except Exception:
+                pass
+
+        self.call_from_thread(hide_input)
+
+        # Create backdrop and dialog for centered modal display
+        self.current_approval_backdrop = ApprovalBackdrop()
+        self.current_approval_dialog = ApprovalDialog(
+            tool_name, tool_input, diff_content, id="approval-dialog"
+        )
+
+        # Mount backdrop with dialog from main thread to avoid event loop issues
+        def mount_modal() -> None:
+            self.mount(self.current_approval_backdrop)
+            self.current_approval_backdrop.mount(self.current_approval_dialog)
+
+        self.call_from_thread(mount_modal)
 
         self.waiting_for_approval = True
 
@@ -345,8 +533,48 @@ class DocumentApp(App[None]):
         response = self.approval_queue.get()
         self.waiting_for_approval = False
 
+        # Show input container again
+        def show_input() -> None:
+            try:
+                input_container = self.query_one("#input-container")
+                input_container.display = True
+            except Exception:
+                pass
+
+        self.call_from_thread(show_input)
+
         if response == "stop":
             raise InterruptedExceptionError()
+        elif response == "allow":
+            # Auto-approve this tool type
+            from .permissions import ActionType, PermissionLevel
+
+            # Map tool names to action types
+            action_map = {
+                "read_file": ActionType.READ_FILE,
+                "write_file": ActionType.WRITE_FILE,
+                "delete_file": ActionType.DELETE_FILE,
+                "list_directory": ActionType.LIST_DIR,
+                "create_directory": ActionType.CREATE_DIR,
+                "execute_command": ActionType.EXECUTE_COMMAND,
+                "search_files": ActionType.SEARCH_FILES,
+                "get_file_info": ActionType.GET_FILE_INFO,
+                "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
+                "grep": ActionType.GREP,  # Dedicated action type for grep
+                "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+            }
+
+            action_type = action_map.get(tool_name)
+            if action_type:
+                # Update permission for this action type to AUTO_APPROVE
+                self.agent.permission_manager.update_permission(
+                    action_type, PermissionLevel.AUTO_APPROVE
+                )
+                conv_log.write(f"[green]Auto-approving {tool_name} for this session[/green]")
+                return True
+            else:
+                # Fallback to regular approval
+                return True
 
         return response == "y"
 
@@ -361,7 +589,10 @@ class DocumentApp(App[None]):
         # Check if waiting for approval
         if self.waiting_for_approval:
             response = user_input.lower()
-            if response in ["y", "n", "stop"]:
+            if response in ["y", "n", "stop", "allow", "a"]:
+                # Convert shorthand responses
+                if response == "a":
+                    response = "allow"
                 self.approval_queue.put(response)
                 user_input_widget.value = ""
                 return
@@ -403,9 +634,73 @@ class DocumentApp(App[None]):
         elif user_input.lower().startswith("/model"):
             self.handle_model_command(user_input)
             return
+        elif user_input.lower().startswith("/auto"):
+            self.handle_auto_command(user_input)
+            return
 
         # Run agent in thread (non-blocking)
         self.run_worker(self.run_agent_async(user_input), exclusive=True)
+
+    def handle_auto_command(self, user_input: str) -> None:
+        """Handle auto-approval related commands."""
+        conv_log = self.query_one("#conversation-log", RichLog)
+        parts = user_input.split(maxsplit=1)
+
+        if len(parts) == 1:
+            # Just /auto without subcommand
+            conv_log.write("[yellow]Use /auto list, /auto revoke <action>, or /auto clear[/yellow]")
+            return
+
+        subcommand = parts[1].strip()
+
+        if subcommand == "list":
+            # List auto-approved actions
+            conv_log.write("[bold]Auto-approved actions in this session:[/bold]")
+            auto_approved_actions = []
+            for action_type in ActionType:
+                if self.agent.permission_manager.config.can_auto_execute(action_type):
+                    auto_approved_actions.append(action_type.value)
+
+            if auto_approved_actions:
+                for action in auto_approved_actions:
+                    conv_log.write(f"• [green]{action}[/green]")
+            else:
+                conv_log.write("[dim]No actions auto-approved[/dim]")
+        elif subcommand.startswith("revoke "):
+            # Revoke auto-approval for an action
+            from .permissions import PermissionLevel
+
+            action_to_revoke = subcommand.split(" ", 1)[1].strip()
+            # Find the action type
+            action_type = None
+            for at in ActionType:
+                if at.value == action_to_revoke:
+                    action_type = at
+                    break
+
+            if action_type:
+                # Set back to REQUIRE_APPROVAL
+                self.agent.permission_manager.update_permission(
+                    action_type, PermissionLevel.REQUIRE_APPROVAL
+                )
+                conv_log.write(f"[green]Revoked auto-approval for {action_to_revoke}[/green]")
+            else:
+                conv_log.write(f"[red]Unknown action type: {action_to_revoke}[/red]")
+        elif subcommand == "clear":
+            # Clear all auto-approvals
+            from .permissions import PermissionLevel
+
+            revoked_count = 0
+            for action_type in ActionType:
+                if self.agent.permission_manager.config.can_auto_execute(action_type):
+                    self.agent.permission_manager.update_permission(
+                        action_type, PermissionLevel.REQUIRE_APPROVAL
+                    )
+                    revoked_count += 1
+
+            conv_log.write(f"[green]Cleared {revoked_count} auto-approved actions[/green]")
+        else:
+            conv_log.write("[yellow]Use /auto list, /auto revoke <action>, or /auto clear[/yellow]")
 
     async def run_agent_async(self, user_input: str) -> None:
         """Run agent in thread, write output directly to log."""
@@ -542,6 +837,9 @@ class DocumentApp(App[None]):
         conv_log.write("• /[bold]compact[/bold] - Reduce token usage in long conversations")
         conv_log.write("• /[bold]model list[/bold] - Show available model presets")
         conv_log.write("• /[bold]model <name>[/bold] - Switch to a specific model")
+        conv_log.write("• /[bold]auto list[/bold] - List auto-approved actions")
+        conv_log.write("• /[bold]auto revoke <action>[/bold] - Revoke auto-approval for action")
+        conv_log.write("• /[bold]auto clear[/bold] - Clear all auto-approved actions")
         conv_log.write("• /[bold]quit[/bold] or /[bold]exit[/bold] - Exit code-with-clippy")
         conv_log.write("")
         conv_log.write("[bold]⌨️ Keyboard Shortcuts[/bold]")
@@ -562,6 +860,9 @@ class DocumentApp(App[None]):
         conv_log.write(
             "• Type [bold]y[/bold] (yes), [bold]n[/bold] (no), or [bold]stop[/bold] to interrupt"
         )
+        conv_log.write(
+            "• Type [bold]a[/bold] or [bold]allow[/bold] to approve and auto-approve future calls"
+        )
         conv_log.write("• File operations (write, delete) and commands need approval")
         conv_log.write("• Read operations are auto-approved")
         conv_log.write("")
@@ -574,6 +875,7 @@ class DocumentApp(App[None]):
         conv_log.write("• The status bar shows current model, message count, and tokens")
         conv_log.write("• Scroll through the conversation using your mouse or arrow keys")
         conv_log.write("• Paperclip appears when Clippy is thinking about your request")
+        conv_log.write("• Diff previews show exact changes before file operations")
         conv_log.write("")
         conv_log.write("[dim]Made with ❤️ by the code-with-clippy team[/dim]\n")
 

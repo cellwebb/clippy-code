@@ -2,7 +2,6 @@
 
 import ast
 import os
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -29,45 +28,6 @@ def validate_python_syntax(content: str, filepath: str) -> tuple[bool, str]:
         except Exception as e:
             return False, f"Error validating Python syntax in {filepath}: {str(e)}"
     return True, ""
-
-
-def safe_write_file(path: str, content: str) -> tuple[bool, str]:
-    """
-    Safely write a file with validation.
-
-    Args:
-        path: Path to the file
-        content: Content to write
-
-    Returns:
-        Tuple of (success: bool, message: str)
-    """
-    try:
-        # Validate Python syntax if it's a Python file
-        is_valid, error_msg = validate_python_syntax(content, path)
-        if not is_valid:
-            return False, error_msg
-
-        # Create parent directories if needed
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-
-        # Write to temporary file first
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, dir=Path(path).parent) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
-
-        # If we get here, the write was successful
-        # Move temporary file to final location
-        os.replace(tmp_path, path)
-        return True, f"Successfully wrote to {path}"
-    except Exception as e:
-        # Clean up temp file if it exists
-        try:
-            if "tmp_path" in locals():
-                os.unlink(tmp_path)
-        except OSError:
-            pass
-        return False, f"Failed to write to {path}: {str(e)}"
 
 
 def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | None:
