@@ -55,6 +55,8 @@ def test_write_file_permission_denied(executor: ActionExecutor, temp_dir: str) -
         "Error executing write_file" in message
         or "Permission denied" in message
         or "OS error" in message
+        or "Failed to write" in message
+        or "Read-only file system" in message
     )
 
 

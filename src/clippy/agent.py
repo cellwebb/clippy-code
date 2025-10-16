@@ -9,6 +9,8 @@ import tiktoken
 from rich.console import Console
 from rich.panel import Panel
 
+from .agent_utils import generate_preview_diff
+from .diff_utils import format_diff_for_display
 from .executor import ActionExecutor
 from .permissions import ActionType, PermissionManager
 from .prompts import SYSTEM_PROMPT
@@ -253,10 +255,13 @@ class ClippyAgent:
             and not self.permission_manager.config.can_auto_execute(action_type)
         )
 
+        # Generate diff preview for file operations
+        diff_content = generate_preview_diff(tool_name, tool_input)
+
         # Show what the agent wants to do
         # (Skip if using approval callback - it will display as part of the approval prompt)
         if not (needs_approval and self.approval_callback):
-            self._display_tool_request(tool_name, tool_input)
+            self._display_tool_request(tool_name, tool_input, diff_content)
 
         if self.permission_manager.config.is_denied(action_type):
             self.console.print("[bold red]✗ Action denied by policy[/bold red]")
@@ -264,7 +269,7 @@ class ClippyAgent:
             return False
 
         if needs_approval:
-            approved = self._ask_approval(tool_name, tool_input)
+            approved = self._ask_approval(tool_name, tool_input, diff_content)
             if not approved:
                 self.console.print("[bold yellow]⊘ Action rejected by user[/bold yellow]")
                 self._add_tool_result(tool_use_id, False, "Action rejected by user", None)
@@ -287,22 +292,40 @@ class ClippyAgent:
 
         return success
 
-    def _display_tool_request(self, tool_name: str, tool_input: dict[str, Any]) -> None:
+    def _display_tool_request(
+        self, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
+    ) -> None:
         """Display what tool the agent wants to use."""
         input_str = "\n".join(f"  {k}: {v}" for k, v in tool_input.items())
         self.console.print(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
-        self.console.print(f"[cyan]{input_str}[/cyan]")
+        if input_str:
+            self.console.print(f"[cyan]{input_str}[/cyan]")
 
-    def _ask_approval(self, tool_name: str, tool_input: dict[str, Any]) -> bool:
+        # Show diff preview when available (e.g., write_file), including during auto-approve
+        if diff_content is not None:
+            if diff_content == "":
+                self.console.print("[yellow]No changes (content identical)[/yellow]")
+            else:
+                formatted_diff, _truncated = format_diff_for_display(diff_content, max_lines=100)
+                self.console.print("[bold yellow]Preview of changes:[/bold yellow]")
+                self.console.print(f"[yellow]{formatted_diff}[/yellow]")
+
+    def _ask_approval(
+        self, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
+    ) -> bool:
         """Ask user for approval to execute an action."""
         # Use callback if provided (for document mode)
         if self.approval_callback:
             try:
-                result = self.approval_callback(tool_name, tool_input)
+                result = self.approval_callback(tool_name, tool_input, diff_content)
                 return bool(result)  # Ensure we return a bool
             except InterruptedExceptionError:
                 self.interrupted = True
                 raise
+        # Display diff if available
+        if diff_content:
+            self.console.print("\n[bold yellow]Preview of changes:[/bold yellow]")
+            self.console.print(f"[yellow]{diff_content}[/yellow]")
 
         # Default behavior: use input() (for interactive mode)
         try:
@@ -459,6 +482,14 @@ class ClippyAgent:
             - total_tokens: Total tokens in conversation history
             - usage_percent: Percentage of typical context window used (estimate)
             - message_count: Number of messages in history
+            - system_tokens: Tokens from system messages
+            - system_messages: Number of system messages
+            - user_tokens: Tokens from user messages
+            - user_messages: Number of user messages
+            - assistant_tokens: Tokens from assistant messages
+            - assistant_messages: Number of assistant messages
+            - tool_tokens: Tokens from tool messages
+            - tool_messages: Number of tool messages
         """
         try:
             # Try to get the appropriate encoding for the model
@@ -469,23 +500,62 @@ class ClippyAgent:
                 # Fall back to cl100k_base for unknown models
                 encoding = tiktoken.get_encoding("cl100k_base")
 
-            # Count tokens in conversation history
+            # Initialize counters
             total_tokens = 0
+            system_tokens = 0
+            user_tokens = 0
+            assistant_tokens = 0
+            tool_tokens = 0
+
+            system_messages = 0
+            user_messages = 0
+            assistant_messages = 0
+            tool_messages = 0
+
+            # Count tokens in conversation history
             for message in self.conversation_history:
+                role = message.get("role", "")
+                content = message.get("content", "")
+
                 # Count tokens in role
-                total_tokens += len(encoding.encode(message.get("role", "")))
+                role_tokens = len(encoding.encode(role))
+                total_tokens += role_tokens
 
                 # Count tokens in content
-                if message.get("content"):
-                    total_tokens += len(encoding.encode(message["content"]))
+                content_tokens = len(encoding.encode(content)) if content else 0
+                total_tokens += content_tokens
 
                 # Count tokens in tool calls (if present)
+                tool_call_tokens = 0
                 if message.get("tool_calls"):
-                    for tool_call in message["tool_calls"]:
-                        total_tokens += len(encoding.encode(json.dumps(tool_call)))
+                    tool_call_tokens = len(encoding.encode(json.dumps(message["tool_calls"])))
+                    total_tokens += tool_call_tokens
 
                 # Add overhead for message formatting (~4 tokens per message)
-                total_tokens += 4
+                message_overhead = 4
+                total_tokens += message_overhead
+
+                # Categorize by role
+                if role == "system":
+                    system_tokens += (
+                        role_tokens + content_tokens + tool_call_tokens + message_overhead
+                    )
+                    system_messages += 1
+                elif role == "user":
+                    user_tokens += (
+                        role_tokens + content_tokens + tool_call_tokens + message_overhead
+                    )
+                    user_messages += 1
+                elif role == "assistant":
+                    assistant_tokens += (
+                        role_tokens + content_tokens + tool_call_tokens + message_overhead
+                    )
+                    assistant_messages += 1
+                elif role == "tool":
+                    tool_tokens += (
+                        role_tokens + content_tokens + tool_call_tokens + message_overhead
+                    )
+                    tool_messages += 1
 
             # Estimate context window (most models have 128k, some have 8k-32k)
             # This is a rough estimate
@@ -498,6 +568,14 @@ class ClippyAgent:
                 "message_count": len(self.conversation_history),
                 "model": self.model,
                 "base_url": self.base_url,
+                "system_tokens": system_tokens,
+                "system_messages": system_messages,
+                "user_tokens": user_tokens,
+                "user_messages": user_messages,
+                "assistant_tokens": assistant_tokens,
+                "assistant_messages": assistant_messages,
+                "tool_tokens": tool_tokens,
+                "tool_messages": tool_messages,
             }
 
         except Exception as e:
