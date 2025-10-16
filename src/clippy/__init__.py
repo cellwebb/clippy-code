@@ -1,4 +1,4 @@
-"""clippy-code - A CLI coding agent."""
+"""code-with-clippy - A CLI coding agent."""
 
 from .__version__ import __version__
 

@@ -1,4 +1,4 @@
-# clippy-code 📎
+# code-with-clippy 📎
 
 [![Python 3.10–3.14](https://img.shields.io/badge/python-3.10%E2%80%933.14-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -7,7 +7,7 @@
 
 > A production-ready, model-agnostic CLI coding agent with safety-first design
 
-clippy-code is an AI-powered development assistant that works with any OpenAI-compatible API provider. It features robust permission controls, streaming responses, and multiple interface modes for different workflows.
+code-with-clippy is an AI-powered development assistant that works with any OpenAI-compatible API provider. It features robust permission controls, streaming responses, and multiple interface modes for different workflows.
 
 ## Quick Start
 
@@ -17,8 +17,8 @@ clippy-code is an AI-powered development assistant that works with any OpenAI-co
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install clippy-code from PyPI
-uv tool install clippy-code
+# Install code-with-clippy from PyPI
+uv tool install code-with-clippy
 
 # Or install from source
 git clone https://github.com/yourusername/clippy.git
@@ -28,7 +28,7 @@ uv pip install -e .
 
 ### Setup API Keys
 
-clippy-code supports multiple LLM providers through OpenAI-compatible APIs:
+code-with-clippy supports multiple LLM providers through OpenAI-compatible APIs:
 
 ```bash
 # OpenAI (default)
@@ -71,7 +71,7 @@ clippy -y "write unit tests for utils.py"
 
 ### Permission System
 
-clippy-code implements safety-first design with a three-tier permission system:
+code-with-clippy implements safety-first design with a three-tier permission system:
 
 **Auto-approved actions** (read-only operations):
 
@@ -83,7 +83,7 @@ clippy-code implements safety-first design with a three-tier permission system:
 
 **Blocked actions** (currently empty but configurable)
 
-When clippy-code wants to perform a risky action, you'll see a prompt:
+When code-with-clippy wants to perform a risky action, you'll see a prompt:
 
 ```
 → write_file
@@ -107,7 +107,7 @@ Options:
 - `/model list` - Show available models
 - `/model <name>` - Switch model/provider
 - `/help` - Show help message
-- `/exit`, `/quit` - Exit clippy-code
+- `/exit`, `/quit` - Exit code-with-clippy
 
 ### Supported Providers
 
@@ -129,7 +129,7 @@ Switch providers with the `/model` command or CLI arguments.
 
 ### System Architecture
 
-clippy-code follows a layered architecture with clear separation of concerns:
+code-with-clippy follows a layered architecture with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -250,7 +250,7 @@ Testing philosophy:
 
 ### Available Tools
 
-clippy-code has access to these tools:
+code-with-clippy has access to these tools:
 
 | Tool               | Description                                       | Auto-Approved |
 | ------------------ | ------------------------------------------------- | ------------- |
@@ -279,7 +279,7 @@ clippy-code has access to these tools:
 
 ### Adding New LLM Providers
 
-clippy-code works with any OpenAI-compatible API provider. Add new providers by updating `models.yaml`:
+code-with-clippy works with any OpenAI-compatible API provider. Add new providers by updating `models.yaml`:
 
 ```yaml
 provider_name:

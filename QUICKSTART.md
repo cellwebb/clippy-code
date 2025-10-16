@@ -1,6 +1,6 @@
-# clippy-code Quick Start Guide
+# code-with-clippy Quick Start Guide
 
-Get started with clippy-code in 5 minutes!
+Get started with code-with-clippy in 5 minutes!
 
 ## 1. Installation
 
@@ -8,8 +8,8 @@ Get started with clippy-code in 5 minutes!
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install clippy-code from PyPI
-uv tool install clippy-code
+# Install code-with-clippy from PyPI
+uv tool install code-with-clippy
 
 # Or install from source
 git clone https://github.com/yourusername/clippy.git
@@ -26,7 +26,7 @@ echo "OPENAI_API_KEY=your_key_here" > .env
 clippy "create a hello world python script"
 ```
 
-clippy-code will:
+code-with-clippy will:
 
 1. Show you what it plans to do
 2. Ask for approval before writing files
@@ -44,7 +44,7 @@ Now you can have a conversation:
 ```
 [You] ➜ create a simple calculator function
 
-[clippy-code will think and respond...]
+[code-with-clippy will think and respond...]
 
 → write_file
   path: calculator.py
@@ -56,7 +56,7 @@ Now you can have a conversation:
 
 [You] ➜ add tests for it
 
-[clippy-code continues...]
+[code-with-clippy continues...]
 ```
 
 ## 4. Safety Controls
@@ -118,7 +118,7 @@ clippy "refactor app.py to use dependency injection"
    - Good: "create a Python function to validate email addresses using regex"
    - Better: "create a Python function to validate email addresses using regex, with type hints and docstrings"
 
-2. **Review Before Approving**: Always check what clippy-code wants to do
+2. **Review Before Approving**: Always check what code-with-clippy wants to do
 
    - Read the file path carefully
    - Review the content before approving writes
@@ -139,7 +139,7 @@ clippy "refactor app.py to use dependency injection"
 **Problem**: API key error
 **Solution**: Make sure `.env` file exists with `OPENAI_API_KEY=...`
 
-**Problem**: clippy-code wants to modify the wrong file
+**Problem**: code-with-clippy wants to modify the wrong file
 **Solution**: Type `N` to reject, then provide more specific instructions
 
 **Problem**: Execution seems stuck
@@ -150,6 +150,6 @@ clippy "refactor app.py to use dependency injection"
 - Read the full [README.md](README.md) for detailed documentation
 - Experiment with different types of tasks
 - Customize permissions for your workflow
-- Provide feedback to improve clippy-code!
+- Provide feedback to improve code-with-clippy!
 
 Happy coding! 📎

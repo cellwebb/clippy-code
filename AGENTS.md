@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance for AI coding agents working with the clippy-code codebase.
+This file provides guidance for AI coding agents working with the code-with-clippy codebase.
 
 ## Essential Commands
 
@@ -78,7 +78,7 @@ All LLM interactions go through a single `LLMProvider` class (~100 lines total).
 
 ### Using Alternate LLM Providers
 
-clippy-code uses OpenAI format natively, so any OpenAI-compatible provider works out-of-the-box:
+code-with-clippy uses OpenAI format natively, so any OpenAI-compatible provider works out-of-the-box:
 
 1. Set provider-specific API key environment variable (OPENAI_API_KEY, CEREBRAS_API_KEY, etc.)
 2. Use model presets from `models.yaml` or specify custom model/base_url
@@ -97,7 +97,7 @@ Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, 
 
 ### UI Modes
 
-clippy-code supports three UI modes:
+code-with-clippy supports three UI modes:
 
 1. **One-shot mode**: `clippy "your task here"`
 2. **Interactive mode**: `clippy -i` (REPL-style interface)

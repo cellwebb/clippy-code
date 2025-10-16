@@ -1,4 +1,4 @@
-"""Command-line interface for clippy-code."""
+"""Command-line interface for code-with-clippy."""
 
 import argparse
 import logging
@@ -52,14 +52,14 @@ def setup_logging(verbose: bool = False) -> None:
 def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
     parser = argparse.ArgumentParser(
-        description="clippy-code - A CLI coding agent powered by OpenAI-compatible LLMs",
+        description="code-with-clippy - A CLI coding agent powered by OpenAI-compatible LLMs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
         "prompt",
         nargs="*",
-        help="The task or question for clippy-code (one-shot mode)",
+        help="The task or question for code-with-clippy (one-shot mode)",
     )
 
     parser.add_argument(
@@ -112,7 +112,7 @@ def create_parser() -> argparse.ArgumentParser:
 
 
 def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool) -> None:
-    """Run clippy-code in one-shot mode."""
+    """Run code-with-clippy in one-shot mode."""
     console = Console()
 
     try:
@@ -129,7 +129,7 @@ def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool) -> None:
 
 
 def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
-    """Run clippy-code in interactive mode (REPL)."""
+    """Run code-with-clippy in interactive mode (REPL)."""
     console = Console()
 
     # Create key bindings for double-ESC detection
@@ -160,9 +160,9 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
 
     console.print(
         Panel.fit(
-            "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
+            "[bold green]code-with-clippy Interactive Mode[/bold green]\n\n"
             "Commands:\n"
-            "  /exit, /quit - Exit clippy-code\n"
+            "  /exit, /quit - Exit code-with-clippy\n"
             "  /reset, /clear, /new - Reset conversation history\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n"
@@ -195,7 +195,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
                 console.print(
                     Panel.fit(
                         "[bold]Commands:[/bold]\n"
-                        "  /exit, /quit - Exit clippy-code\n"
+                        "  /exit, /quit - Exit code-with-clippy\n"
                         "  /reset, /clear, /new - Reset conversation history\n"
                         "  /status - Show token usage and session info\n"
                         "  /compact - Summarize conversation to reduce context usage\n"
@@ -377,7 +377,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
                 continue
 
         except KeyboardInterrupt:
-            console.print("\n[yellow]Use /exit or /quit to exit clippy-code[/yellow]")
+            console.print("\n[yellow]Use /exit or /quit to exit code-with-clippy[/yellow]")
             continue
         except EOFError:
             console.print("\n[yellow]Goodbye![/yellow]")
@@ -393,7 +393,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
 
 
 def main() -> None:
-    """Main entry point for clippy-code."""
+    """Main entry point for code-with-clippy."""
     # Load environment variables
     load_env()
 

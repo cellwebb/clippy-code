@@ -2,7 +2,7 @@
 
 ## Overview
 
-Migrate clippy-code's internal format from Anthropic-style to OpenAI-style for better ecosystem compatibility.
+Migrate code-with-clippy's internal format from Anthropic-style to OpenAI-style for better ecosystem compatibility.
 
 ## Current Format (Anthropic-based)
 
