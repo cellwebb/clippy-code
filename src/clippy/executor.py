@@ -127,18 +127,10 @@ class ActionExecutor:
 
     def _write_file(self, path: str, content: str) -> tuple[bool, str, Any]:
         """Write to a file."""
-        try:
-            # Create parent directories if needed
-            Path(path).parent.mkdir(parents=True, exist_ok=True)
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(content)
-            return True, f"Successfully wrote to {path}", None
-        except PermissionError:
-            return False, f"Permission denied when writing to: {path}", None
-        except OSError as e:
-            return False, f"OS error when writing to {path}: {str(e)}", None
-        except Exception as e:
-            return False, f"Failed to write to {path}: {str(e)}", None
+        from .agent_utils import safe_write_file
+
+        success, message = safe_write_file(path, content)
+        return success, message, None
 
     def _delete_file(self, path: str) -> tuple[bool, str, Any]:
         """Delete a file."""
