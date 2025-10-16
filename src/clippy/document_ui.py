@@ -611,13 +611,29 @@ class DocumentApp(App[None]):
             # Build message breakdown
             conv_log.write("[bold]Message Breakdown:[/bold]")
             if status["system_messages"] > 0:
-                conv_log.write(f"• System: [cyan]{status['system_messages']}[/cyan] messages, [cyan]{status['system_tokens']:,}[/cyan] tokens")  # noqa: E501
+                msg = (
+                    f"• System: [cyan]{status['system_messages']}[/cyan] messages, "
+                    f"[cyan]{status['system_tokens']:,}[/cyan] tokens"
+                )
+                conv_log.write(msg)
             if status["user_messages"] > 0:
-                conv_log.write(f"• User: [cyan]{status['user_messages']}[/cyan] messages, [cyan]{status['user_tokens']:,}[/cyan] tokens")  # noqa: E501
+                msg = (
+                    f"• User: [cyan]{status['user_messages']}[/cyan] messages, "
+                    f"[cyan]{status['user_tokens']:,}[/cyan] tokens"
+                )
+                conv_log.write(msg)
             if status["assistant_messages"] > 0:
-                conv_log.write(f"• Assistant: [cyan]{status['assistant_messages']}[/cyan] messages, [cyan]{status['assistant_tokens']:,}[/cyan] tokens")  # noqa: E501
+                msg = (
+                    f"• Assistant: [cyan]{status['assistant_messages']}[/cyan] messages, "
+                    f"[cyan]{status['assistant_tokens']:,}[/cyan] tokens"
+                )
+                conv_log.write(msg)
             if status["tool_messages"] > 0:
-                conv_log.write(f"• Tool: [cyan]{status['tool_messages']}[/cyan] messages, [cyan]{status['tool_tokens']:,}[/cyan] tokens")  # noqa: E501
+                msg = (
+                    f"• Tool: [cyan]{status['tool_messages']}[/cyan] messages, "
+                    f"[cyan]{status['tool_tokens']:,}[/cyan] tokens"
+                )
+                conv_log.write(msg)
 
             if status["message_count"] == 0:
                 conv_log.write("• [dim]No messages yet[/dim]")
