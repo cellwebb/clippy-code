@@ -253,7 +253,7 @@ class DocumentApp(App[None]):
             yield DocumentRibbon(id="ribbon")
         with Vertical(id="document-container"):
             yield RichLog(id="conversation-log", markup=True, wrap=True, highlight=False)
-            yield Static("[📎] Thinking...", id="thinking-indicator")
+            yield Static("[👀📎] Thinking...", id="thinking-indicator")
             with Horizontal(id="input-container"):
                 yield Static("[bold]\\[You] ➜[/bold] ", id="input-prompt", markup=True)
                 yield Input(id="user-input", placeholder="Type your message...")
@@ -542,7 +542,7 @@ class DocumentApp(App[None]):
         conv_log.write("• /[bold]compact[/bold] - Reduce token usage in long conversations")
         conv_log.write("• /[bold]model list[/bold] - Show available model presets")
         conv_log.write("• /[bold]model <name>[/bold] - Switch to a specific model")
-        conv_log.write("• /[bold]quit[/bold] or /[bold]exit[/bold] - Exit clippy-code")
+        conv_log.write("• /[bold]quit[/bold] or /[bold]exit[/bold] - Exit code-with-clippy")
         conv_log.write("")
         conv_log.write("[bold]⌨️ Keyboard Shortcuts[/bold]")
         conv_log.write("• [bold]Enter[/bold] - Send message")
@@ -575,7 +575,7 @@ class DocumentApp(App[None]):
         conv_log.write("• Scroll through the conversation using your mouse or arrow keys")
         conv_log.write("• Paperclip appears when Clippy is thinking about your request")
         conv_log.write("")
-        conv_log.write("[dim]Made with ❤️ by the clippy-code team[/dim]\n")
+        conv_log.write("[dim]Made with ❤️ by the code-with-clippy team[/dim]\n")
 
     def show_status(self) -> None:
         conv_log = self.query_one("#conversation-log", RichLog)

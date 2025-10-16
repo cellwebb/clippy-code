@@ -1,6 +1,6 @@
-# Contributing to clippy-code
+# Contributing to code-with-clippy
 
-Thank you for your interest in contributing to clippy-code! This guide will help you get started.
+Thank you for your interest in contributing to code-with-clippy! This guide will help you get started.
 
 ## Development Setup
 
@@ -43,7 +43,7 @@ echo "ANTHROPIC_API_KEY=your_key_here" > .env
 4. **Verify the setup**
 
 ```bash
-# Run clippy-code in development mode
+# Run code-with-clippy in development mode
 python -m clippy "list files in the current directory"
 ```
 
@@ -257,4 +257,4 @@ uv publish
 
 ## License
 
-By contributing to clippy-code, you agree that your contributions will be licensed under the MIT License.
+By contributing to code-with-clippy, you agree that your contributions will be licensed under the MIT License.
