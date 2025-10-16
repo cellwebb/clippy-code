@@ -1,4 +1,4 @@
-"""Shared fixtures for tool tests."""
+"""Shared fixtures for executor tests."""
 
 import tempfile
 from collections.abc import Generator
@@ -6,7 +6,7 @@ from collections.abc import Generator
 import pytest
 
 from clippy.executor import ActionExecutor
-from clippy.permissions import PermissionConfig, PermissionManager
+from clippy.permissions import PermissionManager
 
 
 @pytest.fixture
@@ -19,12 +19,7 @@ def executor() -> ActionExecutor:
 @pytest.fixture
 def executor_direct() -> ActionExecutor:
     """Create an executor instance for direct method access."""
-    config = PermissionConfig(
-        auto_approve=set(),
-        require_approval=set(),
-        deny=set(),
-    )
-    manager = PermissionManager(config)
+    manager = PermissionManager()
     return ActionExecutor(manager)
 
 

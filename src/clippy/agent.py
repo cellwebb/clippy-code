@@ -15,7 +15,7 @@ from .executor import ActionExecutor
 from .permissions import ActionType, PermissionManager
 from .prompts import SYSTEM_PROMPT
 from .providers import LLMProvider
-from .tools import TOOLS
+from .tool_schemas import TOOLS
 
 logger = logging.getLogger(__name__)
 

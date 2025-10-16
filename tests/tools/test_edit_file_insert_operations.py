@@ -8,6 +8,7 @@ import pytest
 
 from clippy.executor import ActionExecutor
 from clippy.permissions import PermissionConfig, PermissionManager
+from clippy.tools.edit_file import edit_file
 
 
 @pytest.fixture
@@ -186,7 +187,7 @@ def test_insert_operations_with_substring_match(executor_direct: ActionExecutor,
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello_world():\n    pass\n\ndef test_function():\n    pass\n")
 
-    success, message, result = executor_direct._edit_file(
+    success, message, result = edit_file(
         str(test_file),
         "insert_before",
         content="def new_function():\n    pass\n",
@@ -214,7 +215,7 @@ def test_insert_before_with_inherit_indent(executor_direct: ActionExecutor, tmp_
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    print('hello')\n    return None\n")
 
-    success, message, result = executor_direct._edit_file(
+    success, message, result = edit_file(
         str(test_file),
         "insert_before",
         content="print('before hello')",
@@ -234,7 +235,7 @@ def test_insert_after_with_inherit_indent(executor_direct: ActionExecutor, tmp_p
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    print('hello')\n    return None\n")
 
-    success, message, result = executor_direct._edit_file(
+    success, message, result = edit_file(
         str(test_file),
         "insert_after",
         content="print('after hello')",
@@ -254,7 +255,7 @@ def test_insert_before_without_inherit_indent(executor_direct: ActionExecutor, t
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    print('hello')\n    return None\n")
 
-    success, message, result = executor_direct._edit_file(
+    success, message, result = edit_file(
         str(test_file),
         "insert_before",
         content="print('no indent')",
@@ -281,7 +282,7 @@ def test_insert_operations_with_multiline_content(
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    pass\n\ndef world():\n    pass\n")
 
-    success, message, result = executor_direct._edit_file(
+    success, message, result = edit_file(
         str(test_file),
         "insert_before",
         content="def helper():\n    # This is a helper function\n    return True\n",
@@ -324,7 +325,7 @@ def test_insert_before_ambiguous_pattern_fails(executor_direct: ActionExecutor, 
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    pass\n\ndef hello():\n    pass\n")
 
-    success, message, result = executor_direct._edit_file(
+    success, message, result = edit_file(
         str(test_file),
         "insert_before",
         content="def new_function():\n    pass\n",
@@ -343,7 +344,7 @@ def test_insert_after_ambiguous_pattern_fails(executor_direct: ActionExecutor, t
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    pass\n\ndef hello():\n    pass\n")
 
-    success, message, result = executor_direct._edit_file(
+    success, message, result = edit_file(
         str(test_file),
         "insert_after",
         content="def new_function():\n    pass\n",
@@ -367,7 +368,7 @@ def test_insert_operations_consistent_eol_style(executor_direct: ActionExecutor,
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    pass\n\ndef world():\n    pass\n")
 
-    success, message, result = executor_direct._edit_file(
+    success, message, result = edit_file(
         str(test_file),
         "insert_before",
         content="def new_function():\n    pass\n",

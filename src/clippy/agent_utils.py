@@ -2,7 +2,6 @@
 
 import ast
 import os
-from pathlib import Path
 from typing import Any
 
 from .diff_utils import generate_diff
