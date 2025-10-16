@@ -232,6 +232,23 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
 
                     usage_pct = f"{status['usage_percent']:.1f}%"
 
+                    # Build message breakdown
+                    message_info = []
+                    if status["system_messages"] > 0:
+                        msg = f"System: {status['system_messages']} msgs, {status['system_tokens']:,} tokens"
+                        message_info.append(msg)
+                    if status["user_messages"] > 0:
+                        msg = f"User: {status['user_messages']} msgs, {status['user_tokens']:,} tokens"
+                        message_info.append(msg)
+                    if status["assistant_messages"] > 0:
+                        msg = f"Assistant: {status['assistant_messages']} msgs, {status['assistant_tokens']:,} tokens"
+                        message_info.append(msg)
+                    if status["tool_messages"] > 0:
+                        msg = f"Tool: {status['tool_messages']} msgs, {status['tool_tokens']:,} tokens"
+                        message_info.append(msg)
+
+                    message_breakdown = "\n    ".join(message_info) if message_info else "No messages yet"
+
                     console.print(
                         Panel.fit(
                             f"[bold]Current Session:[/bold]\n"
@@ -241,6 +258,8 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
                             f"[bold]Token Usage:[/bold]\n"
                             f"  Context: [cyan]{status['total_tokens']:,}[/cyan] tokens\n"
                             f"  Usage: [{usage_bar}] [cyan]{usage_pct}[/cyan]\n\n"
+                            f"[bold]Message Breakdown:[/bold]\n"
+                            f"    {message_breakdown}\n\n"
                             f"[dim]Note: Usage % is estimated for ~128k context window[/dim]",
                             title="Session Status",
                             border_style="cyan",

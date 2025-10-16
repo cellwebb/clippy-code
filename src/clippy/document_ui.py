@@ -309,7 +309,9 @@ class DocumentApp(App[None]):
         except Exception:
             status_bar.update_status("unknown", 0, 0)
 
-    def request_approval(self, tool_name: str, tool_input: dict[str, Any]) -> bool:
+    def request_approval(
+        self, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
+    ) -> bool:
         """Simple approval - just like CLI."""
         from .agent import InterruptedExceptionError
 
@@ -324,6 +326,15 @@ class DocumentApp(App[None]):
             conv_log.write(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
             if input_text:
                 conv_log.write(f"[cyan]{input_text}[/cyan]")
+
+            # Display diff if available
+            if diff_content:
+                conv_log.write("[bold yellow]Preview of changes:[/bold yellow]")
+                # Split diff into lines for better display
+                diff_lines = diff_content.splitlines()
+                for line in diff_lines:
+                    conv_log.write(f"[yellow]{line}[/yellow]")
+
             conv_log.write("[yellow]⚠ Approve? Type 'y' (yes), 'n' (no), or 'stop'[/yellow]")
 
         self.call_from_thread(write_prompt)
@@ -595,6 +606,22 @@ class DocumentApp(App[None]):
             conv_log.write("[bold]Token Usage:[/bold]")
             conv_log.write(f"• Context: [cyan]{status['total_tokens']:,}[/cyan] tokens")
             conv_log.write(f"• Usage: [{usage_bar}] [cyan]{usage_pct}[/cyan]")
+            conv_log.write("")
+
+            # Build message breakdown
+            conv_log.write("[bold]Message Breakdown:[/bold]")
+            if status["system_messages"] > 0:
+                conv_log.write(f"• System: [cyan]{status['system_messages']}[/cyan] messages, [cyan]{status['system_tokens']:,}[/cyan] tokens")  # noqa: E501
+            if status["user_messages"] > 0:
+                conv_log.write(f"• User: [cyan]{status['user_messages']}[/cyan] messages, [cyan]{status['user_tokens']:,}[/cyan] tokens")  # noqa: E501
+            if status["assistant_messages"] > 0:
+                conv_log.write(f"• Assistant: [cyan]{status['assistant_messages']}[/cyan] messages, [cyan]{status['assistant_tokens']:,}[/cyan] tokens")  # noqa: E501
+            if status["tool_messages"] > 0:
+                conv_log.write(f"• Tool: [cyan]{status['tool_messages']}[/cyan] messages, [cyan]{status['tool_tokens']:,}[/cyan] tokens")  # noqa: E501
+
+            if status["message_count"] == 0:
+                conv_log.write("• [dim]No messages yet[/dim]")
+
             conv_log.write("")
             conv_log.write("[dim]💡 Usage % is estimated for ~128k context window[/dim]")
 
