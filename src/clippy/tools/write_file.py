@@ -11,7 +11,7 @@ def write_file(path: str, content: str) -> tuple[bool, str, Any]:
     # when called from worker threads in an async application
     try:
         # Validate Python syntax if it's a Python file
-        from ..agent_utils import validate_python_syntax
+        from ..agent.utils import validate_python_syntax
 
         is_valid, error_msg = validate_python_syntax(content, path)
         if not is_valid:

@@ -4,7 +4,7 @@ import ast
 import os
 from typing import Any
 
-from .diff_utils import generate_diff
+from ..diff_utils import generate_diff
 
 
 def validate_python_syntax(content: str, filepath: str) -> tuple[bool, str]:

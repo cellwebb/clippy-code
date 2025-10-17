@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from openai import AuthenticationError
 
-from clippy.agent import ClippyAgent
+from clippy.agent import ClippyAgent, handle_tool_use
 from clippy.executor import ActionExecutor
 from clippy.permissions import PermissionConfig, PermissionManager
 
@@ -97,9 +97,17 @@ class TestErrorHandling:
         )
 
         # Test with valid JSON that would cause a tool error
-        with patch.object(agent.executor, "execute") as mock_execute:
+        with patch.object(executor, "execute") as mock_execute:
             mock_execute.return_value = (False, "Error executing tool", None)
-            success = agent._handle_tool_use(
-                "read_file", {"path": "test.txt"}, "tool_call_id", False
+            success = handle_tool_use(
+                "read_file",
+                {"path": "test.txt"},
+                "tool_call_id",
+                False,
+                permission_manager,
+                executor,
+                agent.console,
+                agent.conversation_history,
+                None,
             )
             assert success is False
