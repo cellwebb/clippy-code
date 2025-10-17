@@ -82,15 +82,38 @@ def _normalize_content(content: str, eol: str) -> str:
 def _find_matching_lines(lines: list[str], pattern: str, match_pattern_line: bool) -> list[int]:
     """Find all lines matching the pattern."""
     matching_indices = []
-    for i, line in enumerate(lines):
-        if match_pattern_line:
-            # Full line equality match (remove EOL for comparison)
-            if line.rstrip("\r\n") == pattern:
+
+    # Check if pattern contains newlines (multi-line pattern)
+    is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
+
+    if is_multiline_pattern and match_pattern_line:
+        # For multi-line patterns with exact matching, we need to match across multiple lines
+        normalized_pattern = pattern.replace("\r\n", "\n")
+        pattern_lines = normalized_pattern.split("\n")
+
+        # Try to find the pattern starting at each line
+        for i in range(len(lines) - len(pattern_lines) + 1):
+            match = True
+            for j, pattern_line in enumerate(pattern_lines):
+                line_without_eol = lines[i + j].rstrip("\r\n")
+                # Normalize both pattern line and file line to LF for comparison
+                normalized_file_line = line_without_eol.replace("\r\n", "\n")
+                if normalized_file_line != pattern_line:
+                    match = False
+                    break
+            if match:
                 matching_indices.append(i)
-        else:
-            # Substring match (case insensitive)
-            if pattern.lower() in line.lower():
-                matching_indices.append(i)
+    else:
+        # Single-line pattern or substring matching
+        for i, line in enumerate(lines):
+            if match_pattern_line:
+                # Full line equality match (remove EOL for comparison)
+                if line.rstrip("\r\n") == pattern:
+                    matching_indices.append(i)
+            else:
+                # Substring match (case insensitive)
+                if pattern.lower() in line.lower():
+                    matching_indices.append(i)
     return matching_indices
 
 
@@ -169,8 +192,26 @@ def apply_edit_operation(
             idx = matching_indices[0]
 
             if match_pattern_line:
-                # Full line replacement
-                lines[idx] = _normalize_content(content, eol)
+                # For multi-line patterns, we need to replace multiple lines
+                is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
+                if is_multiline_pattern:
+                    normalized_pattern = pattern.replace("\r\n", "\n")
+                    pattern_lines = normalized_pattern.split("\n")
+
+                    # Remove the old lines
+                    for _ in range(len(pattern_lines)):
+                        lines.pop(idx)
+
+                    # Insert the new content (normalized)
+                    new_content_normalized = _normalize_content(content, eol)
+                    new_lines = new_content_normalized.rstrip(eol).split(eol)
+
+                    # Insert new lines at the same position
+                    for new_line in reversed(new_lines):
+                        lines.insert(idx, new_line + eol)
+                else:
+                    # Single line replacement
+                    lines[idx] = _normalize_content(content, eol)
             else:
                 # Substring replacement
                 line_without_eol = lines[idx].rstrip("\r\n")
@@ -191,9 +232,21 @@ def apply_edit_operation(
             if not matching_indices:
                 return False, f"Pattern '{pattern}' not found in file", None
 
-            # Delete in reverse order to avoid index shifting
-            for i in reversed(matching_indices):
-                lines.pop(i)
+            # For multi-line patterns, we need to handle multiple lines
+            is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
+            if is_multiline_pattern and match_pattern_line:
+                # Delete in reverse order, but account for multi-line patterns
+                normalized_pattern = pattern.replace("\r\n", "\n")
+                pattern_lines = normalized_pattern.split("\n")
+
+                for start_idx in reversed(matching_indices):
+                    for _ in range(len(pattern_lines)):
+                        if start_idx < len(lines):
+                            lines.pop(start_idx)
+            else:
+                # Single-line deletion - delete in reverse order to avoid index shifting
+                for i in reversed(matching_indices):
+                    lines.pop(i)
 
         elif operation == "append":
             normalized_content = _normalize_content(content, eol)
