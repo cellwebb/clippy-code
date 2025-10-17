@@ -15,7 +15,9 @@ TOOL_SCHEMA = {
                 "command": {"type": "string", "description": "The shell command to execute"},
                 "working_dir": {
                     "type": "string",
-                    "description": "The working directory for the command. Defaults to current directory.",
+                    "description": (
+                        "The working directory for the command. Defaults to current directory."
+                    ),
                 },
             },
             "required": ["command"],

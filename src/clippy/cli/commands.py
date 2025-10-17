@@ -9,7 +9,6 @@ from rich.panel import Panel
 from ..agent import ClippyAgent
 from ..models import get_model_config, list_available_models
 
-
 CommandResult = Literal["continue", "break", "run"]
 
 
@@ -73,15 +72,10 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
         # Build message breakdown
         message_info = []
         if status["system_messages"] > 0:
-            msg = (
-                f"System: {status['system_messages']} msgs, "
-                f"{status['system_tokens']:,} tokens"
-            )
+            msg = f"System: {status['system_messages']} msgs, {status['system_tokens']:,} tokens"
             message_info.append(msg)
         if status["user_messages"] > 0:
-            msg = (
-                f"User: {status['user_messages']} msgs, " f"{status['user_tokens']:,} tokens"
-            )
+            msg = f"User: {status['user_messages']} msgs, {status['user_tokens']:,} tokens"
             message_info.append(msg)
         if status["assistant_messages"] > 0:
             msg = (
@@ -90,9 +84,7 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
             )
             message_info.append(msg)
         if status["tool_messages"] > 0:
-            msg = (
-                f"Tool: {status['tool_messages']} msgs, " f"{status['tool_tokens']:,} tokens"
-            )
+            msg = f"Tool: {status['tool_messages']} msgs, {status['tool_tokens']:,} tokens"
             message_info.append(msg)
 
         message_breakdown = "\n    ".join(message_info) if message_info else "No messages yet"
@@ -153,9 +145,7 @@ def handle_compact_command(agent: ClippyAgent, console: Console) -> CommandResul
     return "continue"
 
 
-def handle_model_command(
-    agent: ClippyAgent, console: Console, command_args: str
-) -> CommandResult:
+def handle_model_command(agent: ClippyAgent, console: Console, command_args: str) -> CommandResult:
     """Handle /model command."""
     if not command_args or command_args.lower() == "list":
         # Show available models
@@ -206,9 +196,7 @@ def handle_model_command(
     return "continue"
 
 
-def handle_command(
-    user_input: str, agent: ClippyAgent, console: Console
-) -> CommandResult | None:
+def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> CommandResult | None:
     """
     Handle slash commands in interactive mode.
 
