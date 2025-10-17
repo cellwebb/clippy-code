@@ -46,10 +46,6 @@ def main() -> None:
     # Create permission manager
     permission_manager = PermissionManager(PermissionConfig())
 
-    # TODO: Load custom config if provided
-    # if args.config:
-    #     permission_manager = load_config(args.config)
-
     # Create executor and agent
     executor = ActionExecutor(permission_manager)
     agent = ClippyAgent(
