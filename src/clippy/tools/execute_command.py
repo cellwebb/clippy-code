@@ -3,6 +3,26 @@
 import subprocess
 from typing import Any
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "execute_command",
+        "description": "Execute a shell command. Use with caution.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "The shell command to execute"},
+                "working_dir": {
+                    "type": "string",
+                    "description": "The working directory for the command. Defaults to current directory.",
+                },
+            },
+            "required": ["command"],
+        },
+    },
+}
+
 
 def execute_command(cmd: str, working_dir: str = ".") -> tuple[bool, str, Any]:
     """Execute a shell command."""

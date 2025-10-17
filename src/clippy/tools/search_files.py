@@ -4,6 +4,29 @@ import os
 from glob import glob
 from typing import Any
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "search_files",
+        "description": "Search for files matching a pattern (supports glob patterns like *.py).",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "type": "string",
+                    "description": "The glob pattern to search for (e.g., '*.py', 'src/**/*.ts')",
+                },
+                "path": {
+                    "type": "string",
+                    "description": "The directory to search in. Defaults to current directory.",
+                },
+            },
+            "required": ["pattern"],
+        },
+    },
+}
+
 
 def search_files(pattern: str, path: str = ".") -> tuple[bool, str, Any]:
     """Search for files matching a pattern."""

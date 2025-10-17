@@ -2,6 +2,22 @@
 
 from typing import Any
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "read_file",
+        "description": "Read the contents of a file. Use this to examine existing code or files.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The path to the file to read"}
+            },
+            "required": ["path"],
+        },
+    },
+}
+
 
 def read_file(path: str) -> tuple[bool, str, Any]:
     """Read a file."""

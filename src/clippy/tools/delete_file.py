@@ -3,6 +3,22 @@
 import os
 from typing import Any
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "delete_file",
+        "description": "Delete a file. Use with caution.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The path to the file to delete"}
+            },
+            "required": ["path"],
+        },
+    },
+}
+
 
 def delete_file(path: str) -> tuple[bool, str, Any]:
     """Delete a file."""

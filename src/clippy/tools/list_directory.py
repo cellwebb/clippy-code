@@ -5,6 +5,29 @@ from typing import Any
 
 import pathspec
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "list_directory",
+        "description": "List the contents of a directory.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "The path to the directory to list. Defaults to current directory.",
+                },
+                "recursive": {
+                    "type": "boolean",
+                    "description": "Whether to list recursively. Defaults to false.",
+                },
+            },
+            "required": ["path"],
+        },
+    },
+}
+
 
 def load_gitignore(directory: str) -> pathspec.PathSpec | None:
     """Load .gitignore patterns from a directory."""

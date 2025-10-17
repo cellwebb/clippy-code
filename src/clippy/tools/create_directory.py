@@ -3,6 +3,22 @@
 from pathlib import Path
 from typing import Any
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "create_directory",
+        "description": "Create a new directory.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The path to the directory to create"}
+            },
+            "required": ["path"],
+        },
+    },
+}
+
 
 def create_directory(path: str) -> tuple[bool, str, Any]:
     """Create a directory."""
