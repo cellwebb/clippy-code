@@ -1,249 +1,36 @@
-"""Tool definitions for OpenAI-compatible APIs."""
+"""Tool definitions for OpenAI-compatible APIs.
+
+This module aggregates tool schemas from individual tool implementations.
+Each tool schema is now co-located with its implementation in the tools/ directory.
+"""
 
 from typing import Any
 
-# Tool definitions in OpenAI format
+from .tools.create_directory import TOOL_SCHEMA as CREATE_DIRECTORY_SCHEMA
+from .tools.delete_file import TOOL_SCHEMA as DELETE_FILE_SCHEMA
+from .tools.edit_file import TOOL_SCHEMA as EDIT_FILE_SCHEMA
+from .tools.execute_command import TOOL_SCHEMA as EXECUTE_COMMAND_SCHEMA
+from .tools.get_file_info import TOOL_SCHEMA as GET_FILE_INFO_SCHEMA
+from .tools.grep import TOOL_SCHEMA as GREP_SCHEMA
+from .tools.list_directory import TOOL_SCHEMA as LIST_DIRECTORY_SCHEMA
+from .tools.read_file import TOOL_SCHEMA as READ_FILE_SCHEMA
+from .tools.read_files import TOOL_SCHEMA as READ_FILES_SCHEMA
+from .tools.search_files import TOOL_SCHEMA as SEARCH_FILES_SCHEMA
+from .tools.write_file import TOOL_SCHEMA as WRITE_FILE_SCHEMA
+
+# Aggregate all tool schemas into a single list
 TOOLS: list[dict[str, Any]] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "read_file",
-            "description": "Read the contents of a file. Use this to examine existing "
-            "code or files.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "The path to the file to read"}
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "write_file",
-            "description": "Write content to a file. Creates the file if it doesn't "
-            "exist, overwrites if it does.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "The path to the file to write"},
-                    "content": {
-                        "type": "string",
-                        "description": "The content to write to the file",
-                    },
-                },
-                "required": ["path", "content"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "delete_file",
-            "description": "Delete a file. Use with caution.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "The path to the file to delete"}
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "list_directory",
-            "description": "List the contents of a directory.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {
-                        "type": "string",
-                        "description": "The path to the directory to list. Defaults to "
-                        "current directory.",
-                    },
-                    "recursive": {
-                        "type": "boolean",
-                        "description": "Whether to list recursively. Defaults to false.",
-                    },
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "create_directory",
-            "description": "Create a new directory.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "The path to the directory to create"}
-                },
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "execute_command",
-            "description": "Execute a shell command. Use with caution.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "command": {"type": "string", "description": "The shell command to execute"},
-                    "working_dir": {
-                        "type": "string",
-                        "description": "The working directory for the command. Defaults to "
-                        "current directory.",
-                    },
-                },
-                "required": ["command"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_files",
-            "description": "Search for files matching a pattern (supports glob patterns "
-            "like *.py).",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "pattern": {
-                        "type": "string",
-                        "description": "The glob pattern to search for (e.g., '*.py', "
-                        "'src/**/*.ts')",
-                    },
-                    "path": {
-                        "type": "string",
-                        "description": "The directory to search in. Defaults to current directory.",
-                    },
-                },
-                "required": ["pattern"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_file_info",
-            "description": "Get metadata about a file (size, modification time, etc.).",
-            "parameters": {
-                "type": "object",
-                "properties": {"path": {"type": "string", "description": "The path to the file"}},
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_files",
-            "description": "Read the contents of multiple files at once.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "paths": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "The paths to the files to read",
-                    }
-                },
-                "required": ["paths"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "grep",
-            "description": "Search for patterns in files using grep. "
-            "This is a safe read-only operation that requires no approval.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "pattern": {
-                        "type": "string",
-                        "description": "The pattern to search for in files",
-                    },
-                    "paths": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "The file paths or glob patterns to search in",
-                    },
-                    "flags": {
-                        "type": "string",
-                        "description": "Optional flags for grep command (e.g., '-i', '-r', etc.)",
-                    },
-                },
-                "required": ["pattern", "paths"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "edit_file",
-            "description": "Edit a file by inserting, replacing, deleting, or appending content. "
-            "Uses pattern-anchored operations for safer editing.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string", "description": "The path to the file to edit"},
-                    "operation": {
-                        "type": "string",
-                        "description": (
-                            "The edit operation to perform: 'replace', 'delete', 'append', "
-                            "'insert_before', or 'insert_after'"
-                        ),
-                        "enum": ["replace", "delete", "append", "insert_before", "insert_after"],
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "Content to insert, replace with, or append",
-                    },
-                    "pattern": {
-                        "type": "string",
-                        "description": (
-                            "Pattern to match lines for all operations (required for replace, "
-                            "delete, insert_before, insert_after). This pattern must match "
-                            "exactly one line in the file for replace, delete, insert_before, "
-                            "and insert_after operations. For delete, insert_before, and "
-                            "insert_after operations, the pattern matches whole lines by "
-                            "default (match_pattern_line=true). For replace operations with "
-                            "match_pattern_line=false, the pattern can match substrings "
-                            "within lines (required for replace, delete, insert_before, "
-                            "insert_after)"
-                        ),
-                    },
-                    "match_pattern_line": {
-                        "type": "boolean",
-                        "description": (
-                            "Whether to match the pattern against entire lines (true) or "
-                            "just substrings (false)"
-                        ),
-                        "default": True,
-                    },
-                    "inherit_indent": {
-                        "type": "boolean",
-                        "description": (
-                            "For insert_before/insert_after operations, whether to copy "
-                            "leading whitespace from the anchor line to the inserted content"
-                        ),
-                        "default": True,
-                    },
-                },
-                "required": ["path", "operation"],
-            },
-        },
-    },
+    READ_FILE_SCHEMA,
+    WRITE_FILE_SCHEMA,
+    DELETE_FILE_SCHEMA,
+    LIST_DIRECTORY_SCHEMA,
+    CREATE_DIRECTORY_SCHEMA,
+    EXECUTE_COMMAND_SCHEMA,
+    SEARCH_FILES_SCHEMA,
+    GET_FILE_INFO_SCHEMA,
+    READ_FILES_SCHEMA,
+    GREP_SCHEMA,
+    EDIT_FILE_SCHEMA,
 ]
 
 

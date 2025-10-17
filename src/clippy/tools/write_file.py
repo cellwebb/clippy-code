@@ -3,6 +3,26 @@
 from pathlib import Path
 from typing import Any
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "write_file",
+        "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The path to the file to write"},
+                "content": {
+                    "type": "string",
+                    "description": "The content to write to the file",
+                },
+            },
+            "required": ["path", "content"],
+        },
+    },
+}
+
 
 def write_file(path: str, content: str) -> tuple[bool, str, Any]:
     """Write to a file."""

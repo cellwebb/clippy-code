@@ -2,6 +2,64 @@
 
 from typing import Any
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "edit_file",
+        "description": "Edit a file by inserting, replacing, deleting, or appending content. Uses pattern-anchored operations for safer editing.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "The path to the file to edit"},
+                "operation": {
+                    "type": "string",
+                    "description": (
+                        "The edit operation to perform: 'replace', 'delete', 'append', "
+                        "'insert_before', or 'insert_after'"
+                    ),
+                    "enum": ["replace", "delete", "append", "insert_before", "insert_after"],
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Content to insert, replace with, or append",
+                },
+                "pattern": {
+                    "type": "string",
+                    "description": (
+                        "Pattern to match lines for all operations (required for replace, "
+                        "delete, insert_before, insert_after). This pattern must match "
+                        "exactly one line in the file for replace, delete, insert_before, "
+                        "and insert_after operations. For delete, insert_before, and "
+                        "insert_after operations, the pattern matches whole lines by "
+                        "default (match_pattern_line=true). For replace operations with "
+                        "match_pattern_line=false, the pattern can match substrings "
+                        "within lines (required for replace, delete, insert_before, "
+                        "insert_after)"
+                    ),
+                },
+                "match_pattern_line": {
+                    "type": "boolean",
+                    "description": (
+                        "Whether to match the pattern against entire lines (true) or "
+                        "just substrings (false)"
+                    ),
+                    "default": True,
+                },
+                "inherit_indent": {
+                    "type": "boolean",
+                    "description": (
+                        "For insert_before/insert_after operations, whether to copy "
+                        "leading whitespace from the anchor line to the inserted content"
+                    ),
+                    "default": True,
+                },
+            },
+            "required": ["path", "operation"],
+        },
+    },
+}
+
 
 def edit_file(
     path: str,

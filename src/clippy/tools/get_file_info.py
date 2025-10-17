@@ -4,6 +4,20 @@ import os
 from datetime import datetime
 from typing import Any
 
+# Tool schema for OpenAI-compatible APIs
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "get_file_info",
+        "description": "Get metadata about a file (size, modification time, etc.).",
+        "parameters": {
+            "type": "object",
+            "properties": {"path": {"type": "string", "description": "The path to the file"}},
+            "required": ["path"],
+        },
+    },
+}
+
 
 def get_file_info(path: str) -> tuple[bool, str, Any]:
     """Get file metadata."""
