@@ -56,6 +56,48 @@ def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | N
 
             # Generate diff
             return generate_diff(old_content, new_content, filepath)
+
+        elif tool_name == "edit_file":
+            filepath = tool_input.get("path")
+            if not filepath:
+                return None
+
+            # Read current file content
+            if not os.path.exists(filepath):
+                return None  # Can't preview edit on non-existent file
+
+            try:
+                with open(filepath, encoding="utf-8") as f:
+                    old_content = f.read()
+            except Exception:
+                return None  # Can't read file for preview
+
+            # Extract edit operation parameters from tool_input
+            operation = tool_input.get("operation")
+            if not operation:
+                return None
+
+            # Import edit_file tool to simulate the operation
+            from ..tools.edit_file import apply_edit_operation
+
+            try:
+                # Extract all operation parameters from tool_input
+                content = tool_input.get("content", "")
+                pattern = tool_input.get("pattern", "")
+                match_pattern_line = tool_input.get("match_pattern_line", True)
+                inherit_indent = tool_input.get("inherit_indent", True)
+
+                # Apply the edit operation to get the new content
+                success, _, new_content = apply_edit_operation(
+                    old_content, operation, content, pattern, match_pattern_line, inherit_indent
+                )
+                if success and new_content:
+                    # Generate diff between old and new content
+                    return generate_diff(old_content, new_content, filepath)
+            except Exception:
+                # If simulation fails, we can't generate preview
+                return None
+
         return None
     except Exception:
         # If diff generation fails, we'll just proceed without it

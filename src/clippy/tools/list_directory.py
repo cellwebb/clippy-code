@@ -16,7 +16,9 @@ TOOL_SCHEMA = {
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "The path to the directory to list. Defaults to current directory.",
+                    "description": (
+                        "The path to the directory to list. Defaults to current directory."
+                    ),
                 },
                 "recursive": {
                     "type": "boolean",

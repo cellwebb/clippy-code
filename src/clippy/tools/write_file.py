@@ -8,7 +8,9 @@ TOOL_SCHEMA = {
     "type": "function",
     "function": {
         "name": "write_file",
-        "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does.",
+        "description": (
+            "Write content to a file. Creates the file if it doesn't exist, overwrites if it does."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
