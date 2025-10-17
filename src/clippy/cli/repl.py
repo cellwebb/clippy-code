@@ -56,6 +56,9 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             "  /compact - Summarize conversation to reduce context usage\n"
             "  /model list - Show available models\n"
             "  /model <name> - Switch model/provider\n"
+            "  /auto list - List auto-approved actions\n"
+            "  /auto revoke <action> - Revoke auto-approval\n"
+            "  /auto clear - Clear all auto-approvals\n"
             "  /help - Show this help message\n\n"
             "Type your request and press Enter.\n"
             "Use Ctrl+C or double-ESC to interrupt execution.",

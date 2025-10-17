@@ -8,6 +8,7 @@ from rich.panel import Panel
 
 from ..agent import ClippyAgent
 from ..models import get_model_config, list_available_models
+from ..permissions import ActionType, PermissionLevel
 
 CommandResult = Literal["continue", "break", "run"]
 
@@ -36,6 +37,9 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /compact - Summarize conversation to reduce context usage\n"
             "  /model list - Show available model presets\n"
             "  /model <name> - Switch to a preset model\n"
+            "  /auto list - List auto-approved actions\n"
+            "  /auto revoke <action> - Revoke auto-approval for an action\n"
+            "  /auto clear - Clear all auto-approvals\n"
             "  /help - Show this help message\n\n"
             "[bold]Interrupt:[/bold]\n"
             "  Ctrl+C or double-ESC - Stop current execution",
@@ -196,6 +200,77 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
     return "continue"
 
 
+def handle_auto_command(agent: ClippyAgent, console: Console, command_args: str) -> CommandResult:
+    """Handle /auto command."""
+    if not command_args or command_args.lower() == "list":
+        # Show currently auto-approved actions
+        auto_approved = agent.permission_manager.config.auto_approve
+        if auto_approved:
+            action_list = "\n".join(
+                f"  [cyan]{action.value}[/cyan]" for action in sorted(auto_approved)
+            )
+            console.print(
+                Panel.fit(
+                    f"[bold]Auto-approved Actions:[/bold]\n\n{action_list}\n\n"
+                    f"[dim]These actions will execute without prompting in the "
+                    f"current session.[/dim]",
+                    title="Auto-Approved Actions",
+                    border_style="cyan",
+                )
+            )
+        else:
+            console.print(
+                Panel.fit(
+                    "[bold]No Auto-approved Actions[/bold]\n\n"
+                    "Use 'a' or 'allow' when prompted to approve an action "
+                    "to auto-approve it.\n\n"
+                    "[dim]Example: When prompted, type 'a' instead of 'y' to "
+                    "auto-approve that action type.[/dim]",
+                    title="Auto-Approved Actions",
+                    border_style="cyan",
+                )
+            )
+    elif command_args.lower().startswith("revoke "):
+        # Revoke auto-approval for a specific action
+        parts = command_args.split(maxsplit=1)
+        if len(parts) < 2:
+            console.print("[red]Usage: /auto revoke <action_type>[/red]")
+            return "continue"
+
+        action_name = parts[1].strip()
+        try:
+            action_type = ActionType(action_name)
+            # Check if it's currently auto-approved
+            if action_type in agent.permission_manager.config.auto_approve:
+                # Move it back to require_approval
+                agent.permission_manager.update_permission(
+                    action_type, PermissionLevel.REQUIRE_APPROVAL
+                )
+                console.print(f"[green]✓ Revoked auto-approval for {action_name}[/green]")
+            else:
+                console.print(f"[yellow]⚠ {action_name} is not currently auto-approved[/yellow]")
+        except ValueError:
+            console.print(f"[red]✗ Unknown action type: {action_name}[/red]")
+            console.print("[dim]Use /auto list to see available action types[/dim]")
+    elif command_args.lower() == "clear":
+        # Revoke all auto-approvals (move them back to require_approval)
+        auto_approved = agent.permission_manager.config.auto_approve.copy()
+        for action_type in auto_approved:
+            agent.permission_manager.update_permission(
+                action_type, PermissionLevel.REQUIRE_APPROVAL
+            )
+        if auto_approved:
+            revoked_list = ", ".join(action.value for action in auto_approved)
+            console.print(f"[green]✓ Cleared auto-approvals for: {revoked_list}[/green]")
+        else:
+            console.print("[yellow]No auto-approvals to clear[/yellow]")
+    else:
+        console.print("[red]Unknown /auto command[/red]")
+        console.print("[dim]Available commands: list, revoke <action>, clear[/dim]")
+
+    return "continue"
+
+
 def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> CommandResult | None:
     """
     Handle slash commands in interactive mode.
@@ -230,6 +305,12 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
         parts = user_input.split(maxsplit=1)
         command_args = parts[1] if len(parts) > 1 else ""
         return handle_model_command(agent, console, command_args)
+
+    # Auto-approval commands
+    if command_lower.startswith("/auto"):
+        parts = user_input.split(maxsplit=1)
+        command_args = parts[1] if len(parts) > 1 else ""
+        return handle_auto_command(agent, console, command_args)
 
     # Not a recognized command
     return None
