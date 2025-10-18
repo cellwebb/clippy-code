@@ -11,7 +11,7 @@ from rich.panel import Panel
 from ..executor import ActionExecutor
 from ..permissions import PermissionManager
 from ..providers import LLMProvider
-from ..tool_schemas import TOOLS
+from ..tools import TOOLS
 from .errors import format_api_error
 from .tool_handler import handle_tool_use
 
@@ -51,7 +51,7 @@ def run_agent_loop(
     """
     from .core import InterruptedExceptionError
 
-    max_iterations = 25  # Prevent infinite loops
+    max_iterations = 50  # Prevent infinite loops
 
     for iteration in range(max_iterations):
         if check_interrupted():
@@ -145,7 +145,7 @@ def run_agent_loop(
     console.print(
         Panel(
             "[bold yellow]⚠ Maximum Iterations Reached[/bold yellow]\n\n"
-            "The agent has reached the maximum number of iterations (25) and has stopped.\n"
+            "The agent has reached the maximum number of iterations (50) and has stopped.\n"
             "The task may be incomplete.\n\n"
             "[dim]This limit prevents infinite loops. You can:\n"
             "• Continue with a new request\n"
