@@ -13,7 +13,7 @@ class DocumentHeader(Static):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.update(
-            "📎 clippy - 📄 Document Mode\n"
+            "👀📎 clippy - 📄 Document Mode\n"
             "Type directly, press Enter to send • Type 'y'/'n'/'stop' when prompted"
         )
 

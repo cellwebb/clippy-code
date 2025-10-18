@@ -19,6 +19,7 @@ from .utils import strip_ansi_codes
 from .widgets import (
     ApprovalBackdrop,
     ApprovalDialog,
+    DocumentHeader,
     DocumentRibbon,
     DocumentStatusBar,
 )
@@ -42,11 +43,7 @@ class DocumentApp(App[None]):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="top-bar"):
-            yield Static(
-                "📎 clippy - 📄 Document Mode\n"
-                "Type directly, press Enter to send • Type 'y'/'n'/'stop' when prompted",
-                id="header",
-            )
+            yield DocumentHeader(id="header")
             with Horizontal(id="toolbar"):
                 yield Button("Send", id="submit-btn")
                 yield Button("Status", id="status-btn")
