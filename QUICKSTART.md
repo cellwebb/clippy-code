@@ -15,12 +15,37 @@ uv tool install code-with-clippy
 git clone https://github.com/yourusername/clippy.git
 cd clippy
 uv pip install -e .
+```
 
-# Set up your API key
+## 2. Setup API Keys
+
+For OpenAI (default provider):
+```bash
 echo "OPENAI_API_KEY=your_key_here" > .env
 ```
 
-## 2. First Command (One-Shot Mode)
+For other providers:
+```bash
+# Cerebras
+echo "CEREBRAS_API_KEY=your_key_here" > .env
+
+# Together AI
+echo "TOGETHER_API_KEY=your_key_here" > .env
+
+# Groq
+echo "GROQ_API_KEY=your_key_here" > .env
+
+# DeepSeek
+echo "DEEPSEEK_API_KEY=your_key_here" > .env
+```
+
+For local models like Ollama, you typically don't need an API key:
+```bash
+# Just set the base URL in your environment or use the --base-url flag
+export OPENAI_BASE_URL=http://localhost:11434/v1
+```
+
+## 3. First Command (One-Shot Mode)
 
 ```bash
 clippy "create a hello world python script"
@@ -33,7 +58,7 @@ code-with-clippy will:
 3. Execute approved actions
 4. Show you the results
 
-## 3. Interactive Mode
+## 4. Interactive Mode
 
 ```bash
 clippy -i
@@ -59,7 +84,19 @@ Now you can have a conversation:
 [code-with-clippy continues...]
 ```
 
-## 4. Safety Controls
+## 5. Document Mode (Word-like Interface)
+
+```bash
+clippy -d
+```
+
+This mode provides a Textual-based UI with:
+- A document area for conversations
+- Toolbar buttons for common actions
+- Visual status bar showing model/token info
+- Approval dialogs with diff previews
+
+## 6. Safety Controls
 
 ### Auto-Approved Actions
 
@@ -69,6 +106,8 @@ These run automatically without asking:
 - Listing directories
 - Searching for files
 - Getting file info
+- Reading multiple files
+- Searching within files (grep)
 
 ### Requires Approval
 
@@ -78,6 +117,16 @@ You'll be asked before:
 - Deleting files
 - Creating directories
 - Running shell commands
+- Editing files line by line
+
+### Approval Options
+
+When prompted for approval, you can respond with:
+
+- `y` - Approve and execute the action
+- `N` - Reject the action (default)
+- `stop` - Stop execution entirely
+- `a` or `allow` - Approve and auto-approve this action type for the session
 
 ### Stopping Execution
 
@@ -85,7 +134,7 @@ You'll be asked before:
 - Press Ctrl+C during execution
 - Use `/exit` to quit interactive mode
 
-## 5. Common Usage Patterns
+## 7. Common Usage Patterns
 
 ### Code Generation
 
@@ -111,7 +160,17 @@ clippy "find the bug in utils.py causing the TypeError"
 clippy "refactor app.py to use dependency injection"
 ```
 
-## 6. Tips
+### Model Switching
+
+During interactive sessions, switch models with:
+```bash
+/model list          # Show available models
+/model groq          # Switch to Groq provider
+/model deepseek      # Switch to DeepSeek provider
+/model ollama        # Switch to Ollama (local) provider
+```
+
+## 8. Tips
 
 1. **Be Specific**: The more context you provide, the better
 
@@ -134,10 +193,15 @@ clippy "refactor app.py to use dependency injection"
    clippy -y "read all Python files and create a summary"
    ```
 
+5. **Use Document Mode for Better Visualization**:
+   ```bash
+   clippy -d  # Especially useful for longer coding sessions
+   ```
+
 ## Troubleshooting
 
 **Problem**: API key error
-**Solution**: Make sure `.env` file exists with `OPENAI_API_KEY=...`
+**Solution**: Make sure `.env` file exists with the appropriate API key (OPENAI_API_KEY, CEREBRAS_API_KEY, etc.)
 
 **Problem**: code-with-clippy wants to modify the wrong file
 **Solution**: Type `N` to reject, then provide more specific instructions
@@ -145,10 +209,14 @@ clippy "refactor app.py to use dependency injection"
 **Problem**: Execution seems stuck
 **Solution**: Press Ctrl+C to interrupt, then try again with a simpler request
 
+**Problem**: Want to use a local model
+**Solution**: Ensure the service is running (e.g., Ollama) and set OPENAI_BASE_URL=http://localhost:11434/v1
+
 ## Next Steps
 
 - Read the full [README.md](README.md) for detailed documentation
 - Experiment with different types of tasks
+- Try different models and providers
 - Customize permissions for your workflow
 - Provide feedback to improve code-with-clippy!
 
