@@ -37,6 +37,9 @@ echo "OPENAI_API_KEY=your_api_key_here" > .env
 # Cerebras
 echo "CEREBRAS_API_KEY=your_api_key_here" > .env
 
+# Groq
+echo "GROQ_API_KEY=your_api_key_here" > .env
+
 # For local models like Ollama, you typically don't need an API key
 # Just set the base URL:
 export OPENAI_BASE_URL=http://localhost:11434/v1
@@ -75,7 +78,7 @@ code-with-clippy implements safety-first design with a three-tier permission sys
 
 **Auto-approved actions** (read-only operations):
 
-- read_file, list_directory, search_files, get_file_info, grep
+- read_file, list_directory, search_files, get_file_info, grep, read_files
 
 **Require approval** (potentially destructive operations):
 
@@ -98,6 +101,7 @@ Options:
 - `y` - Approve and execute
 - `N` - Reject (default)
 - `stop` - Stop execution entirely
+- `a` or `allow` - Approve and auto-approve this action type for the session
 
 ### Slash Commands (Interactive/Document Mode)
 
@@ -157,15 +161,41 @@ code-with-clippy follows a layered architecture with clear separation of concern
 
 ```
 src/clippy/
-├── cli.py           # CLI entry point, argument parsing
-├── agent.py         # Core agent loop (max 25 iterations)
-├── providers.py     # OpenAI-compatible LLM provider with retry logic
-├── tools.py         # Tool definitions (JSON schemas)
+├── cli/
+│   ├── main.py         # Main entry point
+│   ├── parser.py       # Argument parsing
+│   ├── oneshot.py      # One-shot mode implementation
+│   └── repl.py         # Interactive REPL mode
+├── agent/
+│   ├── core.py         # Core agent implementation
+│   ├── loop.py         # Agent loop logic
+│   ├── conversation.py # Conversation utilities
+│   └── tool_handler.py # Tool calling handler
+├── tools/
+│   ├── __init__.py      # Tool schemas and aggregation
+│   ├── create_directory.py
+│   ├── delete_file.py
+│   ├── edit_file.py
+│   ├── execute_command.py
+│   ├── get_file_info.py
+│   ├── grep.py
+│   ├── list_directory.py
+│   ├── read_file.py
+│   ├── read_files.py
+│   ├── search_files.py
+│   └── write_file.py
+├── ui/
+|   ├── document_app.py # Textual-based document mode interface
+|   ├── styles.py       # CSS styling for document mode
+|   ├── widgets.py      # Custom UI widgets
+|   └── utils.py        # UI utility functions
+├── providers.py     # OpenAI-compatible LLM provider (~100 lines)
 ├── executor.py      # Tool execution implementations
 ├── permissions.py   # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
 ├── models.py        # Model configuration loading and presets
 ├── models.yaml      # Model presets for different providers
-└── document_ui.py   # Textual-based document mode interface
+├── prompts.py       # System prompts for the agent
+└── diff_utils.py    # Diff generation utilities
 ```
 
 ## Configuration & Models
@@ -178,7 +208,7 @@ src/clippy/
 
 ### Available Models
 
-**OpenAI**: gpt-5 (default), gpt-4-turbo, gpt-4, gpt-3.5-turbo
+**OpenAI**: gpt-5 (default), gpt-5-mini
 
 **Cerebras**: cerebras (default), qwen-3-coder-480b
 
@@ -296,11 +326,18 @@ provider_name:
 
 Tools follow a declarative pattern with three components:
 
-1. **Definition** (`tools.py`): JSON schema in OpenAI format
+1. **Definition** (`tools/__init__.py`): JSON schema in OpenAI format
 2. **Permission** (`permissions.py`): Add to `ActionType` enum and permission config
 3. **Execution** (`executor.py`): Implement method returning `tuple[bool, str, Any]`
 
-Add to `action_map` in both `agent.py:_handle_tool_use()` and `executor.py:execute()` methods.
+The steps are:
+
+1. Add a tool definition file in `src/clippy/tools/` (e.g., `your_tool.py`)
+2. Add the tool to `src/clippy/tools/__init__.py`
+3. Add the action type in `src/clippy/permissions.py`
+4. Add the tool execution to `src/clippy/executor.py`
+5. Add the tool to the action maps in `src/clippy/agent/tool_handler.py`
+6. Add tests for your tool in `tests/tools/test_your_tool.py`
 
 ## Skills Demonstrated
 
@@ -324,12 +361,18 @@ This project showcases proficiency in:
 - Error handling and graceful degradation
 - Configuration management (environment, CLI, defaults)
 
-**Product Thinking**:
+**UI/UX Design**:
 
 - Multiple interface modes for different workflows
+- Textual-based TUI with custom styling
+- Intuitive command system and user workflows
+
+**Product Thinking**:
+
 - Safety controls with user approval systems
 - Maintainable and extensible design patterns
+- Developer productivity focus
 
 ---
 
-**Note**: This is a portfolio project demonstrating software engineering best practices while being functional for end-users.
+Made with ❤️ by the code-with-clippy team

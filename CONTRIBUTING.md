@@ -8,7 +8,7 @@ Thank you for your interest in contributing to code-with-clippy! This guide will
 
 - Python 3.10 or higher
 - [uv](https://github.com/astral-sh/uv) - Modern Python package manager
-- An Anthropic API key
+- An OpenAI-compatible API key (OpenAI, Cerebras, Together AI, Groq, DeepSeek, etc.)
 
 ### Getting Started
 
@@ -36,8 +36,24 @@ uv pip install -e ".[dev]"
 
 3. **Set up your API key**
 
+For OpenAI (default provider):
 ```bash
-echo "ANTHROPIC_API_KEY=your_key_here" > .env
+echo "OPENAI_API_KEY=your_key_here" > .env
+```
+
+For other providers:
+```bash
+# Cerebras
+echo "CEREBRAS_API_KEY=your_key_here" > .env
+
+# Together AI
+echo "TOGETHER_API_KEY=your_key_here" > .env
+
+# Groq
+echo "GROQ_API_KEY=your_key_here" > .env
+
+# DeepSeek
+echo "DEEPSEEK_API_KEY=your_key_here" > .env
 ```
 
 4. **Verify the setup**
@@ -140,66 +156,142 @@ Then open a pull request on GitHub.
 ## Project Structure
 
 ```
-clippy/
-├── src/clippy/          # Main package source
-│   ├── __init__.py      # Package initialization
-│   ├── __main__.py      # CLI entry point
-│   ├── agent.py         # AI agent implementation
-│   ├── cli.py           # CLI interface
-│   ├── executor.py      # Action execution engine
-│   ├── permissions.py   # Permission system
-│   └── tools.py         # Tool definitions
-├── tests/               # Test suite (to be added)
-├── docs/                # Additional documentation (to be added)
-├── pyproject.toml       # Project configuration
-├── LICENSE              # MIT License
-├── README.md            # Project overview
-├── QUICKSTART.md        # Quick start guide
-└── CONTRIBUTING.md      # This file
+src/clippy/
+├── __init__.py
+├── __main__.py
+├── __version__.py
+├── agent/
+│   ├── __init__.py
+│   ├── conversation.py
+│   ├── core.py
+│   ├── errors.py
+│   ├── loop.py
+│   ├── tool_handler.py
+│   └── utils.py
+├── cli/
+│   ├── __init__.py
+│   ├── commands.py
+│   ├── main.py
+│   ├── oneshot.py
+│   ├── parser.py
+│   ├── repl.py
+│   └── setup.py
+├── diff_utils.py
+├── executor.py
+├── models.py
+├── models.yaml
+├── permissions.py
+├── prompts.py
+├── providers.py
+├── tool_schemas.py
+├── tools/
+│   ├── __init__.py
+│   ├── create_directory.py
+│   ├── delete_file.py
+│   ├── edit_file.py
+│   ├── execute_command.py
+│   ├── get_file_info.py
+│   ├── grep.py
+│   ├── list_directory.py
+│   ├── read_file.py
+│   ├── read_files.py
+│   ├── search_files.py
+│   └── write_file.py
+└── ui/
+    ├── __init__.py
+    ├── document_app.py
+    ├── styles.py
+    ├── utils.py
+    └── widgets.py
 ```
 
 ## Adding New Features
 
 ### Adding a New Tool
 
-1. Define the tool in `src/clippy/tools.py`:
+1. Create a new tool implementation file in `src/clippy/tools/`:
 
 ```python
-{
-    "name": "your_tool",
-    "description": "What your tool does",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "param": {
-                "type": "string",
-                "description": "Parameter description"
-            }
-        },
-        "required": ["param"]
+# src/clippy/tools/your_tool.py
+from typing import Any
+
+TOOL_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "your_tool",
+        "description": "What your tool does",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "param": {
+                    "type": "string",
+                    "description": "Parameter description"
+                }
+            },
+            "required": ["param"]
+        }
     }
 }
-```
 
-2. Add the action type in `src/clippy/permissions.py`:
-
-```python
-class ActionType(str, Enum):
-    YOUR_TOOL = "your_tool"
-```
-
-3. Implement the executor in `src/clippy/executor.py`:
-
-```python
-def _your_tool(self, param: str) -> tuple[bool, str, Any]:
-    """Execute your tool."""
+def your_tool(param: str) -> tuple[bool, str, Any]:
+    """Execute your tool.
+    
+    Returns:
+        Tuple of (success: bool, message: str, result: Any)
+    """
     # Implementation here
     return True, "Success message", result
 ```
 
-4. Update the action map in `src/clippy/agent.py`
+2. Add the tool to `src/clippy/tools/__init__.py`:
 
-5. Add tests for your tool
+```python
+from .your_tool import your_tool
+
+__all__ = [
+    # existing tools...
+    "your_tool",
+]
+```
+
+3. Add the tool schema to `src/clippy/tool_schemas.py`:
+
+```python
+from .tools.your_tool import TOOL_SCHEMA as YOUR_TOOL_SCHEMA
+
+TOOLS: list[dict[str, Any]] = [
+    # existing tools...
+    YOUR_TOOL_SCHEMA,
+]
+```
+
+4. Add the action type in `src/clippy/permissions.py`:
+
+```python
+class ActionType(str, Enum):
+    # existing actions...
+    YOUR_TOOL = "your_tool"
+
+# In PermissionConfig class
+class PermissionConfig(BaseModel):
+    auto_approve: set[ActionType] = {
+        # existing auto-approved actions...
+    }
+    require_approval: set[ActionType] = {
+        # existing require approval actions...
+        ActionType.YOUR_TOOL,
+    }
+```
+
+5. Add the tool execution to `src/clippy/executor.py`:
+
+```python
+# In execute method
+if tool_name == "your_tool":
+    return your_tool(tool_input["param"])
+```
+
+6. Add tests for your tool in `tests/tools/test_your_tool.py`
 
 ### Adding New Permissions
 
@@ -210,7 +302,7 @@ Modify `src/clippy/permissions.py` to add new permission levels or action types.
 - Write tests for all new features
 - Maintain or improve code coverage
 - Test edge cases and error conditions
-- Mock external API calls (Anthropic API)
+- Mock external API calls
 
 Example test structure:
 
@@ -231,10 +323,10 @@ def test_permission_check():
 
 ## Release Process
 
-1. Update version in `pyproject.toml`
+1. Update version in `pyproject.toml` and `src/clippy/__version__.py`
 2. Update CHANGELOG.md (when we add it)
-3. Create a git tag: `git tag v0.2.0`
-4. Push the tag: `git push origin v0.2.0`
+3. Create a git tag: `git tag v1.2.1`
+4. Push the tag: `git push origin v1.2.1`
 5. Build and publish:
 
 ```bash

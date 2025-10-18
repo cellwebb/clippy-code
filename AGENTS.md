@@ -16,15 +16,41 @@ python -m clippy -d   # Run in document mode (Word-like TUI)
 
 ```
 src/clippy/
-├── cli.py           # CLI entry point, argument parsing
-├── agent.py         # Core agent loop (max 25 iterations)
+├── cli/
+│   ├── main.py         # Main entry point
+│   ├── parser.py       # Argument parsing
+│   ├── oneshot.py      # One-shot mode implementation
+│   └── repl.py         # Interactive REPL mode
+├── agent/
+│   ├── core.py         # Core agent implementation
+│   ├── loop.py         # Agent loop logic
+│   ├── conversation.py # Conversation utilities
+│   └── tool_handler.py # Tool calling handler
+├── tools/
+│   ├── __init__.py      # Tool schemas and aggregation
+│   ├── create_directory.py
+│   ├── delete_file.py
+│   ├── edit_file.py
+│   ├── execute_command.py
+│   ├── get_file_info.py
+│   ├── grep.py
+│   ├── list_directory.py
+│   ├── read_file.py
+│   ├── read_files.py
+│   ├── search_files.py
+│   └── write_file.py
+├── ui/
+|   ├── document_app.py # Textual-based document mode interface
+|   ├── styles.py       # CSS styling for document mode
+|   ├── widgets.py      # Custom UI widgets
+|   └── utils.py        # UI utility functions
 ├── providers.py     # OpenAI-compatible LLM provider (~100 lines)
-├── tools.py         # Tool definitions (JSON schemas)
 ├── executor.py      # Tool execution implementations
 ├── permissions.py   # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
 ├── models.py        # Model configuration loading and presets
 ├── models.yaml      # Model presets for different providers
-└── document_ui.py   # Textual-based document mode interface
+├── prompts.py       # System prompts for the agent
+└── diff_utils.py    # Diff generation utilities
 ```
 
 ## Core Architecture
@@ -43,14 +69,16 @@ All LLM interactions go through a single `LLMProvider` class (~100 lines total).
 ### Agent Flow
 
 1. User input → `ClippyAgent`
-2. Loop (max 25 iterations): Call LLM → Process response → Execute tools → Add results → Repeat
+2. Loop (max 50 iterations): Call LLM → Process response → Execute tools → Add results → Repeat
 3. Tool execution: Check permissions → Get approval if needed → Execute → Return `(success, message, result)`
 
 ### Tool System (3 parts - modify together)
 
-1. **Definition** (`tools.py`): JSON schema
+1. **Definition** (`tools/__init__.py`): JSON schema
 2. **Permission** (`permissions.py`): Permission level
 3. **Execution** (`executor.py`): Implementation returning `tuple[bool, str, Any]`
+
+Individual tool implementations are located in `src/clippy/tools/` directory with each tool having its own file.
 
 ### Models System
 
@@ -61,8 +89,8 @@ All LLM interactions go through a single `LLMProvider` class (~100 lines total).
 
 ### Permissions
 
-- **AUTO_APPROVE**: read_file, list_directory, search_files, get_file_info
-- **REQUIRE_APPROVAL**: write_file, delete_file, create_directory, execute_command
+- **AUTO_APPROVE**: read_file, list_directory, search_files, get_file_info, grep, read_files
+- **REQUIRE_APPROVAL**: write_file, delete_file, create_directory, execute_command, edit_file
 - **DENY**: Blocked operations (empty by default)
 
 ## Code Standards
@@ -88,12 +116,13 @@ Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, 
 
 ### New Tool (checklist):
 
-1. Add tool definition to `TOOLS` in `tools.py` (JSON schema)
-2. Add `ActionType` enum in `permissions.py`
-3. Add to `action_map` in **both** `agent.py:_handle_tool_use()` and `executor.py:execute()`
-4. Implement `_your_tool()` in `executor.py` returning `tuple[bool, str, Any]`
-5. Add to appropriate permission set in `PermissionConfig` (permissions.py)
-6. Write tests
+1. Create a new tool implementation file in `src/clippy/tools/` (e.g., `your_tool.py`)
+2. Add the tool to `src/clippy/tools/__init__.py` (both import and export)
+3. Add `ActionType` enum in `permissions.py`
+4. Add to appropriate permission set in `PermissionConfig` (permissions.py)
+5. Add tool execution to `executor.py:execute()`
+6. Add to `action_map` in `agent/tool_handler.py:_handle_tool_use()`
+7. Write tests in `tests/tools/test_your_tool.py`
 
 ### UI Modes
 
@@ -110,12 +139,14 @@ Document mode features:
 - Toolbar with buttons for common actions
 - Automatic prompt management
 - Visual status bar showing model/token info
+- Diff previews for file operations
 
 ### Conversation Management
 
 - **Reset**: Use `/reset`, `/clear`, or `/new` commands to clear conversation history
 - **Compact**: Use `/compact` command to summarize older messages and reduce token usage
 - **Status**: Use `/status` command to show current token usage and session info
+- **Model Switching**: Use `/model <name>` command to switch between different providers/models
 
 ## Configuration
 
@@ -133,7 +164,7 @@ Config files (priority order): `.env` → `~/.clippy.env` → system env
 
 ## Key Implementation Details
 
-- **Agent loop**: 25 iteration max (prevents infinite loops)
+- **Agent loop**: 50 iteration max (prevents infinite loops)
 - **Command timeout**: 30 seconds
 - **File ops**: Auto-create parent dirs, UTF-8 encoding, use `pathlib.Path`
 - **Executor returns**: `tuple[bool, str, Any]` (success, message, result)
@@ -152,7 +183,7 @@ Keep `pyproject.toml` and `src/clippy/__version__.py` in sync. Use: `make bump-p
 - **OpenAI format natively**: Single standard format, works with any OpenAI-compatible provider
 - **No provider abstraction**: Simpler codebase (~100 lines vs 370+), easier to maintain
 - **3 permission levels**: AUTO_APPROVE (safe ops), REQUIRE_APPROVAL (risky), DENY (blocked)
-- **25 iteration max**: Prevents infinite loops, sufficient for most tasks
+- **50 iteration max**: Prevents infinite loops, sufficient for most tasks
 - **Retry logic**: Exponential backoff with 3 attempts for resilience against transient failures
 - **Separate tools/executor/permissions**: Interface vs execution vs policy (separation of concerns)
 - **Document mode**: Provides a more intuitive interface for longer coding tasks
