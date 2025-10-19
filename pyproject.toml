@@ -1,6 +1,6 @@
 [project]
 name = "code-with-clippy"
-version = "1.5.0"
+version = "1.5.1"
 description = "A powerful CLI coding agent powered by OpenAI-compatible LLMs"
 readme = "README.md"
 license = { text = "MIT" }
