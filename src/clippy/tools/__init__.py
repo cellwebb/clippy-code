@@ -48,6 +48,7 @@ def get_tool_by_name(name: str) -> dict[str, Any] | None:
             return tool
     return None
 
+
 __all__ = [
     "create_directory",
     "delete_file",

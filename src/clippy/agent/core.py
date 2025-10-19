@@ -36,6 +36,7 @@ class ClippyAgent:
         model: str | None = None,
         base_url: str | None = None,
         approval_callback: Any = None,
+        mcp_manager: Any = None,
     ) -> None:
         """
         Initialize the ClippyAgent.
@@ -50,6 +51,7 @@ class ClippyAgent:
                              (used in document mode). Should accept (tool_name, tool_input)
                              and return bool (True for approve, False for deny).
                              Can raise InterruptedExceptionError to stop execution.
+            mcp_manager: Optional MCP manager instance for tool discovery
         """
         self.permission_manager = permission_manager
         self.executor = executor
@@ -68,6 +70,7 @@ class ClippyAgent:
         self.conversation_history: list[dict[str, Any]] = []
         self.interrupted = False
         self.approval_callback = approval_callback
+        self.mcp_manager = mcp_manager
 
     def run(self, user_message: str, auto_approve_all: bool = False) -> str:
         """
@@ -107,6 +110,7 @@ class ClippyAgent:
             auto_approve_all=auto_approve_all,
             approval_callback=self.approval_callback,
             check_interrupted=lambda: self.interrupted,
+            mcp_manager=self.mcp_manager,
         )
 
     def reset_conversation(self) -> None:

@@ -11,7 +11,7 @@ from rich.panel import Panel
 from ..executor import ActionExecutor
 from ..permissions import PermissionManager
 from ..providers import LLMProvider
-from ..tools import TOOLS
+from ..tools import catalog as tool_catalog
 from .errors import format_api_error
 from .tool_handler import handle_tool_use
 
@@ -28,6 +28,7 @@ def run_agent_loop(
     auto_approve_all: bool,
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None,
     check_interrupted: Callable[[], bool],
+    mcp_manager: Any = None,
 ) -> str:
     """
     Run the main agent loop.
@@ -42,6 +43,7 @@ def run_agent_loop(
         auto_approve_all: If True, auto-approve all actions
         approval_callback: Optional callback for approval requests
         check_interrupted: Callback to check if execution was interrupted
+        mcp_manager: Optional MCP manager instance
 
     Returns:
         Final response from the agent
@@ -57,11 +59,14 @@ def run_agent_loop(
         if check_interrupted():
             raise InterruptedExceptionError()
 
+        # Get current tools (built-in + MCP)
+        tools = tool_catalog.get_all_tools(mcp_manager)
+
         # Call provider (returns OpenAI message dict)
         try:
             response = provider.create_message(
                 messages=conversation_history,
-                tools=TOOLS,
+                tools=tools,
                 model=model,
             )
         except Exception as e:

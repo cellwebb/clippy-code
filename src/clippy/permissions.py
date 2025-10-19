@@ -27,6 +27,11 @@ class ActionType(str, Enum):
     GREP = "grep"
     EDIT_FILE = "edit_file"
 
+    # MCP Action Types
+    MCP_LIST_TOOLS = "mcp_list_tools"
+    MCP_TOOL_CALL = "mcp_tool_call"
+    MCP_CONNECT = "mcp_connect"
+
 
 class PermissionConfig(BaseModel):
     """Configuration for action permissions."""
@@ -37,6 +42,7 @@ class PermissionConfig(BaseModel):
         ActionType.SEARCH_FILES,
         ActionType.GET_FILE_INFO,
         ActionType.GREP,
+        ActionType.MCP_LIST_TOOLS,  # Auto-approve MCP tool listing
     }
     require_approval: set[ActionType] = {
         ActionType.WRITE_FILE,
@@ -44,6 +50,8 @@ class PermissionConfig(BaseModel):
         ActionType.CREATE_DIR,
         ActionType.EXECUTE_COMMAND,
         ActionType.EDIT_FILE,
+        ActionType.MCP_TOOL_CALL,  # Require approval for MCP tool calls by default
+        ActionType.MCP_CONNECT,  # Require approval for MCP server connections
     }
     deny: set[ActionType] = set()
 

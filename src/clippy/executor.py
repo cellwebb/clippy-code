@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from .permissions import ActionType, PermissionManager
 from .tools import (
     create_directory,
@@ -23,6 +24,16 @@ class ActionExecutor:
 
     def __init__(self, permission_manager: PermissionManager):
         self.permission_manager = permission_manager
+        self._mcp_manager = None
+
+    def set_mcp_manager(self, manager: Any) -> None:
+        """
+        Set the MCP manager for handling MCP tool calls.
+
+        Args:
+            manager: MCP Manager instance
+        """
+        self._mcp_manager = manager
 
     def execute(self, tool_name: str, tool_input: dict[str, Any]) -> tuple[bool, str, Any]:
         """
@@ -31,6 +42,17 @@ class ActionExecutor:
         Returns:
             Tuple of (success: bool, message: str, result: Any)
         """
+        # Handle MCP tools first
+        if is_mcp_tool(tool_name):
+            if self._mcp_manager is None:
+                return False, "MCP manager not available", None
+
+            try:
+                server_id, tool = parse_mcp_qualified_name(tool_name)
+                return self._mcp_manager.execute(server_id, tool, tool_input)
+            except Exception as e:
+                return False, f"Error executing MCP tool {tool_name}: {str(e)}", None
+
         # Map tool names to action types
         action_map = {
             "read_file": ActionType.READ_FILE,

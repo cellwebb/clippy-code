@@ -1,7 +1,7 @@
 """Command handlers for interactive CLI mode."""
 
 import os
-from typing import Literal
+from typing import Any, Literal
 
 from rich.console import Console
 from rich.panel import Panel
@@ -40,6 +40,11 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /auto list - List auto-approved actions\n"
             "  /auto revoke <action> - Revoke auto-approval for an action\n"
             "  /auto clear - Clear all auto-approvals\n"
+            "  /mcp list - List configured MCP servers\n"
+            "  /mcp tools [server] - List tools available from MCP servers\n"
+            "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
+            "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
+            "  /mcp revoke <server> - Revoke trust for an MCP server\n"
             "  /help - Show this help message\n\n"
             "[bold]Interrupt:[/bold]\n"
             "  Ctrl+C or double-ESC - Stop current execution",
@@ -271,6 +276,133 @@ def handle_auto_command(agent: ClippyAgent, console: Console, command_args: str)
     return "continue"
 
 
+def handle_mcp_command(agent: ClippyAgent, console: Console, command_args: str) -> CommandResult:
+    """Handle /mcp commands."""
+    if not command_args:
+        console.print("[red]Usage: /mcp <command>[/red]")
+        console.print("[dim]Available commands: list, tools, refresh, allow, revoke[/dim]")
+        return "continue"
+
+    parts = command_args.strip().split(maxsplit=1)
+    subcommand = parts[0].lower()
+    subcommand_args = parts[1] if len(parts) > 1 else ""
+
+    # Get MCP manager from agent
+    mcp_manager = getattr(agent, "mcp_manager", None)
+    if mcp_manager is None:
+        console.print("[yellow]⚠ MCP functionality not available[/yellow]")
+        console.print("[dim]Make sure the agent was initialized with MCP support.[/dim]")
+        return "continue"
+
+    if subcommand == "list":
+        _handle_mcp_list(mcp_manager, console)
+    elif subcommand == "tools":
+        _handle_mcp_tools(mcp_manager, console, subcommand_args)
+    elif subcommand == "refresh":
+        _handle_mcp_refresh(mcp_manager, console)
+    elif subcommand == "allow":
+        _handle_mcp_allow(mcp_manager, console, subcommand_args)
+    elif subcommand == "revoke":
+        _handle_mcp_revoke(mcp_manager, console, subcommand_args)
+    else:
+        console.print(f"[red]Unknown MCP command: {subcommand}[/red]")
+        console.print("[dim]Available commands: list, tools, refresh, allow, revoke[/dim]")
+
+    return "continue"
+
+
+def _handle_mcp_list(mcp_manager: Any, console: Console) -> None:
+    """Handle /mcp list command."""
+    servers = mcp_manager.list_servers()
+
+    if not servers:
+        console.print("[yellow]No MCP servers configured[/yellow]")
+        console.print("[dim]Add servers to mcp.json to use MCP functionality.[/dim]")
+        return
+
+    server_lines = []
+    for server in servers:
+        status = "[green]connected[/green]" if server["connected"] else "[red]disconnected[/red]"
+        server_lines.append(
+            f"  [cyan]{server['server_id']:20}[/cyan] - {status} ({server['tools_count']} tools)"
+        )
+
+    console.print(
+        Panel.fit(
+            "[bold]Configured MCP Servers:[/bold]\n\n" + "\n".join(server_lines),
+            title="MCP Servers",
+            border_style="cyan",
+        )
+    )
+
+
+def _handle_mcp_tools(mcp_manager: Any, console: Console, server_arg: str) -> None:
+    """Handle /mcp tools command."""
+    if server_arg:
+        # List tools for specific server
+        tools = mcp_manager.list_tools(server_arg)
+        if not tools:
+            console.print(f"[yellow]No tools found for server '{server_arg}'[/yellow]")
+            return
+    else:
+        # List tools for all servers
+        tools = mcp_manager.list_tools()
+        if not tools:
+            console.print("[yellow]No MCP tools available[/yellow]")
+            return
+
+    tool_lines = []
+    current_server = None
+    for tool in tools:
+        if tool["server_id"] != current_server:
+            current_server = tool["server_id"]
+            tool_lines.append(f"\n[bold]Server: {current_server}[/bold]")
+        tool_lines.append(f"  [cyan]{tool['name']}[/cyan] - {tool['description']}")
+
+    console.print(
+        Panel.fit(
+            "[bold]Available MCP Tools:[/bold]\n" + "\n".join(tool_lines),
+            title="MCP Tools",
+            border_style="cyan",
+        )
+    )
+
+
+def _handle_mcp_refresh(mcp_manager: Any, console: Console) -> None:
+    """Handle /mcp refresh command."""
+    console.print("[cyan]Refreshing MCP server connections...[/cyan]")
+    try:
+        import asyncio
+
+        asyncio.run(mcp_manager.stop())
+        asyncio.run(mcp_manager.start())
+        console.print("[green]✓ MCP servers refreshed[/green]")
+    except Exception as e:
+        console.print(f"[red]✗ Error refreshing MCP servers: {e}[/red]")
+
+
+def _handle_mcp_allow(mcp_manager: Any, console: Console, server_arg: str) -> None:
+    """Handle /mcp allow command."""
+    if not server_arg:
+        console.print("[red]Usage: /mcp allow <server_id>[/red]")
+        return
+
+    server_id = server_arg.strip()
+    mcp_manager.set_trusted(server_id, True)
+    console.print(f"[green]✓ Marked MCP server '{server_id}' as trusted for this session[/green]")
+
+
+def _handle_mcp_revoke(mcp_manager: Any, console: Console, server_arg: str) -> None:
+    """Handle /mcp revoke command."""
+    if not server_arg:
+        console.print("[red]Usage: /mcp revoke <server_id>[/red]")
+        return
+
+    server_id = server_arg.strip()
+    mcp_manager.set_trusted(server_id, False)
+    console.print(f"[green]✓ Revoked trust for MCP server '{server_id}'[/green]")
+
+
 def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> CommandResult | None:
     """
     Handle slash commands in interactive mode.
@@ -311,6 +443,12 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
         parts = user_input.split(maxsplit=1)
         command_args = parts[1] if len(parts) > 1 else ""
         return handle_auto_command(agent, console, command_args)
+
+    # MCP commands
+    if command_lower.startswith("/mcp"):
+        parts = user_input.split(maxsplit=1)
+        command_args = parts[1] if len(parts) > 1 else ""
+        return handle_mcp_command(agent, console, command_args)
 
     # Not a recognized command
     return None

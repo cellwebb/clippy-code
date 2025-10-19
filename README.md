@@ -110,6 +110,14 @@ Options:
 - `/compact` - Summarize conversation to reduce context usage
 - `/model list` - Show available models
 - `/model <name>` - Switch model/provider
+- `/auto list` - List auto-approved actions
+- `/auto revoke <action>` - Revoke auto-approval for an action
+- `/auto clear` - Clear all auto-approvals
+- `/mcp list` - List configured MCP servers
+- `/mcp tools [server]` - List tools available from MCP servers
+- `/mcp refresh` - Refresh tool catalogs from MCP servers
+- `/mcp allow <server>` - Mark an MCP server as trusted for this session
+- `/mcp revoke <server>` - Revoke trust for an MCP server
 - `/help` - Show help message
 - `/exit`, `/quit` - Exit code-with-clippy
 
@@ -279,6 +287,28 @@ Testing philosophy:
 - Aim for >80% code coverage
 
 ### Available Tools
+
+code-with-clippy can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
+
+To use MCP servers, create an `mcp.json` configuration file in your project root or home directory:
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "${CTX7_API_KEY}"]
+    },
+    "perplexity-ask": {
+      "command": "npx",
+      "args": ["-y", "server-perplexity-ask"],
+      "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
+    }
+  }
+}
+```
+
+MCP tools will automatically be available in interactive and document modes, with appropriate approval prompts to maintain safety.
 
 code-with-clippy has access to these tools:
 

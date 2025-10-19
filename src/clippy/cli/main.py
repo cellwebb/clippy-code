@@ -1,5 +1,6 @@
 """Main entry point for code-with-clippy CLI."""
 
+import asyncio
 import os
 import sys
 
@@ -7,6 +8,8 @@ from rich.console import Console
 
 from ..agent import ClippyAgent
 from ..executor import ActionExecutor
+from ..mcp.config import load_config
+from ..mcp.manager import Manager
 from ..permissions import PermissionConfig, PermissionManager
 from .oneshot import run_one_shot
 from .parser import create_parser
@@ -43,11 +46,28 @@ def main() -> None:
         )
         sys.exit(1)
 
+    # Load MCP configuration
+    mcp_config = load_config()
+
+    # Create MCP manager if config is available
+    mcp_manager = None
+    console = Console()
+    if mcp_config:
+        try:
+            mcp_manager = Manager(config=mcp_config, console=console)
+            asyncio.run(mcp_manager.start())
+        except Exception as e:
+            console.print(f"[yellow]⚠ Warning: Failed to initialize MCP manager: {e}[/yellow]")
+            mcp_manager = None
+
     # Create permission manager
     permission_manager = PermissionManager(PermissionConfig())
 
     # Create executor and agent
     executor = ActionExecutor(permission_manager)
+    if mcp_manager:
+        executor.set_mcp_manager(mcp_manager)
+
     agent = ClippyAgent(
         permission_manager=permission_manager,
         executor=executor,

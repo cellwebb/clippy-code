@@ -7,6 +7,7 @@ from rich.console import Console
 
 from ..diff_utils import format_diff_for_display
 from ..executor import ActionExecutor
+from ..mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from ..permissions import ActionType, PermissionLevel, PermissionManager
 from .utils import generate_preview_diff
 
@@ -26,8 +27,19 @@ def display_tool_request(
         tool_input: Input parameters for the tool
         diff_content: Optional diff content to display for file operations
     """
+    # Special handling for MCP tools
+    if is_mcp_tool(tool_name):
+        try:
+            server_id, tool = parse_mcp_qualified_name(tool_name)
+            console.print(
+                f"\n[bold cyan]→ MCP Tool: {tool}[/bold cyan] [dim](from {server_id})[/dim]"
+            )
+        except ValueError:
+            console.print(f"\n[bold cyan]→ MCP Tool: {tool_name}[/bold cyan]")
+    else:
+        console.print(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
+
     input_str = "\n".join(f"  {k}: {v}" for k, v in tool_input.items())
-    console.print(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
     if input_str:
         console.print(f"[cyan]{input_str}[/cyan]")
 
@@ -84,8 +96,20 @@ def handle_tool_use(
         "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
     }
 
-    action_type = action_map.get(tool_name)
-    if not action_type:
+    # Handle MCP tools with special action types
+    action_type: ActionType
+    if is_mcp_tool(tool_name):
+        try:
+            server_id, tool = parse_mcp_qualified_name(tool_name)
+            # MCP tools don't have a built-in list_tools function, so all MCP tool calls
+            # use the MCP_TOOL_CALL action type
+            action_type = ActionType.MCP_TOOL_CALL
+        except ValueError:
+            action_type = ActionType.MCP_TOOL_CALL
+    else:
+        action_type = action_map.get(tool_name, ActionType.READ_FILE)  # Default fallback
+
+    if action_type is None:
         add_tool_result(
             conversation_history, tool_use_id, False, f"Unknown tool: {tool_name}", None
         )
