@@ -1,4 +1,4 @@
-"""Command-line interface package for code-with-clippy."""
+"""Command-line interface package for clippy-code."""
 
 from .main import main
 from .oneshot import run_one_shot

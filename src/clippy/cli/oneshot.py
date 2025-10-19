@@ -9,7 +9,7 @@ from ..agent import ClippyAgent, InterruptedExceptionError
 
 
 def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool) -> None:
-    """Run code-with-clippy in one-shot mode."""
+    """Run clippy-code in one-shot mode."""
     console = Console()
 
     try:

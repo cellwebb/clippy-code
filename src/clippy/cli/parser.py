@@ -6,14 +6,14 @@ import argparse
 def create_parser() -> argparse.ArgumentParser:
     """Create the argument parser."""
     parser = argparse.ArgumentParser(
-        description="code-with-clippy - A CLI coding agent powered by OpenAI-compatible LLMs",
+        description="clippy-code - A CLI coding agent powered by OpenAI-compatible LLMs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
         "prompt",
         nargs="*",
-        help="The task or question for code-with-clippy (one-shot mode)",
+        help="The task or question for clippy-code (one-shot mode)",
     )
 
     parser.add_argument(

@@ -1,4 +1,4 @@
-# code-with-clippy 📎
+# clippy-code 📎
 
 [![Python 3.10–3.14](https://img.shields.io/badge/python-3.10%E2%80%933.14-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -7,7 +7,7 @@
 
 > A production-ready, model-agnostic CLI coding agent with safety-first design
 
-code-with-clippy is an AI-powered development assistant that works with any OpenAI-compatible API provider. It features robust permission controls, streaming responses, and multiple interface modes for different workflows.
+clippy-code is an AI-powered development assistant that works with any OpenAI-compatible API provider. It features robust permission controls, streaming responses, and multiple interface modes for different workflows.
 
 ## Quick Start
 
@@ -17,8 +17,8 @@ code-with-clippy is an AI-powered development assistant that works with any Open
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install code-with-clippy from PyPI
-uv tool install code-with-clippy
+# Install clippy-code from PyPI
+uv tool install clippy-code
 
 # Or install from source
 git clone https://github.com/yourusername/clippy.git
@@ -27,7 +27,8 @@ uv pip install -e .
 ```
 
 ### Setup API Keys
-code-with-clippy supports multiple LLM providers through OpenAI-compatible APIs:
+
+clippy-code supports multiple LLM providers through OpenAI-compatible APIs:
 
 ```bash
 # OpenAI (default)
@@ -46,7 +47,7 @@ export OPENAI_BASE_URL=http://localhost:11434/v1
 
 ### MCP Configuration
 
-code-with-clippy can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
+clippy-code can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
 
 To use MCP servers, create an `mcp.json` configuration file in your project root or home directory:
 
@@ -70,7 +71,7 @@ See [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md) for detailed information about 
 
 MCP tools will automatically be available in interactive and document modes, with appropriate approval prompts to maintain safety.
 
-code-with-clippy supports multiple LLM providers through OpenAI-compatible APIs:
+clippy-code supports multiple LLM providers through OpenAI-compatible APIs:
 
 ```bash
 # OpenAI (default)
@@ -116,7 +117,7 @@ clippy -y "write unit tests for utils.py"
 
 ### Permission System
 
-code-with-clippy implements safety-first design with a three-tier permission system:
+clippy-code implements safety-first design with a three-tier permission system:
 
 **Auto-approved actions** (read-only operations):
 
@@ -128,7 +129,7 @@ code-with-clippy implements safety-first design with a three-tier permission sys
 
 **Blocked actions** (currently empty but configurable)
 
-When code-with-clippy wants to perform a risky action, you'll see a prompt:
+When clippy-code wants to perform a risky action, you'll see a prompt:
 
 ```
 → write_file
@@ -161,7 +162,7 @@ Options:
 - `/mcp allow <server>` - Mark an MCP server as trusted for this session
 - `/mcp revoke <server>` - Revoke trust for an MCP server
 - `/help` - Show help message
-- `/exit`, `/quit` - Exit code-with-clippy
+- `/exit`, `/quit` - Exit clippy-code
 
 ### Supported Providers
 
@@ -183,7 +184,7 @@ Switch providers with the `/model` command or CLI arguments.
 
 ### System Architecture
 
-code-with-clippy follows a layered architecture with clear separation of concerns:
+clippy-code follows a layered architecture with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -329,7 +330,8 @@ Testing philosophy:
 - Aim for >80% code coverage
 
 ### Available Tools
-code-with-clippy has access to these tools:
+
+clippy-code has access to these tools:
 
 | Tool               | Description                                       | Auto-Approved |
 | ------------------ | ------------------------------------------------- | ------------- |
@@ -347,7 +349,7 @@ code-with-clippy has access to these tools:
 
 For detailed information about MCP integration, see [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md).
 
-code-with-clippy can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
+clippy-code can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
 
 To use MCP servers, create an `mcp.json` configuration file in your project root or home directory:
 
@@ -369,7 +371,7 @@ To use MCP servers, create an `mcp.json` configuration file in your project root
 
 MCP tools will automatically be available in interactive and document modes, with appropriate approval prompts to maintain safety.
 
-code-with-clippy has access to these tools:
+clippy-code has access to these tools:
 
 | Tool               | Description                                       | Auto-Approved |
 | ------------------ | ------------------------------------------------- | ------------- |
@@ -398,7 +400,7 @@ code-with-clippy has access to these tools:
 
 ### Adding New LLM Providers
 
-code-with-clippy works with any OpenAI-compatible API provider. Add new providers by updating `models.yaml`:
+clippy-code works with any OpenAI-compatible API provider. Add new providers by updating `models.yaml`:
 
 ```yaml
 provider_name:
@@ -464,4 +466,4 @@ This project showcases proficiency in:
 
 ---
 
-Made with ❤️ by the code-with-clippy team
+Made with ❤️ by the clippy-code team

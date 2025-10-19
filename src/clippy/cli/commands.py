@@ -32,7 +32,7 @@ def handle_help_command(console: Console) -> CommandResult:
     console.print(
         Panel.fit(
             "[bold]Commands:[/bold]\n"
-            "  /exit, /quit - Exit code-with-clippy\n"
+            "  /exit, /quit - Exit clippy-code\n"
             "  /reset, /clear, /new - Reset conversation history\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n"

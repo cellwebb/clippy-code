@@ -5,7 +5,7 @@ PYTHON ?= python3
 
 # Default target
 help:
-	@echo "code-with-clippy Development Commands"
+	@echo "clippy-code Development Commands"
 	@echo ""
 	@echo "Setup:"
 	@echo "  make install      Install package in editable mode"
@@ -13,7 +13,7 @@ help:
 	@echo "  make clean        Remove build artifacts and caches"
 	@echo ""
 	@echo "Running:"
-	@echo "  make run          Run code-with-clippy in interactive mode"
+	@echo "  make run          Run clippy-code in interactive mode"
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test         Run tests with pytest"

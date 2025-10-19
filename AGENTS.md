@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance for AI coding agents working with the code-with-clippy codebase.
+This file provides guidance for AI coding agents working with the clippy-code codebase.
 
 ## Essential Commands
 
@@ -106,7 +106,7 @@ Individual tool implementations are located in `src/clippy/tools/` directory wit
 
 ### Using Alternate LLM Providers
 
-code-with-clippy uses OpenAI format natively, so any OpenAI-compatible provider works out-of-the-box:
+clippy-code uses OpenAI format natively, so any OpenAI-compatible provider works out-of-the-box:
 
 1. Set provider-specific API key environment variable (OPENAI_API_KEY, CEREBRAS_API_KEY, etc.)
 2. Use model presets from `models.yaml` or specify custom model/base_url
@@ -125,7 +125,8 @@ Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, 
 7. Write tests in `tests/tools/test_your_tool.py`
 
 ### UI Modes
-code-with-clippy supports three UI modes:
+
+clippy-code supports three UI modes:
 
 1. **One-shot mode**: `clippy "your task here"`
 2. **Interactive mode**: `clippy -i` (REPL-style interface)
@@ -140,7 +141,7 @@ Document mode features:
 - Visual status bar showing model/token info
 - Diff previews for file operations
 
-code-with-clippy supports three UI modes:
+clippy-code supports three UI modes:
 
 1. **One-shot mode**: `clippy "your task here"`
 2. **Interactive mode**: `clippy -i` (REPL-style interface)
@@ -156,6 +157,7 @@ Document mode features:
 - Diff previews for file operations
 
 ### Conversation Management
+
 - **Reset**: Use `/reset`, `/clear`, or `/new` commands to clear conversation history
 - **Compact**: Use `/compact` command to summarize older messages and reduce token usage
 - **Status**: Use `/status` command to show current token usage and session info
@@ -163,7 +165,7 @@ Document mode features:
 
 ### MCP Integration
 
-code-with-clippy supports the Model Context Protocol (MCP) for dynamically discovering and using external tools. MCP enables extending the agent's capabilities without modifying the core codebase.
+clippy-code supports the Model Context Protocol (MCP) for dynamically discovering and using external tools. MCP enables extending the agent's capabilities without modifying the core codebase.
 
 Key MCP features:
 
@@ -195,7 +197,7 @@ Available MCP commands in interactive/document mode:
 - `/mcp allow <server>` - Trust an MCP server (auto-approve its tools)
 - `/mcp revoke <server>` - Revoke trust for an MCP server
 
-MCP tools integrate seamlessly with code-with-clippy's permission system. By default, MCP tools require approval before execution, but trusted servers have their tools auto-approved.
+MCP tools integrate seamlessly with clippy-code's permission system. By default, MCP tools require approval before execution, but trusted servers have their tools auto-approved.
 
 - **Reset**: Use `/reset`, `/clear`, or `/new` commands to clear conversation history
 - **Compact**: Use `/compact` command to summarize older messages and reduce token usage
@@ -203,6 +205,7 @@ MCP tools integrate seamlessly with code-with-clippy's permission system. By def
 - **Model Switching**: Use `/model <name>` command to switch between different providers/models
 
 ## Configuration
+
 Environment variables:
 
 - `OPENAI_API_KEY`: API key for OpenAI or OpenAI-compatible provider (required for OpenAI)

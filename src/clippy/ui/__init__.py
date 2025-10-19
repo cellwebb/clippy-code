@@ -1,4 +1,4 @@
-"""Document UI module for CLIppy."""
+"""Document UI module for clippy-code."""
 
 from .document_app import DocumentApp, run_document_mode
 from .styles import DOCUMENT_APP_CSS
