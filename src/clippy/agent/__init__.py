@@ -1,4 +1,4 @@
-"""Agent system for CLIppy - modular AI coding assistant."""
+"""Agent system for clippy-code - modular AI coding assistant."""
 
 from .conversation import (
     compact_conversation,

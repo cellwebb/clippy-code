@@ -1,4 +1,4 @@
-"""MCP (Model Context Protocol) integration for code-with-clippy."""
+"""MCP (Model Context Protocol) integration for clippy-code."""
 
 from .config import Config, load_config
 from .manager import Manager

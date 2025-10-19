@@ -740,7 +740,7 @@ class DocumentApp(App[None]):
         conv_log.write("• /[bold]mcp refresh[/bold] - Refresh MCP server connections")
         conv_log.write("• /[bold]mcp allow <server>[/bold] - Trust an MCP server for this session")
         conv_log.write("• /[bold]mcp revoke <server>[/bold] - Revoke trust for an MCP server")
-        conv_log.write("• /[bold]quit[/bold] or /[bold]exit[/bold] - Exit code-with-clippy")
+        conv_log.write("• /[bold]quit[/bold] or /[bold]exit[/bold] - Exit clippy-code")
         conv_log.write("")
         conv_log.write("[bold]⌨️ Keyboard Shortcuts[/bold]")
         conv_log.write("• [bold]Enter[/bold] - Send message")
@@ -777,7 +777,7 @@ class DocumentApp(App[None]):
         conv_log.write("• Paperclip appears when Clippy is thinking about your request")
         conv_log.write("• Diff previews show exact changes before file operations")
         conv_log.write("")
-        conv_log.write("[dim]Made with ❤️ by the code-with-clippy team[/dim]\n")
+        conv_log.write("[dim]Made with ❤️ by the clippy-code team[/dim]\n")
 
     def show_status(self) -> None:
         conv_log = self.query_one("#conversation-log", RichLog)

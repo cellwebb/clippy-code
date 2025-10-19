@@ -1,6 +1,6 @@
-# MCP (Model Context Protocol) Documentation for code-with-clippy
+# MCP (Model Context Protocol) Documentation for clippy-code
 
-📎 Model Context Protocol (MCP) integration allows code-with-clippy to dynamically discover and use tools from external MCP servers. This enables extending the agent's capabilities without modifying the core codebase.
+📎 Model Context Protocol (MCP) integration allows clippy-code to dynamically discover and use tools from external MCP servers. This enables extending the agent's capabilities without modifying the core codebase.
 
 ## What is MCP?
 
@@ -12,9 +12,9 @@ The Model Context Protocol (MCP) is an open specification that enables applicati
 - Specialized domain tools
 - Custom business logic
 
-## How MCP Works in code-with-clippy
+## How MCP Works in clippy-code
 
-When code-with-clippy starts, it:
+When clippy-code starts, it:
 
 1. Looks for MCP configuration files
 2. Connects to configured MCP servers
@@ -22,7 +22,7 @@ When code-with-clippy starts, it:
 4. Maps MCP tool schemas to OpenAI-compatible format
 5. Makes these tools available during agent iterations
 
-MCP tools are automatically integrated with code-with-clippy's permission system. By default, MCP tools require user approval before execution, but you can trust specific servers to auto-approve their tools.
+MCP tools are automatically integrated with clippy-code's permission system. By default, MCP tools require user approval before execution, but you can trust specific servers to auto-approve their tools.
 
 ## MCP Configuration
 
@@ -163,11 +163,11 @@ When an MCP tool fails, you'll see detailed error messages that help identify th
 
 ## Developing Custom MCP Servers
 
-To create a custom MCP server for use with code-with-clippy:
+To create a custom MCP server for use with clippy-code:
 
 1. Implement the MCP protocol specification
 2. Expose your tools using the standardized MCP interface
-3. Configure code-with-clippy to connect to your server
+3. Configure clippy-code to connect to your server
 4. Test integration using the `/mcp` commands
 
 Many MCP servers are available as npm packages that can be easily integrated:

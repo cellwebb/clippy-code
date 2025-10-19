@@ -1,4 +1,4 @@
-"""Main entry point for code-with-clippy CLI."""
+"""Main entry point for clippy-code CLI."""
 
 import os
 import sys
@@ -18,7 +18,7 @@ from .setup import load_env, setup_logging
 
 
 def main() -> None:
-    """Main entry point for code-with-clippy."""
+    """Main entry point for clippy-code."""
     # Load environment variables
     load_env()
 

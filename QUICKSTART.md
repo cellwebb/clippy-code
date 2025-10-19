@@ -1,6 +1,6 @@
-# code-with-clippy Quick Start Guide
+# clippy-code Quick Start Guide
 
-Get started with code-with-clippy in 5 minutes!
+Get started with clippy-code in 5 minutes!
 
 ## 1. Installation
 
@@ -8,8 +8,8 @@ Get started with code-with-clippy in 5 minutes!
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install code-with-clippy from PyPI
-uv tool install code-with-clippy
+# Install clippy-code from PyPI
+uv tool install clippy-code
 
 # Or install from source
 git clone https://github.com/yourusername/clippy.git
@@ -20,11 +20,13 @@ uv pip install -e .
 ## 2. Setup API Keys
 
 For OpenAI (default provider):
+
 ```bash
 echo "OPENAI_API_KEY=your_key_here" > .env
 ```
 
 For other providers:
+
 ```bash
 # Cerebras
 echo "CEREBRAS_API_KEY=your_key_here" > .env
@@ -40,6 +42,7 @@ echo "DEEPSEEK_API_KEY=your_key_here" > .env
 ```
 
 For local models like Ollama, you typically don't need an API key:
+
 ```bash
 # Just set the base URL in your environment or use the --base-url flag
 export OPENAI_BASE_URL=http://localhost:11434/v1
@@ -51,7 +54,7 @@ export OPENAI_BASE_URL=http://localhost:11434/v1
 clippy "create a hello world python script"
 ```
 
-code-with-clippy will:
+clippy-code will:
 
 1. Show you what it plans to do
 2. Ask for approval before writing files
@@ -69,7 +72,7 @@ Now you can have a conversation:
 ```
 [You] ➜ create a simple calculator function
 
-[code-with-clippy will think and respond...]
+[clippy-code will think and respond...]
 
 → write_file
   path: calculator.py
@@ -81,7 +84,7 @@ Now you can have a conversation:
 
 [You] ➜ add tests for it
 
-[code-with-clippy continues...]
+[clippy-code continues...]
 ```
 
 ## 5. Document Mode (Word-like Interface)
@@ -91,6 +94,7 @@ clippy -d
 ```
 
 This mode provides a Textual-based UI with:
+
 - A document area for conversations
 - Toolbar buttons for common actions
 - Visual status bar showing model/token info
@@ -163,6 +167,7 @@ clippy "refactor app.py to use dependency injection"
 ### Model Switching
 
 During interactive sessions, switch models with:
+
 ```bash
 /model list          # Show available models
 /model groq          # Switch to Groq provider
@@ -177,7 +182,7 @@ During interactive sessions, switch models with:
    - Good: "create a Python function to validate email addresses using regex"
    - Better: "create a Python function to validate email addresses using regex, with type hints and docstrings"
 
-2. **Review Before Approving**: Always check what code-with-clippy wants to do
+2. **Review Before Approving**: Always check what clippy-code wants to do
 
    - Read the file path carefully
    - Review the content before approving writes
@@ -189,6 +194,7 @@ During interactive sessions, switch models with:
    - Use `/reset` if you want to start fresh
 
 4. **Auto-Approve for Safe Tasks** (use cautiously):
+
    ```bash
    clippy -y "read all Python files and create a summary"
    ```
@@ -203,7 +209,7 @@ During interactive sessions, switch models with:
 **Problem**: API key error
 **Solution**: Make sure `.env` file exists with the appropriate API key (OPENAI_API_KEY, CEREBRAS_API_KEY, etc.)
 
-**Problem**: code-with-clippy wants to modify the wrong file
+**Problem**: clippy-code wants to modify the wrong file
 **Solution**: Type `N` to reject, then provide more specific instructions
 
 **Problem**: Execution seems stuck
@@ -218,6 +224,6 @@ During interactive sessions, switch models with:
 - Experiment with different types of tasks
 - Try different models and providers
 - Customize permissions for your workflow
-- Provide feedback to improve code-with-clippy!
+- Provide feedback to improve clippy-code!
 
 Happy coding! 📎

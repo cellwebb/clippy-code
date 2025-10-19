@@ -1,6 +1,6 @@
-# Contributing to code-with-clippy
+# Contributing to clippy-code
 
-Thank you for your interest in contributing to code-with-clippy! This guide will help you get started.
+Thank you for your interest in contributing to clippy-code! This guide will help you get started.
 
 ## Development Setup
 
@@ -37,11 +37,13 @@ uv pip install -e ".[dev]"
 3. **Set up your API key**
 
 For OpenAI (default provider):
+
 ```bash
 echo "OPENAI_API_KEY=your_key_here" > .env
 ```
 
 For other providers:
+
 ```bash
 # Cerebras
 echo "CEREBRAS_API_KEY=your_key_here" > .env
@@ -59,7 +61,7 @@ echo "DEEPSEEK_API_KEY=your_key_here" > .env
 4. **Verify the setup**
 
 ```bash
-# Run code-with-clippy in development mode
+# Run clippy-code in development mode
 python -m clippy "list files in the current directory"
 ```
 
@@ -235,7 +237,7 @@ TOOL_SCHEMA = {
 
 def your_tool(param: str) -> tuple[bool, str, Any]:
     """Execute your tool.
-    
+
     Returns:
         Tuple of (success: bool, message: str, result: Any)
     """
@@ -349,4 +351,4 @@ uv publish
 
 ## License
 
-By contributing to code-with-clippy, you agree that your contributions will be licensed under the MIT License.
+By contributing to clippy-code, you agree that your contributions will be licensed under the MIT License.

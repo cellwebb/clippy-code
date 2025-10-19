@@ -18,7 +18,7 @@ from .commands import handle_command
 
 
 def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
-    """Run code-with-clippy in interactive mode (REPL)."""
+    """Run clippy-code in interactive mode (REPL)."""
     console = Console()
 
     # Create key bindings for double-ESC detection
@@ -49,9 +49,9 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
 
     console.print(
         Panel.fit(
-            "[bold green]code-with-clippy Interactive Mode[/bold green]\n\n"
+            "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
             "Commands:\n"
-            "  /exit, /quit - Exit code-with-clippy\n"
+            "  /exit, /quit - Exit clippy-code\n"
             "  /reset, /clear, /new - Reset conversation history\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n"
@@ -92,7 +92,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
                 continue
 
         except KeyboardInterrupt:
-            console.print("\n[yellow]Use /exit or /quit to exit code-with-clippy[/yellow]")
+            console.print("\n[yellow]Use /exit or /quit to exit clippy-code[/yellow]")
             continue
         except EOFError:
             console.print("\n[yellow]Goodbye![/yellow]")
