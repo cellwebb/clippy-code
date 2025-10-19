@@ -320,9 +320,13 @@ def ask_approval(
 
     while True:
         try:
-            response = input("\n[?] Approve this action? [y/N/stop/allow]: ").strip().lower()
+            response = input("\n[?] Approve this action? [(y)es/(n)o/(a)llow]: ").strip().lower()
 
-            if response == "stop":
+            if response == "":
+                # Empty input - reprompt
+                continue
+            elif response in ("no", "n"):
+                # "no" or "n" interrupts execution
                 raise InterruptedExceptionError()
             elif response == "allow" or response == "a":
                 # Check if this is an MCP tool
@@ -352,13 +356,11 @@ def ask_approval(
                         )
                         console.print(f"[green]Auto-approving {tool_name} for this session[/green]")
                     return True
-            elif response == "y":
+            elif response in ("yes", "y"):
                 return True
-            elif response == "n" or response == "":
-                return False
             else:
                 console.print(
-                    "[yellow]Invalid response. Please enter y, n, stop, or allow.[/yellow]"
+                    "[yellow]Invalid response. Please enter (y)es, (n)o, or (a)llow.[/yellow]"
                 )
                 continue
         except (KeyboardInterrupt, EOFError):

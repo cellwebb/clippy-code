@@ -255,20 +255,12 @@ ApprovalBackdrop {
     background: #0d5e0d;
 }
 #approval-no {
-    background: #e1e1e1;
-    color: #000000;
-    border: solid #adadad;
-}
-#approval-no:hover {
-    background: #d0d0d0;
-}
-#approval-stop {
     background: #d13438;
     color: white;
     text-style: bold;
     border: solid #a02c2f;
 }
-#approval-stop:hover {
+#approval-no:hover {
     background: #a92326;
 }
 

@@ -94,7 +94,7 @@ Now you can have a conversation:
   path: calculator.py
   content: def add(a, b): ...
 
-[?] Approve this action? [y/N/stop]: y
+[?] Approve this action? [(y)es/(n)o/(a)llow]: yes
 
 ✓ Successfully wrote to calculator.py
 
@@ -143,14 +143,14 @@ You'll be asked before:
 
 When prompted for approval, you can respond with:
 
-- `y` - Approve and execute the action
-- `N` - Reject the action (default)
-- `stop` - Stop execution entirely
-- `a` or `allow` - Approve and auto-approve this action type for the session
+- `(y)es` or `y` - Approve and execute the action
+- `(n)o` or `n` - Reject and stop execution
+- `(a)llow` or `a` - Approve and auto-approve this action type for the session
+- Empty (just press Enter) - Reprompt for input
 
 ### Stopping Execution
 
-- Type `stop` when asked for approval
+- Type `(n)o` or `n` when asked for approval
 - Press Ctrl+C during execution
 - Use `/exit` to quit interactive mode
 

@@ -49,51 +49,36 @@ def test_document_app_has_bindings() -> None:
 
 
 def test_handle_approval_response_yes() -> None:
-    """Test handling approval response 'y'."""
+    """Test handling approval response 'yes'."""
     mock_agent = Mock()
     app = DocumentApp(mock_agent)
     app.waiting_for_approval = True
     app.current_approval_dialog = Mock()
     app.current_approval_backdrop = Mock()
 
-    app.handle_approval_response("y")
+    app.handle_approval_response("yes")
 
     # Should clear approval state
     assert app.waiting_for_approval is False
     assert app.current_approval_dialog is None
     # Should have queued the response
     assert not app.approval_queue.empty()
-    assert app.approval_queue.get() == "y"
+    assert app.approval_queue.get() == "yes"
 
 
 def test_handle_approval_response_no() -> None:
-    """Test handling approval response 'n'."""
+    """Test handling approval response 'no'."""
     mock_agent = Mock()
     app = DocumentApp(mock_agent)
     app.waiting_for_approval = True
     app.current_approval_dialog = Mock()
     app.current_approval_backdrop = Mock()
 
-    app.handle_approval_response("n")
+    app.handle_approval_response("no")
 
     assert app.waiting_for_approval is False
     assert not app.approval_queue.empty()
-    assert app.approval_queue.get() == "n"
-
-
-def test_handle_approval_response_stop() -> None:
-    """Test handling approval response 'stop'."""
-    mock_agent = Mock()
-    app = DocumentApp(mock_agent)
-    app.waiting_for_approval = True
-    app.current_approval_dialog = Mock()
-    app.current_approval_backdrop = Mock()
-
-    app.handle_approval_response("stop")
-
-    assert app.waiting_for_approval is False
-    assert not app.approval_queue.empty()
-    assert app.approval_queue.get() == "stop"
+    assert app.approval_queue.get() == "no"
 
 
 def test_handle_approval_response_allow() -> None:
