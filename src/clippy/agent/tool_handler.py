@@ -317,38 +317,52 @@ def ask_approval(
             raise
 
     # Default behavior: use input() (for interactive mode)
-    try:
-        response = input("\n[?] Approve this action? [y/N/stop/allow]: ").strip().lower()
-        if response == "stop":
-            raise InterruptedExceptionError()
-        elif response == "allow" or response == "a":
-            # Check if this is an MCP tool
-            if is_mcp_tool(tool_name):
-                # Trust the MCP server
-                try:
-                    server_id, _ = parse_mcp_qualified_name(tool_name)
-                    if mcp_manager:
-                        mcp_manager.set_trusted(server_id, True)
-                        console.print(
-                            f"[green]✓ Trusted MCP server '{server_id}' for this session[/green]"
+
+    while True:
+        try:
+            response = input("\n[?] Approve this action? [y/N/stop/allow]: ").strip().lower()
+
+            if response == "stop":
+                raise InterruptedExceptionError()
+            elif response == "allow" or response == "a":
+                # Check if this is an MCP tool
+                if is_mcp_tool(tool_name):
+                    # Trust the MCP server
+                    try:
+                        server_id, _ = parse_mcp_qualified_name(tool_name)
+                        if mcp_manager:
+                            mcp_manager.set_trusted(server_id, True)
+                            console.print(
+                                f"[green]✓ Trusted MCP server '{server_id}' for this "
+                                f"session[/green]"
+                            )
+                            console.print(
+                                f"[green]All tools from '{server_id}' will be auto-approved[/green]"
+                            )
+                        else:
+                            console.print("[yellow]⚠ MCP manager not available[/yellow]")
+                    except Exception as e:
+                        console.print(f"[yellow]⚠ Error trusting server: {escape(str(e))}[/yellow]")
+                    return True
+                else:
+                    # Auto-approve this action type for non-MCP tools
+                    if action_type:
+                        permission_manager.update_permission(
+                            action_type, PermissionLevel.AUTO_APPROVE
                         )
-                        console.print(
-                            f"[green]All tools from '{server_id}' will be auto-approved[/green]"
-                        )
-                    else:
-                        console.print("[yellow]⚠ MCP manager not available[/yellow]")
-                except Exception as e:
-                    console.print(f"[yellow]⚠ Error trusting server: {escape(str(e))}[/yellow]")
+                        console.print(f"[green]Auto-approving {tool_name} for this session[/green]")
+                    return True
+            elif response == "y":
                 return True
+            elif response == "n" or response == "":
+                return False
             else:
-                # Auto-approve this action type for non-MCP tools
-                if action_type:
-                    permission_manager.update_permission(action_type, PermissionLevel.AUTO_APPROVE)
-                    console.print(f"[green]Auto-approving {tool_name} for this session[/green]")
-                return True
-        return response == "y"
-    except (KeyboardInterrupt, EOFError):
-        raise InterruptedExceptionError()
+                console.print(
+                    "[yellow]Invalid response. Please enter y, n, stop, or allow.[/yellow]"
+                )
+                continue
+        except (KeyboardInterrupt, EOFError):
+            raise InterruptedExceptionError()
 
 
 def add_tool_result(
