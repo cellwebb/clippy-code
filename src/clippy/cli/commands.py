@@ -4,6 +4,7 @@ import os
 from typing import Any, Literal
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 
 from ..agent import ClippyAgent
@@ -378,7 +379,7 @@ def _handle_mcp_refresh(mcp_manager: Any, console: Console) -> None:
         asyncio.run(mcp_manager.start())
         console.print("[green]✓ MCP servers refreshed[/green]")
     except Exception as e:
-        console.print(f"[red]✗ Error refreshing MCP servers: {e}[/red]")
+        console.print(f"[red]✗ Error refreshing MCP servers: {escape(str(e))}[/red]")
 
 
 def _handle_mcp_allow(mcp_manager: Any, console: Console, server_arg: str) -> None:
