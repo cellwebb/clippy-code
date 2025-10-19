@@ -87,6 +87,10 @@ Screen {
     height: 1fr;
     width: 1fr;
     overflow-y: auto;
+    scrollbar-background: white;
+    scrollbar-color: white;
+    scrollbar-color-hover: #f0f0f0;
+    scrollbar-color-active: #e0e0e0;
 }
 #conversation-log {
     height: auto;
