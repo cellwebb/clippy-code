@@ -198,6 +198,9 @@ def handle_tool_use(
         add_tool_result(conversation_history, tool_use_id, False, "Action denied by policy", None)
         return False
 
+    # Track whether user explicitly approved (to bypass trust check for MCP tools)
+    user_approved = False
+
     if needs_approval:
         approved = ask_approval(
             tool_name,
@@ -215,9 +218,12 @@ def handle_tool_use(
                 conversation_history, tool_use_id, False, "Action rejected by user", None
             )
             return False
+        user_approved = True
 
     # Execute the tool
-    success, message, result = executor.execute(tool_name, tool_input)
+    # For MCP tools, bypass trust check if user explicitly approved
+    bypass_trust = user_approved and is_mcp_tool(tool_name)
+    success, message, result = executor.execute(tool_name, tool_input, bypass_trust)
 
     # Enhanced error handling for MCP tools
     if not success and is_mcp_tool(tool_name):
