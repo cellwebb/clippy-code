@@ -1,5 +1,6 @@
 """Tool handling utilities for the agent system."""
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
@@ -11,6 +12,8 @@ from ..executor import ActionExecutor
 from ..mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from ..permissions import ActionType, PermissionLevel, PermissionManager
 from .utils import generate_preview_diff
+
+logger = logging.getLogger(__name__)
 
 # Import InterruptedExceptionError from agent to avoid circular import
 # Will be imported at runtime when needed
@@ -176,12 +179,14 @@ def handle_tool_use(
     needs_approval = not auto_approve_all and not permission_manager.config.can_auto_execute(
         action_type
     )
+    logger.debug(f"Tool: {tool_name}, Action: {action_type}, Needs approval: {needs_approval}")
 
     # For MCP tools, also check if the server is trusted
     if is_mcp_tool(tool_name) and mcp_manager and needs_approval:
         try:
             server_id, _ = parse_mcp_qualified_name(tool_name)
             if mcp_manager.is_trusted(server_id):
+                logger.debug(f"MCP server '{server_id}' is trusted, bypassing approval")
                 needs_approval = False
         except ValueError:
             pass
@@ -195,6 +200,7 @@ def handle_tool_use(
         display_tool_request(console, tool_name, tool_input, diff_content)
 
     if permission_manager.config.is_denied(action_type):
+        logger.warning(f"Action denied by policy: {tool_name} ({action_type})")
         console.print("[bold red]✗ Action denied by policy[/bold red]")
         add_tool_result(conversation_history, tool_use_id, False, "Action denied by policy", None)
         return False
@@ -203,6 +209,7 @@ def handle_tool_use(
     user_approved = False
 
     if needs_approval:
+        logger.debug(f"Requesting approval for: {tool_name}")
         approved = ask_approval(
             tool_name,
             tool_input,
@@ -214,17 +221,21 @@ def handle_tool_use(
             mcp_manager,
         )
         if not approved:
+            logger.info(f"User rejected tool execution: {tool_name}")
             console.print("[bold yellow]⊘ Action rejected by user[/bold yellow]")
             add_tool_result(
                 conversation_history, tool_use_id, False, "Action rejected by user", None
             )
             return False
+        logger.info(f"User approved tool execution: {tool_name}")
         user_approved = True
 
     # Execute the tool
     # For MCP tools, bypass trust check if user explicitly approved
     bypass_trust = user_approved and is_mcp_tool(tool_name)
+    logger.debug(f"Executing tool: {tool_name}, bypass_trust: {bypass_trust}")
     success, message, result = executor.execute(tool_name, tool_input, bypass_trust)
+    logger.debug(f"Tool execution result: success={success}, message={message}")
 
     # Enhanced error handling for MCP tools
     if not success and is_mcp_tool(tool_name):
@@ -327,8 +338,10 @@ def ask_approval(
                 continue
             elif response in ("no", "n"):
                 # "no" or "n" interrupts execution
+                logger.info(f"User rejected approval for: {tool_name}")
                 raise InterruptedExceptionError()
             elif response == "allow" or response == "a":
+                logger.info(f"User chose 'allow' for: {tool_name}")
                 # Check if this is an MCP tool
                 if is_mcp_tool(tool_name):
                     # Trust the MCP server
@@ -354,9 +367,11 @@ def ask_approval(
                         permission_manager.update_permission(
                             action_type, PermissionLevel.AUTO_APPROVE
                         )
+                        logger.info(f"Auto-approved action type: {action_type}")
                         console.print(f"[green]Auto-approving {tool_name} for this session[/green]")
                     return True
             elif response in ("yes", "y"):
+                logger.debug(f"User approved (yes): {tool_name}")
                 return True
             else:
                 console.print(

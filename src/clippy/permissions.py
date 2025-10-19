@@ -1,8 +1,11 @@
 """Permission system for controlling agent actions."""
 
+import logging
 from enum import Enum
 
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class PermissionLevel(str, Enum):
@@ -83,10 +86,14 @@ class PermissionManager:
 
     def check_permission(self, action_type: ActionType) -> PermissionLevel:
         """Check the permission level for an action."""
-        return self.config.get_permission_level(action_type)
+        level = self.config.get_permission_level(action_type)
+        logger.debug(f"Permission check: {action_type} -> {level}")
+        return level
 
     def update_permission(self, action_type: ActionType, level: PermissionLevel) -> None:
         """Update the permission level for an action type."""
+        logger.info(f"Updating permission: {action_type} -> {level}")
+
         # Remove from all sets first
         self.config.auto_approve.discard(action_type)
         self.config.require_approval.discard(action_type)

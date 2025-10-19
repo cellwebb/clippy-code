@@ -1,5 +1,6 @@
 """Main ActionExecutor class that coordinates all operations."""
 
+import logging
 from typing import Any
 
 from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
@@ -17,6 +18,8 @@ from .tools import (
     search_files,
     write_file,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ActionExecutor:
@@ -52,15 +55,20 @@ class ActionExecutor:
         Returns:
             Tuple of (success: bool, message: str, result: Any)
         """
+        logger.debug(f"Executing tool: {tool_name}, bypass_trust={bypass_trust_check}")
+
         # Handle MCP tools first
         if is_mcp_tool(tool_name):
             if self._mcp_manager is None:
+                logger.error("MCP tool execution failed: MCP manager not available")
                 return False, "MCP manager not available", None
 
             try:
                 server_id, tool = parse_mcp_qualified_name(tool_name)
+                logger.debug(f"Delegating to MCP manager: server={server_id}, tool={tool}")
                 return self._mcp_manager.execute(server_id, tool, tool_input, bypass_trust_check)
             except Exception as e:
+                logger.error(f"Error executing MCP tool {tool_name}: {e}", exc_info=True)
                 return False, f"Error executing MCP tool {tool_name}: {str(e)}", None
 
         # Map tool names to action types
@@ -80,32 +88,37 @@ class ActionExecutor:
 
         action_type = action_map.get(tool_name)
         if not action_type:
+            logger.warning(f"Unknown tool requested: {tool_name}")
             return False, f"Unknown tool: {tool_name}", None
+
+        logger.debug(f"Tool mapped to action type: {action_type}")
 
         # Check if action is denied
         if self.permission_manager.config.is_denied(action_type):
+            logger.warning(f"Action denied by permission manager: {tool_name} ({action_type})")
             return False, f"Action {tool_name} is denied by policy", None
 
         # Execute the action
+        logger.debug(f"Executing built-in tool: {tool_name}")
         try:
             if tool_name == "read_file":
-                return read_file(tool_input["path"])
+                result = read_file(tool_input["path"])
             elif tool_name == "write_file":
-                return write_file(tool_input["path"], tool_input["content"])
+                result = write_file(tool_input["path"], tool_input["content"])
             elif tool_name == "delete_file":
-                return delete_file(tool_input["path"])
+                result = delete_file(tool_input["path"])
             elif tool_name == "list_directory":
-                return list_directory(tool_input["path"], tool_input.get("recursive", False))
+                result = list_directory(tool_input["path"], tool_input.get("recursive", False))
             elif tool_name == "create_directory":
-                return create_directory(tool_input["path"])
+                result = create_directory(tool_input["path"])
             elif tool_name == "execute_command":
-                return execute_command(tool_input["command"], tool_input.get("working_dir", "."))
+                result = execute_command(tool_input["command"], tool_input.get("working_dir", "."))
             elif tool_name == "search_files":
-                return search_files(tool_input["pattern"], tool_input.get("path", "."))
+                result = search_files(tool_input["pattern"], tool_input.get("path", "."))
             elif tool_name == "get_file_info":
-                return get_file_info(tool_input["path"])
+                result = get_file_info(tool_input["path"])
             elif tool_name == "read_files":
-                return read_files(tool_input["paths"])
+                result = read_files(tool_input["paths"])
             elif tool_name == "grep":
                 # Handle both 'path' (singular) and 'paths' (plural)
                 paths = tool_input.get("paths")
@@ -115,9 +128,9 @@ class ActionExecutor:
                     if path is None:
                         return False, "grep requires either 'path' or 'paths' parameter", None
                     paths = [path]
-                return grep(tool_input["pattern"], paths, tool_input.get("flags", ""))
+                result = grep(tool_input["pattern"], paths, tool_input.get("flags", ""))
             elif tool_name == "edit_file":
-                return edit_file(
+                result = edit_file(
                     tool_input["path"],
                     tool_input["operation"],
                     tool_input.get("content", ""),
@@ -130,6 +143,17 @@ class ActionExecutor:
                     tool_input.get("regex_flags", None),
                 )
             else:
+                logger.warning(f"Unimplemented tool: {tool_name}")
                 return False, f"Unimplemented tool: {tool_name}", None
+
+            # Log result
+            success = result[0]
+            if success:
+                logger.info(f"Tool execution succeeded: {tool_name}")
+            else:
+                logger.warning(f"Tool execution failed: {tool_name} - {result[1]}")
+            return result
+
         except Exception as e:
+            logger.error(f"Exception during tool execution: {tool_name} - {e}", exc_info=True)
             return False, f"Error executing {tool_name}: {str(e)}", None

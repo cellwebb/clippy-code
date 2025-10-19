@@ -55,13 +55,18 @@ def run_agent_loop(
     from .core import InterruptedExceptionError
 
     max_iterations = 50  # Prevent infinite loops
+    logger.info(f"Starting agent loop with model: {model}, max_iterations: {max_iterations}")
 
     for iteration in range(max_iterations):
+        logger.debug(f"Agent loop iteration {iteration + 1}/{max_iterations}")
+
         if check_interrupted():
+            logger.info("Agent loop interrupted by user")
             raise InterruptedExceptionError()
 
         # Get current tools (built-in + MCP)
         tools = tool_catalog.get_all_tools(mcp_manager)
+        logger.debug(f"Loaded {len(tools)} tools for iteration {iteration + 1}")
 
         # Call provider (returns OpenAI message dict)
         try:
@@ -103,11 +108,18 @@ def run_agent_loop(
         has_tool_calls = False
         if response.get("tool_calls"):
             has_tool_calls = True
+            num_tool_calls = len(response["tool_calls"])
+            logger.info(f"Processing {num_tool_calls} tool call(s) in iteration {iteration + 1}")
+
             for tool_call in response["tool_calls"]:
+                tool_name = tool_call["function"]["name"]
+                logger.debug(f"Processing tool call: {tool_name}")
+
                 # Parse tool arguments (JSON string -> dict)
                 try:
                     tool_input = json.loads(tool_call["function"]["arguments"])
                 except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse tool arguments for {tool_name}: {e}")
                     console.print(
                         f"[bold red]Error parsing tool arguments: {escape(str(e))}[/bold red]"
                     )
@@ -123,7 +135,7 @@ def run_agent_loop(
                     continue
 
                 success = handle_tool_use(
-                    tool_call["function"]["name"],
+                    tool_name,
                     tool_input,
                     tool_call["id"],
                     auto_approve_all,
@@ -135,22 +147,34 @@ def run_agent_loop(
                     mcp_manager,
                 )
                 if not success:
+                    logger.warning(f"Tool execution failed or denied: {tool_name}")
                     # Tool execution failed or was denied
                     continue
+                else:
+                    logger.info(f"Tool executed successfully: {tool_name}")
 
         # If no tool calls, we're done
         # (content was already streamed by the provider)
         if not has_tool_calls:
+            logger.info(f"Agent loop completed successfully after {iteration + 1} iteration(s)")
             content = response.get("content", "")
             return content if isinstance(content, str) else ""
 
         # Check finish reason
         # (content was already streamed by the provider)
         if response.get("finish_reason") == "stop":
+            logger.info(
+                f"Agent loop stopped (finish_reason=stop) after {iteration + 1} iteration(s)"
+            )
             content = response.get("content", "")
             return content if isinstance(content, str) else ""
 
+        # Warn if approaching iteration limit
+        if iteration >= max_iterations - 5:
+            logger.warning(f"Approaching iteration limit: {iteration + 1}/{max_iterations}")
+
     # Max iterations reached - display warning
+    logger.warning(f"Maximum iterations ({max_iterations}) reached")
     console.print(
         Panel(
             "[bold yellow]⚠ Maximum Iterations Reached[/bold yellow]\n\n"
