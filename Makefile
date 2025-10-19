@@ -122,6 +122,8 @@ bump-patch:
 	new_version_content = re.sub(r'__version__ = \"\d+\.\d+\.\d+\"', f'__version__ = \"{new_version}\"', version_content); \
 	open('src/clippy/__version__.py', 'w').write(new_version_content); \
 	print(f'Version bumped to {new_version}')"
+	@echo "Updating uv.lock file..."
+	@uv lock
 
 bump-minor:
 	@echo "Bumping minor version..."
@@ -136,6 +138,8 @@ bump-minor:
 	new_version_content = re.sub(r'__version__ = \"\d+\.\d+\.\d+\"', f'__version__ = \"{new_version}\"', version_content); \
 	open('src/clippy/__version__.py', 'w').write(new_version_content); \
 	print(f'Version bumped to {new_version}')"
+	@echo "Updating uv.lock file..."
+	@uv lock
 
 bump-major:
 	@echo "Bumping major version..."
@@ -149,4 +153,7 @@ bump-major:
 	version_content = open('src/clippy/__version__.py').read(); \
 	new_version_content = re.sub(r'__version__ = \"\d+\.\d+\.\d+\"', f'__version__ = \"{new_version}\"', version_content); \
 	open('src/clippy/__version__.py', 'w').write(new_version_content); \
+	print(f'Version bumped to {new_version}')"
+	@echo "Updating uv.lock file..."
+	@uv lock
 	print(f'Version bumped to {new_version}')"
