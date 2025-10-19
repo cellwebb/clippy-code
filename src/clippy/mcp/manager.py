@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import threading
 from typing import Any
 
 from mcp import ClientSession, StdioServerParameters, types
@@ -34,8 +35,38 @@ class Manager:
         self._tools: dict[str, list[types.Tool]] = {}  # Server ID -> tools
         self._trust_store = TrustStore()
 
-    async def start(self) -> None:
-        """Start the MCP manager and initialize connections."""
+        # Create a persistent event loop in a background thread
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._loop_thread: threading.Thread | None = None
+        self._loop_started = threading.Event()
+        self._start_event_loop()
+
+    def _start_event_loop(self) -> None:
+        """Start a persistent event loop in a background thread."""
+
+        def run_loop() -> None:
+            self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
+            self._loop_started.set()
+            self._loop.run_forever()
+
+        self._loop_thread = threading.Thread(target=run_loop, daemon=True)
+        self._loop_thread.start()
+        self._loop_started.wait()  # Wait for loop to be ready
+
+    def _run_in_loop(self, coro: Any) -> Any:
+        """Run a coroutine in the persistent event loop and wait for result."""
+        if self._loop is None:
+            raise RuntimeError("Event loop not started")
+        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        return future.result()
+
+    def start(self) -> None:
+        """Start the MCP manager and initialize connections (synchronous wrapper)."""
+        self._run_in_loop(self._async_start())
+
+    async def _async_start(self) -> None:
+        """Start the MCP manager and initialize connections (async implementation)."""
         # Initialize all configured servers
         for server_id, server_config in self.config.mcp_servers.items():
             try:
@@ -81,8 +112,19 @@ class Manager:
                     )
                     self.console.print(error_msg)
 
-    async def stop(self) -> None:
-        """Stop the MCP manager and close connections."""
+    def stop(self) -> None:
+        """Stop the MCP manager and close connections (synchronous wrapper)."""
+        try:
+            self._run_in_loop(self._async_stop())
+        finally:
+            # Stop the event loop
+            if self._loop:
+                self._loop.call_soon_threadsafe(self._loop.stop)
+            if self._loop_thread:
+                self._loop_thread.join(timeout=5.0)
+
+    async def _async_stop(self) -> None:
+        """Stop the MCP manager and close connections (async implementation)."""
         # Close all sessions by calling __aexit__ on the context managers
         # Must close session contexts first, then stdio contexts
         for server_id in list(self._sessions.keys()):
@@ -201,25 +243,43 @@ class Manager:
         """
         # Check if server is configured
         if server_id not in self.config.mcp_servers:
-            return False, f"MCP server '{server_id}' not configured", None
+            error_msg = f"MCP server '{server_id}' not configured"
+            logger.error(f"MCP execution failed: {error_msg}")
+            return False, error_msg, None
 
         # Check if we're connected to the server
         if server_id not in self._sessions:
-            return False, f"Not connected to MCP server '{server_id}'", None
+            error_msg = f"Not connected to MCP server '{server_id}'"
+            logger.error(f"MCP execution failed: {error_msg}")
+            return False, error_msg, None
 
         # Check trust
         if not self._trust_store.is_trusted(server_id):
-            return False, f"MCP server '{server_id}' not trusted", None
+            error_msg = f"MCP server '{server_id}' not trusted"
+            logger.error(f"MCP execution failed: {error_msg}")
+            return False, error_msg, None
 
         session = self._sessions[server_id]
 
         try:
-            # Execute tool call
-            result = asyncio.run(self._execute_tool(session, tool_name, args))
+            # Log the execution attempt
+            logger.info(
+                f"Executing MCP tool '{tool_name}' on server '{server_id}' with args: {args}"
+            )
+
+            # Execute tool call in the persistent event loop
+            result = self._run_in_loop(self._execute_tool(session, tool_name, args))
+
+            logger.info(f"Successfully executed MCP tool '{tool_name}' on server '{server_id}'")
             return True, f"Successfully executed MCP tool '{tool_name}'", result
         except Exception as e:
-            logger.error(f"Error executing MCP tool '{tool_name}' on server '{server_id}': {e}")
-            error_msg = f"Error executing MCP tool '{tool_name}': {str(e)}"
+            # Log full exception details
+            logger.error(
+                f"Error executing MCP tool '{tool_name}' on server '{server_id}': "
+                f"{type(e).__name__}: {e}",
+                exc_info=True,
+            )
+            error_msg = f"Error executing MCP tool '{tool_name}': {type(e).__name__}: {str(e)}"
             return False, error_msg, None
 
     async def _execute_tool(self, session: Any, tool_name: str, args: dict[str, Any]) -> Any:

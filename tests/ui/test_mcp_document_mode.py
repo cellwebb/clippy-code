@@ -1,6 +1,6 @@
 """Tests for MCP functionality in document mode."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from clippy.ui.document_app import DocumentApp
 
@@ -187,8 +187,7 @@ class TestMCPDocumentMode:
         calls = [str(call.args[0]) for call in conv_log.write.call_args_list]
         assert any("Unknown MCP command" in call for call in calls)
 
-    @patch("threading.Thread")
-    def test_mcp_refresh_command(self, mock_thread) -> None:
+    def test_mcp_refresh_command(self) -> None:
         """Test /mcp refresh command."""
         mock_agent = Mock()
         mock_mcp_manager = Mock()
@@ -204,8 +203,11 @@ class TestMCPDocumentMode:
 
         app._handle_mcp_refresh(mock_mcp_manager, conv_log)
 
-        # Should create thread and write refresh messages
-        mock_thread.assert_called_once()
+        # Should call stop and start
+        mock_mcp_manager.stop.assert_called_once()
+        mock_mcp_manager.start.assert_called_once()
+
+        # Should write refresh messages
         conv_log.write.assert_called()
         calls = [str(call.args[0]) for call in conv_log.write.call_args_list]
         assert any("Refreshing" in call for call in calls)
