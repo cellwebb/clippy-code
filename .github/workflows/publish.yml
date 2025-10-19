@@ -1,0 +1,63 @@
+# Publishes package to PyPI when a version tag is pushed
+# Requires PYPI_API_TOKEN in repo secrets
+
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+" # Matches tags like v0.17.3
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/pyproject.toml"
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          # Get tag name from GITHUB_REF (refs/tags/v0.17.3 -> v0.17.3)
+          TAG=${GITHUB_REF#refs/tags/}
+          # Remove 'v' prefix to get version number
+          VERSION=${TAG#v}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version $VERSION from tag $TAG"
+
+      - name: Verify version matches code
+        run: |
+          # Get version from code
+          CODE_VERSION=$(grep '__version__' src/clippy/__version__.py | sed 's/.*"\(.*\)".*/\1/')
+          TAG_VERSION=${{ steps.get_version.outputs.version }}
+
+          if [ "$CODE_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Version mismatch! Code has $CODE_VERSION but tag is v$TAG_VERSION"
+            echo "Please ensure src/clippy/__version__.py matches the tag version"
+            exit 1
+          fi
+
+          echo "✅ Version verified: $CODE_VERSION"
+
+      - name: Build package
+        run: uv build
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          uvx twine upload dist/*
+          echo "::notice::Successfully published version ${{ steps.get_version.outputs.version }} to PyPI"
