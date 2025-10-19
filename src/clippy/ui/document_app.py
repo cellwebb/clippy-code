@@ -102,11 +102,9 @@ class DocumentApp(App[None]):
         elif button_id == "approval-allow":
             self.handle_approval_response("allow")
         elif button_id == "approval-yes":
-            self.handle_approval_response("y")
+            self.handle_approval_response("yes")
         elif button_id == "approval-no":
-            self.handle_approval_response("n")
-        elif button_id == "approval-stop":
-            self.handle_approval_response("stop")
+            self.handle_approval_response("no")
         elif button_id == "error-ok":
             if self.current_error_panel:
                 self.current_error_panel.remove()
@@ -255,7 +253,7 @@ class DocumentApp(App[None]):
 
         self.call_from_thread(show_input)
 
-        if response == "stop":
+        if response == "no":
             raise InterruptedExceptionError()
         elif response == "allow":
             # Check if this is an MCP tool
@@ -309,7 +307,7 @@ class DocumentApp(App[None]):
                     # Fallback to regular approval
                     return True
 
-        return response == "y"
+        return response == "yes"
 
     def action_submit(self) -> None:
         conv_log = self.query_one("#conversation-log", RichLog)
@@ -322,12 +320,22 @@ class DocumentApp(App[None]):
         # Check if waiting for approval
         if self.waiting_for_approval:
             response = user_input.lower()
-            valid_responses = {"y", "n", "stop", "allow", "a"}
+
+            # Empty input - just reprompt (do nothing, clear input)
+            if response == "":
+                user_input_widget.value = ""
+                return
+
+            valid_responses = {"yes", "y", "no", "n", "allow", "a"}
 
             if response in valid_responses:
                 # Convert shorthand responses
                 if response == "a":
                     response = "allow"
+                elif response == "y":
+                    response = "yes"
+                elif response == "n":
+                    response = "no"
                 self.approval_queue.put(response)
                 user_input_widget.value = ""
                 return
@@ -335,7 +343,7 @@ class DocumentApp(App[None]):
                 # Show error message for invalid response
                 def show_error() -> None:
                     conv_log.write(
-                        "[yellow]Invalid response. Please enter y, n, stop, or allow.[/yellow]"
+                        "[yellow]Invalid response. Please enter (y)es, (n)o, or (a)llow.[/yellow]"
                     )
 
                 self.call_from_thread(show_error)
@@ -770,10 +778,10 @@ class DocumentApp(App[None]):
         conv_log.write("[bold]✅ Approval System[/bold]")
         conv_log.write("• When a tool requires approval, you'll see a yellow warning")
         conv_log.write(
-            "• Type [bold]y[/bold] (yes), [bold]n[/bold] (no), or [bold]stop[/bold] to interrupt"
+            "• Type [bold](y)es[/bold] to approve, [bold](n)o[/bold] to reject and stop execution"
         )
         conv_log.write(
-            "• Type [bold]a[/bold] or [bold]allow[/bold] to approve and auto-approve future calls"
+            "• Type [bold](a)llow[/bold] to approve and auto-approve all future calls of this type"
         )
         conv_log.write("• File operations (write, delete) and commands need approval")
         conv_log.write("• Read operations are auto-approved")

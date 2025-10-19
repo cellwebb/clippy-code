@@ -136,15 +136,15 @@ When clippy-code wants to perform a risky action, you'll see a prompt:
   path: example.py
   content: print("Hello, World!")
 
-[?] Approve this action? [y/N/stop]:
+[?] Approve this action? [(y)es/(n)o/(a)llow]:
 ```
 
 Options:
 
-- `y` - Approve and execute
-- `N` - Reject (default)
-- `stop` - Stop execution entirely
-- `a` or `allow` - Approve and auto-approve this action type for the session
+- `(y)es` or `y` - Approve and execute
+- `(n)o` or `n` - Reject and stop execution
+- `(a)llow` or `a` - Approve and auto-approve this action type for the session
+- Empty (just press Enter) - Reprompt for input
 
 ### Slash Commands (Interactive/Document Mode)
 

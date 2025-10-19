@@ -14,7 +14,7 @@ class DocumentHeader(Static):
         super().__init__(**kwargs)
         self.update(
             "👀📎 clippy - 📄 Document Mode\n"
-            "Type directly, press Enter to send • Type 'y'/'n'/'stop' when prompted"
+            "Type directly, press Enter to send • Type '(y)es'/'(n)o'/'(a)llow' when prompted"
         )
 
 
@@ -378,8 +378,7 @@ class ApprovalDialog(Container):
             else:
                 yield Button("Yes", id="approval-yes", variant="primary")
                 yield Button("Yes (Allow All)", id="approval-allow", variant="success")
-            yield Button("No", id="approval-no", variant="default")
-            yield Button("Cancel", id="approval-stop", variant="error")
+            yield Button("No", id="approval-no", variant="error")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses for expand/collapse functionality."""
