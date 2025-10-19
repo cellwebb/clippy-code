@@ -48,6 +48,22 @@ For local models like Ollama, you typically don't need an API key:
 export OPENAI_BASE_URL=http://localhost:11434/v1
 ```
 
+### Optional: MCP Configuration
+
+To use external tools via MCP (Model Context Protocol), create an `mcp.json` file:
+
+```bash
+# Create the clippy directory
+mkdir -p ~/.clippy
+
+# Copy the example configuration
+cp mcp.example.json ~/.clippy/mcp.json
+
+# Edit it with your API keys
+# For example, to use Context7 for documentation retrieval:
+# Set CTX7_API_KEY environment variable
+```
+
 ## 3. First Command (One-Shot Mode)
 
 ```bash
