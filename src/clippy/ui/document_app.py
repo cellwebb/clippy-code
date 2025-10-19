@@ -7,6 +7,7 @@ import sys
 from typing import Any
 
 from rich.console import Console
+from rich.markup import escape
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -204,9 +205,9 @@ class DocumentApp(App[None]):
         input_text = "\n".join(input_lines)
 
         def write_prompt() -> None:
-            conv_log.write(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
+            conv_log.write(f"\n[bold cyan]→ {escape(tool_name)}[/bold cyan]")
             if input_text:
-                conv_log.write(f"[cyan]{input_text}[/cyan]")
+                conv_log.write(f"[cyan]{escape(input_text)}[/cyan]")
 
             # Mention that diff preview is available in the approval dialog
             # to avoid duplicate display of the same information
@@ -281,7 +282,7 @@ class DocumentApp(App[None]):
                     else:
                         conv_log.write("[yellow]⚠ MCP manager not available[/yellow]")
                 except Exception as e:
-                    conv_log.write(f"[yellow]⚠ Error trusting server: {e}[/yellow]")
+                    conv_log.write(f"[yellow]⚠ Error trusting server: {escape(str(e))}[/yellow]")
                 return True
             else:
                 # Auto-approve this tool type for non-MCP tools
@@ -308,7 +309,7 @@ class DocumentApp(App[None]):
                     self.agent.permission_manager.update_permission(
                         action_type, PermissionLevel.AUTO_APPROVE
                     )
-                    conv_log.write(f"[green]Auto-approving {tool_name} for this session[/green]")
+                    conv_log.write(f"[green]Auto-approving {escape(tool_name)} for this session[/green]")
                     return True
                 else:
                     # Fallback to regular approval
@@ -357,8 +358,8 @@ class DocumentApp(App[None]):
                 user_input_widget.value = ""
                 return
 
-        # Show user input
-        conv_log.write(f"[bold][You] ➜[/bold] {user_input}")
+        # Show user input (escape to prevent markup interpretation)
+        conv_log.write(f"[bold][You] ➜[/bold] {escape(user_input)}")
         conv_log.write("")
         user_input_widget.value = ""
 
@@ -389,7 +390,7 @@ class DocumentApp(App[None]):
                     f"{stats['messages_after']} (summarized {stats['messages_summarized']})"
                 )
             else:
-                conv_log.write(f"[yellow]⚠ Cannot Compact: {message}[/yellow]")
+                conv_log.write(f"[yellow]⚠ Cannot Compact: {escape(message)}[/yellow]")
             return
         elif user_input.lower().startswith("/model"):
             self.handle_model_command(user_input)
@@ -446,9 +447,9 @@ class DocumentApp(App[None]):
                 self.agent.permission_manager.update_permission(
                     action_type, PermissionLevel.REQUIRE_APPROVAL
                 )
-                conv_log.write(f"[green]Revoked auto-approval for {action_to_revoke}[/green]")
+                conv_log.write(f"[green]Revoked auto-approval for {escape(action_to_revoke)}[/green]")
             else:
-                conv_log.write(f"[red]Unknown action type: {action_to_revoke}[/red]")
+                conv_log.write(f"[red]Unknown action type: {escape(action_to_revoke)}[/red]")
         elif subcommand == "clear":
             # Clear all auto-approvals
             from ..permissions import PermissionLevel
@@ -503,7 +504,7 @@ class DocumentApp(App[None]):
         elif subcommand == "revoke":
             self._handle_mcp_revoke(mcp_manager, conv_log, subcommand_args)
         else:
-            conv_log.write(f"[red]Unknown MCP command: {subcommand}[/red]")
+            conv_log.write(f"[red]Unknown MCP command: {escape(subcommand)}[/red]")
             conv_log.write(
                 "[dim]Available commands: list, tools, status, refresh, allow, revoke[/dim]"
             )
@@ -523,7 +524,7 @@ class DocumentApp(App[None]):
                 "[green]connected[/green]" if server["connected"] else "[red]disconnected[/red]"
             )
             conv_log.write(
-                f"• [cyan]{server['server_id']:20}[/cyan] - {status} "
+                f"• [cyan]{escape(server['server_id']):20}[/cyan] - {status} "
                 f"({server['tools_count']} tools)"
             )
         conv_log.write("")
@@ -534,7 +535,7 @@ class DocumentApp(App[None]):
             # List tools for specific server
             tools = mcp_manager.list_tools(server_arg)
             if not tools:
-                conv_log.write(f"[yellow]No tools found for server '{server_arg}'[/yellow]")
+                conv_log.write(f"[yellow]No tools found for server '{escape(server_arg)}'[/yellow]")
                 return
         else:
             # List tools for all servers
@@ -548,8 +549,8 @@ class DocumentApp(App[None]):
         for tool in tools:
             if tool["server_id"] != current_server:
                 current_server = tool["server_id"]
-                conv_log.write(f"\n[bold]Server: {current_server}[/bold]")
-            conv_log.write(f"  • [cyan]{tool['name']}[/cyan] - {tool['description']}")
+                conv_log.write(f"\n[bold]Server: {escape(current_server)}[/bold]")
+            conv_log.write(f"  • [cyan]{escape(tool['name'])}[/cyan] - {escape(tool['description'])}")
         conv_log.write("")
 
     def _handle_mcp_status(self, mcp_manager: Any, conv_log: RichLog) -> None:
@@ -572,7 +573,7 @@ class DocumentApp(App[None]):
             status_color = "green" if connected else "red"
             status_text = "connected" if connected else "disconnected"
 
-            conv_log.write(f"\n[bold]{status_symbol} {server_id}[/bold]")
+            conv_log.write(f"\n[bold]{status_symbol} {escape(server_id)}[/bold]")
             conv_log.write(f"  Connection: [{status_color}]{status_text}[/{status_color}]")
             conv_log.write(
                 f"  Trusted: [{'green' if trusted else 'yellow'}]"
@@ -585,7 +586,7 @@ class DocumentApp(App[None]):
                 tools = mcp_manager.list_tools(server_id)
                 conv_log.write("  Available tools:")
                 for tool in tools[:5]:  # Show first 5 tools
-                    conv_log.write(f"    • {tool['name']}")
+                    conv_log.write(f"    • {escape(tool['name'])}")
                 if tools_count > 5:
                     conv_log.write(f"    ... and {tools_count - 5} more")
 
@@ -602,7 +603,7 @@ class DocumentApp(App[None]):
             # Refresh and show updated status
             self._handle_mcp_list(mcp_manager, conv_log)
         except Exception as e:
-            conv_log.write(f"[red]✗ Error refreshing MCP servers: {e}[/red]")
+            conv_log.write(f"[red]✗ Error refreshing MCP servers: {escape(str(e))}[/red]")
 
     def _handle_mcp_allow(self, mcp_manager: Any, conv_log: RichLog, server_arg: str) -> None:
         """Handle /mcp allow command."""
@@ -613,7 +614,7 @@ class DocumentApp(App[None]):
         server_id = server_arg.strip()
         mcp_manager.set_trusted(server_id, True)
         conv_log.write(
-            f"[green]✓ Marked MCP server '{server_id}' as trusted for this session[/green]"
+            f"[green]✓ Marked MCP server '{escape(server_id)}' as trusted for this session[/green]"
         )
 
     def _handle_mcp_revoke(self, mcp_manager: Any, conv_log: RichLog, server_arg: str) -> None:
@@ -624,7 +625,7 @@ class DocumentApp(App[None]):
 
         server_id = server_arg.strip()
         mcp_manager.set_trusted(server_id, False)
-        conv_log.write(f"[green]✓ Revoked trust for MCP server '{server_id}'[/green]")
+        conv_log.write(f"[green]✓ Revoked trust for MCP server '{escape(server_id)}'[/green]")
 
     async def run_agent_async(self, user_input: str) -> None:
         """Run agent in thread, write output directly to log."""
@@ -658,11 +659,11 @@ class DocumentApp(App[None]):
                                 # Hide thinking indicator when output arrives
                                 self.app.call_from_thread(self.app.hide_thinking)
 
-                                # Write the line
+                                # Write the line (escape to prevent markup interpretation)
                                 self.app.call_from_thread(
                                     lambda t=clean_text: self.app.query_one(
                                         "#conversation-log", RichLog
-                                    ).write(t)
+                                    ).write(escape(t))
                                 )
 
                                 # Show thinking indicator again after tool results
@@ -722,7 +723,7 @@ class DocumentApp(App[None]):
         except Exception as err:
             error_msg = str(err)
             # Write directly since we're in async context, not a separate thread
-            conv_log.write(f"\n[red]Error: {error_msg}[/red]")
+            conv_log.write(f"\n[red]Error: {escape(error_msg)}[/red]")
         finally:
             log_writer.flush()  # Flush any remaining buffer
             sys.stdout = old_stdout
@@ -915,7 +916,9 @@ class DocumentApp(App[None]):
                 )
             else:
                 success, message = self.agent.switch_model(model=model_name)
-            conv_log.write(f"[green]✓ {message}[/green]" if success else f"[red]✗ {message}[/red]")
+            conv_log.write(
+                f"[green]✓ {escape(message)}[/green]" if success else f"[red]✗ {escape(message)}[/red]"
+            )
             conv_log.write("")
         self.update_status_bar()
 
