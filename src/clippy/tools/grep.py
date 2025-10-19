@@ -20,17 +20,21 @@ TOOL_SCHEMA = {
                     "type": "string",
                     "description": "The pattern to search for in files",
                 },
+                "path": {
+                    "type": "string",
+                    "description": "A single file path or glob pattern to search in",
+                },
                 "paths": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "The file paths or glob patterns to search in",
+                    "description": "Multiple file paths or glob patterns to search in",
                 },
                 "flags": {
                     "type": "string",
                     "description": "Optional flags for grep command (e.g., '-i', '-r', etc.)",
                 },
             },
-            "required": ["pattern", "paths"],
+            "required": ["pattern"],
         },
     },
 }
