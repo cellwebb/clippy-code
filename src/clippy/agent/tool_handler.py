@@ -74,6 +74,7 @@ def handle_tool_use(
     console: Console,
     conversation_history: list[dict[str, Any]],
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None = None,
+    mcp_manager: Any = None,
 ) -> bool:
     """
     Handle a tool use request.
@@ -88,6 +89,7 @@ def handle_tool_use(
         console: Rich console instance
         conversation_history: Current conversation history (modified in place)
         approval_callback: Optional callback for approval (used in document mode)
+        mcp_manager: Optional MCP manager for trusting MCP servers
 
     Returns:
         True if the tool was executed successfully, False otherwise
@@ -131,6 +133,15 @@ def handle_tool_use(
         action_type
     )
 
+    # For MCP tools, also check if the server is trusted
+    if is_mcp_tool(tool_name) and mcp_manager and needs_approval:
+        try:
+            server_id, _ = parse_mcp_qualified_name(tool_name)
+            if mcp_manager.is_trusted(server_id):
+                needs_approval = False
+        except ValueError:
+            pass
+
     # Generate diff preview for file operations
     diff_content = generate_preview_diff(tool_name, tool_input)
 
@@ -153,6 +164,7 @@ def handle_tool_use(
             permission_manager,
             console,
             approval_callback,
+            mcp_manager,
         )
         if not approved:
             console.print("[bold yellow]⊘ Action rejected by user[/bold yellow]")
@@ -222,6 +234,7 @@ def ask_approval(
     permission_manager: PermissionManager,
     console: Console,
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None = None,
+    mcp_manager: Any = None,
 ) -> bool:
     """
     Ask user for approval to execute an action.
@@ -234,6 +247,7 @@ def ask_approval(
         permission_manager: Permission manager instance
         console: Rich console instance
         approval_callback: Optional callback for approval (used in document mode)
+        mcp_manager: Optional MCP manager for trusting MCP servers
 
     Returns:
         True if approved, False otherwise
@@ -258,11 +272,30 @@ def ask_approval(
         if response == "stop":
             raise InterruptedExceptionError()
         elif response == "allow" or response == "a":
-            # Auto-approve this action type for the rest of the session
-            if action_type:
-                permission_manager.update_permission(action_type, PermissionLevel.AUTO_APPROVE)
-                console.print(f"[green]Auto-approving {tool_name} for this session[/green]")
-            return True
+            # Check if this is an MCP tool
+            if is_mcp_tool(tool_name):
+                # Trust the MCP server
+                try:
+                    server_id, _ = parse_mcp_qualified_name(tool_name)
+                    if mcp_manager:
+                        mcp_manager.set_trusted(server_id, True)
+                        console.print(
+                            f"[green]✓ Trusted MCP server '{server_id}' for this session[/green]"
+                        )
+                        console.print(
+                            f"[green]All tools from '{server_id}' will be auto-approved[/green]"
+                        )
+                    else:
+                        console.print("[yellow]⚠ MCP manager not available[/yellow]")
+                except Exception as e:
+                    console.print(f"[yellow]⚠ Error trusting server: {e}[/yellow]")
+                return True
+            else:
+                # Auto-approve this action type for non-MCP tools
+                if action_type:
+                    permission_manager.update_permission(action_type, PermissionLevel.AUTO_APPROVE)
+                    console.print(f"[green]Auto-approving {tool_name} for this session[/green]")
+                return True
         return response == "y"
     except (KeyboardInterrupt, EOFError):
         raise InterruptedExceptionError()

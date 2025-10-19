@@ -139,8 +139,8 @@ def test_manager_trust_functionality() -> None:
 
 @patch("clippy.mcp.manager.ClientSession")
 @patch("clippy.mcp.manager.stdio_client")
-def test_manager_auto_trust_on_connect(mock_stdio_client, mock_client_session) -> None:
-    """Test that servers are auto-trusted upon successful connection."""
+def test_manager_manual_trust(mock_stdio_client, mock_client_session) -> None:
+    """Test that servers require manual trust and are not auto-trusted on connection."""
 
     # Create mock streams
     mock_read_stream = Mock()
@@ -193,7 +193,11 @@ def test_manager_auto_trust_on_connect(mock_stdio_client, mock_client_session) -
 
     time.sleep(0.1)
 
-    # After successful connection, should be auto-trusted
+    # After successful connection, should still NOT be auto-trusted
+    assert manager.is_trusted("test-server") is False
+
+    # But can be manually trusted
+    manager.set_trusted("test-server", True)
     assert manager.is_trusted("test-server") is True
 
     # Clean up
