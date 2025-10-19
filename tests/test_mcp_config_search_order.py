@@ -14,8 +14,12 @@ def test_config_search_order_simple() -> None:
         project_dir = Path(temp_dir) / "project"
         project_dir.mkdir()
 
-        # Create project config
-        project_config_path = project_dir / "mcp.json"
+        # Create .clippy subdirectory
+        clippy_dir = project_dir / ".clippy"
+        clippy_dir.mkdir()
+
+        # Create project config in .clippy subdirectory
+        project_config_path = clippy_dir / "mcp.json"
         project_config = {
             "mcpServers": {"project-server": {"command": "echo", "args": ["project"]}}
         }

@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Any
 
-from mcp import StdioServerParameters, types
+from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 from rich.console import Console
 
@@ -28,7 +28,9 @@ class Manager:
         """
         self.config = config or Config(mcp_servers={})
         self.console = console
-        self._sessions: dict[str, Any] = {}  # Server ID -> session
+        self._stdio_contexts: dict[str, Any] = {}  # Server ID -> stdio context manager
+        self._session_contexts: dict[str, Any] = {}  # Server ID -> session context manager
+        self._sessions: dict[str, Any] = {}  # Server ID -> active session
         self._tools: dict[str, list[types.Tool]] = {}  # Server ID -> tools
         self._trust_store = TrustStore()
 
@@ -45,12 +47,28 @@ class Manager:
                     cwd=server_config.cwd,
                 )
 
-                # Create session context manager
-                session_context = stdio_client(params)
-                self._sessions[server_id] = session_context
+                # Create and enter stdio client context to get streams
+                stdio_context = stdio_client(params)
+                self._stdio_contexts[server_id] = stdio_context
+                read_stream, write_stream = await stdio_context.__aenter__()
 
-                # Connect session
-                await self._connect_session(server_id, session_context)
+                # Create ClientSession from streams
+                session_context = ClientSession(read_stream, write_stream)
+                self._session_contexts[server_id] = session_context
+
+                # Enter the session context and keep session alive
+                session = await session_context.__aenter__()
+                self._sessions[server_id] = session
+
+                # Initialize session with tools capability
+                await session.initialize()
+
+                # List available tools
+                tools_result = await session.list_tools()
+                self._tools[server_id] = tools_result.tools or []
+
+                # Auto-trust servers that successfully connect
+                self._trust_store.set_trusted(server_id, True)
 
                 if self.console:
                     self.console.print(f"[green]✓ Connected to MCP server '{server_id}'[/green]")
@@ -63,27 +81,32 @@ class Manager:
                     )
                     self.console.print(error_msg)
 
-    async def _connect_session(self, server_id: str, session_context: Any) -> None:
-        """Connect a session and initialize tools."""
-        async with session_context as session:
-            # Initialize with tools capability
-            await session.initialize(types.ClientCapabilities())
-
-            # List available tools
-            tools_result = await session.list_tools()
-            self._tools[server_id] = tools_result.tools or []
-
     async def stop(self) -> None:
         """Stop the MCP manager and close connections."""
-        # Close all sessions
-        for session_context in self._sessions.values():
+        # Close all sessions by calling __aexit__ on the context managers
+        # Must close session contexts first, then stdio contexts
+        for server_id in list(self._sessions.keys()):
             try:
-                # Sessions are async context managers
-                if hasattr(session_context, "__aexit__"):
+                # Close session context first
+                session_context = self._session_contexts.get(server_id)
+                if session_context and hasattr(session_context, "__aexit__"):
                     await session_context.__aexit__(None, None, None)
-            except Exception as e:
-                logger.warning(f"Error closing MCP session: {e}")
+            except (RuntimeError, Exception):
+                # Suppress cleanup errors - these often happen during shutdown
+                # when async context managers are entered/exited in different event loops
+                pass
 
+            try:
+                # Then close stdio context
+                stdio_context = self._stdio_contexts.get(server_id)
+                if stdio_context and hasattr(stdio_context, "__aexit__"):
+                    await stdio_context.__aexit__(None, None, None)
+            except (RuntimeError, Exception):
+                # Suppress cleanup errors
+                pass
+
+        self._stdio_contexts.clear()
+        self._session_contexts.clear()
         self._sessions.clear()
         self._tools.clear()
 
@@ -188,24 +211,21 @@ class Manager:
         if not self._trust_store.is_trusted(server_id):
             return False, f"MCP server '{server_id}' not trusted", None
 
-        session_context = self._sessions[server_id]
+        session = self._sessions[server_id]
 
         try:
             # Execute tool call
-            result = asyncio.run(self._execute_tool(session_context, tool_name, args))
+            result = asyncio.run(self._execute_tool(session, tool_name, args))
             return True, f"Successfully executed MCP tool '{tool_name}'", result
         except Exception as e:
             logger.error(f"Error executing MCP tool '{tool_name}' on server '{server_id}': {e}")
             error_msg = f"Error executing MCP tool '{tool_name}': {str(e)}"
             return False, error_msg, None
 
-    async def _execute_tool(
-        self, session_context: Any, tool_name: str, args: dict[str, Any]
-    ) -> Any:
+    async def _execute_tool(self, session: Any, tool_name: str, args: dict[str, Any]) -> Any:
         """Execute a tool call asynchronously."""
-        async with session_context as session:
-            result = await session.call_tool(tool_name, args)
-            return result
+        result = await session.call_tool(tool_name, args)
+        return result
 
     def is_trusted(self, server_id: str) -> bool:
         """

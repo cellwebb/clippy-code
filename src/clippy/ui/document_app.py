@@ -22,6 +22,7 @@ from .widgets import (
     DocumentHeader,
     DocumentRibbon,
     DocumentStatusBar,
+    ErrorPanel,
 )
 
 
@@ -40,6 +41,7 @@ class DocumentApp(App[None]):
         self.waiting_for_approval = False
         self.current_approval_dialog: ApprovalDialog | None = None
         self.current_approval_backdrop: ApprovalBackdrop | None = None
+        self.current_error_panel: ErrorPanel | None = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="top-bar"):
@@ -105,6 +107,16 @@ class DocumentApp(App[None]):
             self.handle_approval_response("n")
         elif button_id == "approval-stop":
             self.handle_approval_response("stop")
+        elif button_id == "error-ok":
+            if self.current_error_panel:
+                self.current_error_panel.remove()
+                self.current_error_panel = None
+        elif button_id == "error-retry":
+            if self.current_error_panel:
+                self.current_error_panel.remove()
+                self.current_error_panel = None
+            # TODO: Implement retry logic for the last failed operation
+            # This would require tracking the last operation that failed
 
     def handle_approval_response(self, response: str) -> None:
         """Handle approval response from UI buttons."""
@@ -120,6 +132,47 @@ class DocumentApp(App[None]):
             self.current_approval_dialog = None
             self.approval_queue.put(response)
             self.waiting_for_approval = False
+
+    def show_error_panel(
+        self, error_message: str, error_details: dict[str, Any] | None = None
+    ) -> None:
+        """Show an enhanced error panel for MCP and other errors."""
+        # Hide any existing error panel
+        if self.current_error_panel:
+            try:
+                self.current_error_panel.remove()
+            except Exception:
+                pass
+
+        # Create new error panel
+        self.current_error_panel = ErrorPanel(error_message, error_details, id="error-panel")
+
+        # Mount the error panel
+        self.mount(self.current_error_panel)
+
+    def show_mcp_error(
+        self,
+        error_message: str,
+        server_id: str | None = None,
+        tool_name: str | None = None,
+        original_error: str | None = None,
+    ) -> None:
+        """Show an MCP-specific error panel with enhanced context."""
+        error_details = {}
+        if server_id:
+            error_details["server_id"] = server_id
+        if tool_name:
+            error_details["tool_name"] = tool_name
+        if original_error:
+            error_details["original_error"] = original_error
+
+        # Add MCP-specific context to error message
+        if server_id:
+            enhanced_message = f"MCP Server Error ({server_id}): {error_message}"
+        else:
+            enhanced_message = f"MCP Error: {error_message}"
+
+        self.show_error_panel(enhanced_message, error_details)
 
     def update_status_bar(self) -> None:
         status_bar = self.query_one(DocumentStatusBar)
@@ -296,6 +349,9 @@ class DocumentApp(App[None]):
         elif user_input.lower().startswith("/auto"):
             self.handle_auto_command(user_input)
             return
+        elif user_input.lower().startswith("/mcp"):
+            self.handle_mcp_command(user_input)
+            return
 
         # Run agent in thread (non-blocking)
         self.run_worker(self.run_agent_async(user_input), exclusive=True)
@@ -360,6 +416,139 @@ class DocumentApp(App[None]):
             conv_log.write(f"[green]Cleared {revoked_count} auto-approved actions[/green]")
         else:
             conv_log.write("[yellow]Use /auto list, /auto revoke <action>, or /auto clear[/yellow]")
+
+    def handle_mcp_command(self, user_input: str) -> None:
+        """Handle MCP commands in document mode."""
+        conv_log = self.query_one("#conversation-log", RichLog)
+        parts = user_input.split(maxsplit=1)
+
+        if len(parts) == 1:
+            # Just /mcp without subcommand
+            conv_log.write(
+                "[yellow]Use /mcp list, /mcp tools, /mcp refresh, /mcp allow, "
+                "or /mcp revoke[/yellow]"
+            )
+            return
+
+        subcommand_with_args = parts[1]
+        subcommand_parts = subcommand_with_args.strip().split(maxsplit=1)
+        subcommand = subcommand_parts[0].lower()
+        subcommand_args = subcommand_parts[1] if len(subcommand_parts) > 1 else ""
+
+        # Get MCP manager from agent
+        mcp_manager = getattr(self.agent, "mcp_manager", None)
+        if mcp_manager is None:
+            conv_log.write("[yellow]⚠ MCP functionality not available[/yellow]")
+            conv_log.write("[dim]Make sure the agent was initialized with MCP support.[/dim]")
+            return
+
+        if subcommand == "list":
+            self._handle_mcp_list(mcp_manager, conv_log)
+        elif subcommand == "tools":
+            self._handle_mcp_tools(mcp_manager, conv_log, subcommand_args)
+        elif subcommand == "refresh":
+            self._handle_mcp_refresh(mcp_manager, conv_log)
+        elif subcommand == "allow":
+            self._handle_mcp_allow(mcp_manager, conv_log, subcommand_args)
+        elif subcommand == "revoke":
+            self._handle_mcp_revoke(mcp_manager, conv_log, subcommand_args)
+        else:
+            conv_log.write(f"[red]Unknown MCP command: {subcommand}[/red]")
+            conv_log.write("[dim]Available commands: list, tools, refresh, allow, revoke[/dim]")
+
+    def _handle_mcp_list(self, mcp_manager: Any, conv_log: RichLog) -> None:
+        """Handle /mcp list command."""
+        servers = mcp_manager.list_servers()
+
+        if not servers:
+            conv_log.write("[yellow]No MCP servers configured[/yellow]")
+            conv_log.write("[dim]Add servers to mcp.json to use MCP functionality.[/dim]")
+            return
+
+        conv_log.write("\n📎 [bold]Configured MCP Servers:[/bold]")
+        for server in servers:
+            status = (
+                "[green]connected[/green]" if server["connected"] else "[red]disconnected[/red]"
+            )
+            conv_log.write(
+                f"• [cyan]{server['server_id']:20}[/cyan] - {status} "
+                f"({server['tools_count']} tools)"
+            )
+        conv_log.write("")
+
+    def _handle_mcp_tools(self, mcp_manager: Any, conv_log: RichLog, server_arg: str) -> None:
+        """Handle /mcp tools command."""
+        if server_arg:
+            # List tools for specific server
+            tools = mcp_manager.list_tools(server_arg)
+            if not tools:
+                conv_log.write(f"[yellow]No tools found for server '{server_arg}'[/yellow]")
+                return
+        else:
+            # List tools for all servers
+            tools = mcp_manager.list_tools()
+            if not tools:
+                conv_log.write("[yellow]No MCP tools available[/yellow]")
+                return
+
+        conv_log.write("\n📎 [bold]Available MCP Tools:[/bold]")
+        current_server = None
+        for tool in tools:
+            if tool["server_id"] != current_server:
+                current_server = tool["server_id"]
+                conv_log.write(f"\n[bold]Server: {current_server}[/bold]")
+            conv_log.write(f"  • [cyan]{tool['name']}[/cyan] - {tool['description']}")
+        conv_log.write("")
+
+    def _handle_mcp_refresh(self, mcp_manager: Any, conv_log: RichLog) -> None:
+        """Handle /mcp refresh command."""
+        conv_log.write("[cyan]Refreshing MCP server connections...[/cyan]")
+        try:
+            import asyncio
+
+            # Use a thread to run async operations
+            def refresh_servers() -> None:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    loop.run_until_complete(mcp_manager.stop())
+                    loop.run_until_complete(mcp_manager.start())
+                finally:
+                    loop.close()
+
+            # Run in thread to avoid blocking UI
+            import threading
+
+            thread = threading.Thread(target=refresh_servers)
+            thread.start()
+            thread.join()
+
+            # Refresh and show updated status
+            self._handle_mcp_list(mcp_manager, conv_log)
+        except Exception as e:
+            conv_log.write(f"[red]✗ Error refreshing MCP servers: {e}[/red]")
+
+    def _handle_mcp_allow(self, mcp_manager: Any, conv_log: RichLog, server_arg: str) -> None:
+        """Handle /mcp allow command."""
+        if not server_arg:
+            conv_log.write("[red]Usage: /mcp allow <server_id>[/red]")
+            return
+
+        server_id = server_arg.strip()
+        mcp_manager.set_trusted(server_id, True)
+        conv_log.write(
+            f"[green]✓ Marked MCP server '{server_id}' as trusted for this session[/green]"
+        )
+
+    def _handle_mcp_revoke(self, mcp_manager: Any, conv_log: RichLog, server_arg: str) -> None:
+        """Handle /mcp revoke command."""
+        if not server_arg:
+            conv_log.write("[red]Usage: /mcp revoke <server_id>[/red]")
+            return
+
+        server_id = server_arg.strip()
+        mcp_manager.set_trusted(server_id, False)
+        conv_log.write(f"[green]✓ Revoked trust for MCP server '{server_id}'[/green]")
 
     async def run_agent_async(self, user_input: str) -> None:
         """Run agent in thread, write output directly to log."""
@@ -497,6 +686,11 @@ class DocumentApp(App[None]):
         conv_log.write("• /[bold]auto list[/bold] - List auto-approved actions")
         conv_log.write("• /[bold]auto revoke <action>[/bold] - Revoke auto-approval for action")
         conv_log.write("• /[bold]auto clear[/bold] - Clear all auto-approved actions")
+        conv_log.write("• /[bold]mcp list[/bold] - List configured MCP servers")
+        conv_log.write("• /[bold]mcp tools [server][/bold] - List tools from MCP servers")
+        conv_log.write("• /[bold]mcp refresh[/bold] - Refresh MCP server connections")
+        conv_log.write("• /[bold]mcp allow <server>[/bold] - Trust an MCP server for this session")
+        conv_log.write("• /[bold]mcp revoke <server>[/bold] - Revoke trust for an MCP server")
         conv_log.write("• /[bold]quit[/bold] or /[bold]exit[/bold] - Exit code-with-clippy")
         conv_log.write("")
         conv_log.write("[bold]⌨️ Keyboard Shortcuts[/bold]")
