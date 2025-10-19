@@ -425,7 +425,7 @@ class DocumentApp(App[None]):
         if len(parts) == 1:
             # Just /mcp without subcommand
             conv_log.write(
-                "[yellow]Use /mcp list, /mcp tools, /mcp refresh, /mcp allow, "
+                "[yellow]Use /mcp list, /mcp tools, /mcp status, /mcp refresh, /mcp allow, "
                 "or /mcp revoke[/yellow]"
             )
             return
@@ -446,6 +446,8 @@ class DocumentApp(App[None]):
             self._handle_mcp_list(mcp_manager, conv_log)
         elif subcommand == "tools":
             self._handle_mcp_tools(mcp_manager, conv_log, subcommand_args)
+        elif subcommand == "status":
+            self._handle_mcp_status(mcp_manager, conv_log)
         elif subcommand == "refresh":
             self._handle_mcp_refresh(mcp_manager, conv_log)
         elif subcommand == "allow":
@@ -454,7 +456,9 @@ class DocumentApp(App[None]):
             self._handle_mcp_revoke(mcp_manager, conv_log, subcommand_args)
         else:
             conv_log.write(f"[red]Unknown MCP command: {subcommand}[/red]")
-            conv_log.write("[dim]Available commands: list, tools, refresh, allow, revoke[/dim]")
+            conv_log.write(
+                "[dim]Available commands: list, tools, status, refresh, allow, revoke[/dim]"
+            )
 
     def _handle_mcp_list(self, mcp_manager: Any, conv_log: RichLog) -> None:
         """Handle /mcp list command."""
@@ -500,28 +504,52 @@ class DocumentApp(App[None]):
             conv_log.write(f"  • [cyan]{tool['name']}[/cyan] - {tool['description']}")
         conv_log.write("")
 
+    def _handle_mcp_status(self, mcp_manager: Any, conv_log: RichLog) -> None:
+        """Handle /mcp status command - detailed diagnostics."""
+        conv_log.write("\n📎 [bold]MCP Server Status:[/bold]\n")
+
+        servers = mcp_manager.list_servers()
+        if not servers:
+            conv_log.write("[yellow]No MCP servers configured[/yellow]")
+            return
+
+        for server in servers:
+            server_id = server["server_id"]
+            connected = server["connected"]
+            tools_count = server["tools_count"]
+            trusted = mcp_manager.is_trusted(server_id)
+
+            # Status line
+            status_symbol = "✓" if connected else "✗"
+            status_color = "green" if connected else "red"
+            status_text = "connected" if connected else "disconnected"
+
+            conv_log.write(f"\n[bold]{status_symbol} {server_id}[/bold]")
+            conv_log.write(f"  Connection: [{status_color}]{status_text}[/{status_color}]")
+            conv_log.write(
+                f"  Trusted: [{'green' if trusted else 'yellow'}]"
+                f"{'yes' if trusted else 'no'}[/{'green' if trusted else 'yellow'}]"
+            )
+            conv_log.write(f"  Tools: [cyan]{tools_count}[/cyan]")
+
+            # Show tools for this server
+            if tools_count > 0:
+                tools = mcp_manager.list_tools(server_id)
+                conv_log.write("  Available tools:")
+                for tool in tools[:5]:  # Show first 5 tools
+                    conv_log.write(f"    • {tool['name']}")
+                if tools_count > 5:
+                    conv_log.write(f"    ... and {tools_count - 5} more")
+
+        conv_log.write("")
+
     def _handle_mcp_refresh(self, mcp_manager: Any, conv_log: RichLog) -> None:
         """Handle /mcp refresh command."""
         conv_log.write("[cyan]Refreshing MCP server connections...[/cyan]")
         try:
-            import asyncio
-
-            # Use a thread to run async operations
-            def refresh_servers() -> None:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    loop.run_until_complete(mcp_manager.stop())
-                    loop.run_until_complete(mcp_manager.start())
-                finally:
-                    loop.close()
-
-            # Run in thread to avoid blocking UI
-            import threading
-
-            thread = threading.Thread(target=refresh_servers)
-            thread.start()
-            thread.join()
+            # Stop and restart are now synchronous
+            mcp_manager.stop()
+            mcp_manager.start()
 
             # Refresh and show updated status
             self._handle_mcp_list(mcp_manager, conv_log)

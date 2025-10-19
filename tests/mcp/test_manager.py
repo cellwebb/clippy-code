@@ -1,6 +1,5 @@
 """Tests for the MCP manager."""
 
-import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 
 from clippy.mcp.config import Config, ServerConfig
@@ -70,11 +69,13 @@ def test_manager_start(mock_stdio_client, mock_client_session) -> None:
 
     manager = Manager(config=config)
 
-    # Run the async start method
-    async def run_start():
-        await manager.start()
+    # Start is now synchronous
+    manager.start()
 
-    asyncio.run(run_start())
+    # Give the background thread time to complete
+    import time
+
+    time.sleep(0.1)
 
     # Verify stdio_client was called
     mock_stdio_client.assert_called_once()
@@ -86,6 +87,9 @@ def test_manager_start(mock_stdio_client, mock_client_session) -> None:
     # Verify session is kept alive (stored in _sessions)
     assert "test-server" in manager._sessions
     assert manager._sessions["test-server"] == mock_session
+
+    # Clean up
+    manager.stop()
 
 
 def test_manager_list_servers() -> None:
@@ -181,11 +185,16 @@ def test_manager_auto_trust_on_connect(mock_stdio_client, mock_client_session) -
     # Before connection, not trusted
     assert manager.is_trusted("test-server") is False
 
-    # Run the async start method
-    async def run_start():
-        await manager.start()
+    # Start is now synchronous
+    manager.start()
 
-    asyncio.run(run_start())
+    # Give the background thread time to complete
+    import time
+
+    time.sleep(0.1)
 
     # After successful connection, should be auto-trusted
     assert manager.is_trusted("test-server") is True
+
+    # Clean up
+    manager.stop()

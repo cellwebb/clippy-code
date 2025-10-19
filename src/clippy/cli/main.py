@@ -1,6 +1,5 @@
 """Main entry point for code-with-clippy CLI."""
 
-import asyncio
 import os
 import sys
 
@@ -62,7 +61,7 @@ def main() -> None:
     if mcp_config:
         try:
             mcp_manager = Manager(config=mcp_config, console=console)
-            asyncio.run(mcp_manager.start())
+            mcp_manager.start()  # Now synchronous - runs in background thread
         except Exception as e:
             console.print(f"[yellow]⚠ Warning: Failed to initialize MCP manager: {e}[/yellow]")
             mcp_manager = None
