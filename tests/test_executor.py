@@ -301,7 +301,7 @@ class TestExecutorMCPTools:
         success, message, content = executor.execute("mcp__server__tool", {"arg": "value"})
 
         assert success is True
-        mock_manager.execute.assert_called_once_with("server", "tool", {"arg": "value"})
+        mock_manager.execute.assert_called_once_with("server", "tool", {"arg": "value"}, False)
 
     def test_mcp_tool_execution_error(self, executor: ActionExecutor) -> None:
         """Test handling of MCP tool execution errors."""

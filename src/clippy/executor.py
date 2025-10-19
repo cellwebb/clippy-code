@@ -35,9 +35,19 @@ class ActionExecutor:
         """
         self._mcp_manager = manager
 
-    def execute(self, tool_name: str, tool_input: dict[str, Any]) -> tuple[bool, str, Any]:
+    def execute(
+        self,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        bypass_trust_check: bool = False,
+    ) -> tuple[bool, str, Any]:
         """
         Execute an action.
+
+        Args:
+            tool_name: Name of the tool to execute
+            tool_input: Input parameters for the tool
+            bypass_trust_check: If True, skip MCP trust check (for user-approved calls)
 
         Returns:
             Tuple of (success: bool, message: str, result: Any)
@@ -49,7 +59,7 @@ class ActionExecutor:
 
             try:
                 server_id, tool = parse_mcp_qualified_name(tool_name)
-                return self._mcp_manager.execute(server_id, tool, tool_input)
+                return self._mcp_manager.execute(server_id, tool, tool_input, bypass_trust_check)
             except Exception as e:
                 return False, f"Error executing MCP tool {tool_name}: {str(e)}", None
 

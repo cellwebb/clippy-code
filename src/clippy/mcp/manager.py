@@ -225,7 +225,11 @@ class Manager:
         return openai_tools
 
     def execute(
-        self, server_id: str, tool_name: str, args: dict[str, Any]
+        self,
+        server_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+        bypass_trust_check: bool = False,
     ) -> tuple[bool, str, Any]:
         """
         Execute an MCP tool call.
@@ -234,6 +238,7 @@ class Manager:
             server_id: Server identifier
             tool_name: Tool name
             args: Tool arguments
+            bypass_trust_check: If True, skip trust check (for user-approved calls)
 
         Returns:
             Tuple of (success: bool, message: str, result: Any)
@@ -250,8 +255,8 @@ class Manager:
             logger.error(f"MCP execution failed: {error_msg}")
             return False, error_msg, None
 
-        # Check trust
-        if not self._trust_store.is_trusted(server_id):
+        # Check trust (unless bypassed by explicit user approval)
+        if not bypass_trust_check and not self._trust_store.is_trusted(server_id):
             error_msg = f"MCP server '{server_id}' not trusted"
             logger.error(f"MCP execution failed: {error_msg}")
             return False, error_msg, None
