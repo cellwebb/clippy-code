@@ -97,7 +97,15 @@ class ActionExecutor:
             elif tool_name == "read_files":
                 return read_files(tool_input["paths"])
             elif tool_name == "grep":
-                return grep(tool_input["pattern"], tool_input["paths"], tool_input.get("flags", ""))
+                # Handle both 'path' (singular) and 'paths' (plural)
+                paths = tool_input.get("paths")
+                if paths is None:
+                    # If 'paths' not provided, check for 'path' (singular)
+                    path = tool_input.get("path")
+                    if path is None:
+                        return False, "grep requires either 'path' or 'paths' parameter", None
+                    paths = [path]
+                return grep(tool_input["pattern"], paths, tool_input.get("flags", ""))
             elif tool_name == "edit_file":
                 return edit_file(
                     tool_input["path"],
