@@ -27,6 +27,48 @@ uv pip install -e .
 ```
 
 ### Setup API Keys
+code-with-clippy supports multiple LLM providers through OpenAI-compatible APIs:
+
+```bash
+# OpenAI (default)
+echo "OPENAI_API_KEY=your_api_key_here" > .env
+
+# Cerebras
+echo "CEREBRAS_API_KEY=your_api_key_here" > .env
+
+# Groq
+echo "GROQ_API_KEY=your_api_key_here" > .env
+
+# For local models like Ollama, you typically don't need an API key
+# Just set the base URL:
+export OPENAI_BASE_URL=http://localhost:11434/v1
+```
+
+### MCP Configuration
+
+code-with-clippy can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
+
+To use MCP servers, create an `mcp.json` configuration file in your project root or home directory:
+
+```json
+{
+  "mcp_servers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "${CTX7_API_KEY}"]
+    },
+    "perplexity-ask": {
+      "command": "npx",
+      "args": ["-y", "server-perplexity-ask"],
+      "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
+    }
+  }
+}
+```
+
+See [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md) for detailed information about MCP configuration and usage.
+
+MCP tools will automatically be available in interactive and document modes, with appropriate approval prompts to maintain safety.
 
 code-with-clippy supports multiple LLM providers through OpenAI-compatible APIs:
 
@@ -287,6 +329,23 @@ Testing philosophy:
 - Aim for >80% code coverage
 
 ### Available Tools
+code-with-clippy has access to these tools:
+
+| Tool               | Description                                       | Auto-Approved |
+| ------------------ | ------------------------------------------------- | ------------- |
+| `read_file`        | Read file contents                                | ✅            |
+| `write_file`       | Write/modify entire files                         | ❌            |
+| `delete_file`      | Delete files                                      | ❌            |
+| `list_directory`   | List directory contents                           | ✅            |
+| `create_directory` | Create directories                                | ❌            |
+| `execute_command`  | Run shell commands                                | ❌            |
+| `search_files`     | Search with glob patterns                         | ✅            |
+| `get_file_info`    | Get file metadata                                 | ✅            |
+| `read_files`       | Read multiple files at once                       | ✅            |
+| `grep`             | Search patterns in files                          | ✅            |
+| `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            |
+
+For detailed information about MCP integration, see [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md).
 
 code-with-clippy can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
 
