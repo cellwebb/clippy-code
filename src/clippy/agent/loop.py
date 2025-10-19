@@ -157,8 +157,9 @@ def run_agent_loop(
             "The agent has reached the maximum number of iterations (50) and has stopped.\n"
             "The task may be incomplete.\n\n"
             "[dim]This limit prevents infinite loops. You can:\n"
-            "• Continue with a new request\n"
+            '• Say "continue" to continue with the current request\n'
             "• Break down the task into smaller steps\n"
+            "• Make a new request\n"
             "• Use /reset to start fresh[/dim]",
             title="[bold yellow]Iteration Limit[/bold yellow]",
             border_style="yellow",
