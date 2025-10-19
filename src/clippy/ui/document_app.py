@@ -322,11 +322,23 @@ class DocumentApp(App[None]):
         # Check if waiting for approval
         if self.waiting_for_approval:
             response = user_input.lower()
-            if response in ["y", "n", "stop", "allow", "a"]:
+            valid_responses = {"y", "n", "stop", "allow", "a"}
+
+            if response in valid_responses:
                 # Convert shorthand responses
                 if response == "a":
                     response = "allow"
                 self.approval_queue.put(response)
+                user_input_widget.value = ""
+                return
+            else:
+                # Show error message for invalid response
+                def show_error() -> None:
+                    conv_log.write(
+                        "[yellow]Invalid response. Please enter y, n, stop, or allow.[/yellow]"
+                    )
+
+                self.call_from_thread(show_error)
                 user_input_widget.value = ""
                 return
 
