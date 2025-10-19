@@ -258,7 +258,7 @@ class ApprovalDialog(Container):
         self.tool_name = tool_name
         self.tool_input = tool_input
         self.diff_content = diff_content
-        self.is_mcp_tool = tool_name.startswith("mcp:")
+        self.is_mcp_tool = tool_name.startswith("mcp__")
         self.expanded = {"input": True, "diff": False}
         self.max_input_lines = 8  # Truncate long inputs
 

@@ -15,6 +15,49 @@ from .utils import generate_preview_diff
 # Will be imported at runtime when needed
 
 
+def format_mcp_result(result: Any) -> str:
+    """
+    Format an MCP CallToolResult into a clean string.
+
+    Args:
+        result: MCP CallToolResult object
+
+    Returns:
+        Formatted string containing the actual content
+    """
+    try:
+        from mcp import types
+
+        if isinstance(result, types.CallToolResult):
+            # Extract text content from the result
+            content_parts = []
+            for content_item in result.content:
+                if isinstance(content_item, types.TextContent):
+                    content_parts.append(content_item.text)
+                elif isinstance(content_item, types.ImageContent):
+                    content_parts.append(f"[Image: {content_item.mimeType}]")
+                elif isinstance(content_item, types.EmbeddedResource):
+                    # Handle embedded resources
+                    if hasattr(content_item.resource, "text"):
+                        content_parts.append(content_item.resource.text)
+                    else:
+                        content_parts.append(f"[Resource: {content_item.resource.uri}]")
+                else:
+                    # Fallback for unknown content types
+                    content_parts.append(str(content_item))
+
+            return "\n".join(content_parts) if content_parts else str(result)
+        else:
+            # Not an MCP result, return as-is
+            return str(result)
+    except ImportError:
+        # MCP not available, fallback to string
+        return str(result)
+    except Exception as e:
+        # Error formatting, fallback to string
+        return f"[Error formatting MCP result: {e}]\n{str(result)}"
+
+
 def display_tool_request(
     console: Console, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
 ) -> None:
@@ -320,7 +363,9 @@ def add_tool_result(
     """
     content = message
     if result:
-        content += f"\n\n{result}"
+        # Format MCP results properly to extract actual content
+        formatted_result = format_mcp_result(result)
+        content += f"\n\n{formatted_result}"
 
     # Add error prefix if failed (OpenAI doesn't have is_error flag)
     if not success:

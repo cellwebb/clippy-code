@@ -26,7 +26,7 @@ def test_map_mcp_to_openai() -> None:
     result = map_mcp_to_openai(mcp_tool, "test-server")
 
     assert result["type"] == "function"
-    assert result["function"]["name"] == "mcp:test-server:test_tool"
+    assert result["function"]["name"] == "mcp__test-server__test_tool"
     assert result["function"]["description"] == "[MCP test-server] A test tool"
     assert "parameters" in result["function"]
     assert result["function"]["parameters"]["type"] == "object"
