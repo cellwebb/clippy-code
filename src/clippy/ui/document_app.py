@@ -258,35 +258,56 @@ class DocumentApp(App[None]):
         if response == "stop":
             raise InterruptedExceptionError()
         elif response == "allow":
-            # Auto-approve this tool type
-            from ..permissions import PermissionLevel
+            # Check if this is an MCP tool
+            from ..mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 
-            # Map tool names to action types
-            action_map = {
-                "read_file": ActionType.READ_FILE,
-                "write_file": ActionType.WRITE_FILE,
-                "delete_file": ActionType.DELETE_FILE,
-                "list_directory": ActionType.LIST_DIR,
-                "create_directory": ActionType.CREATE_DIR,
-                "execute_command": ActionType.EXECUTE_COMMAND,
-                "search_files": ActionType.SEARCH_FILES,
-                "get_file_info": ActionType.GET_FILE_INFO,
-                "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
-                "grep": ActionType.GREP,  # Dedicated action type for grep
-                "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
-            }
-
-            action_type = action_map.get(tool_name)
-            if action_type:
-                # Update permission for this action type to AUTO_APPROVE
-                self.agent.permission_manager.update_permission(
-                    action_type, PermissionLevel.AUTO_APPROVE
-                )
-                conv_log.write(f"[green]Auto-approving {tool_name} for this session[/green]")
+            if is_mcp_tool(tool_name):
+                # Trust the MCP server
+                try:
+                    server_id, _ = parse_mcp_qualified_name(tool_name)
+                    if hasattr(self.agent, "mcp_manager") and self.agent.mcp_manager:
+                        self.agent.mcp_manager.set_trusted(server_id, True)
+                        conv_log.write(
+                            f"[green]✓ Trusted MCP server '{server_id}' for this session[/green]"
+                        )
+                        conv_log.write(
+                            f"[green]All tools from '{server_id}' will be auto-approved[/green]"
+                        )
+                    else:
+                        conv_log.write("[yellow]⚠ MCP manager not available[/yellow]")
+                except Exception as e:
+                    conv_log.write(f"[yellow]⚠ Error trusting server: {e}[/yellow]")
                 return True
             else:
-                # Fallback to regular approval
-                return True
+                # Auto-approve this tool type for non-MCP tools
+                from ..permissions import PermissionLevel
+
+                # Map tool names to action types
+                action_map = {
+                    "read_file": ActionType.READ_FILE,
+                    "write_file": ActionType.WRITE_FILE,
+                    "delete_file": ActionType.DELETE_FILE,
+                    "list_directory": ActionType.LIST_DIR,
+                    "create_directory": ActionType.CREATE_DIR,
+                    "execute_command": ActionType.EXECUTE_COMMAND,
+                    "search_files": ActionType.SEARCH_FILES,
+                    "get_file_info": ActionType.GET_FILE_INFO,
+                    "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
+                    "grep": ActionType.GREP,  # Dedicated action type for grep
+                    "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+                }
+
+                action_type = action_map.get(tool_name)
+                if action_type:
+                    # Update permission for this action type to AUTO_APPROVE
+                    self.agent.permission_manager.update_permission(
+                        action_type, PermissionLevel.AUTO_APPROVE
+                    )
+                    conv_log.write(f"[green]Auto-approving {tool_name} for this session[/green]")
+                    return True
+                else:
+                    # Fallback to regular approval
+                    return True
 
         return response == "y"
 

@@ -129,6 +129,7 @@ def run_agent_loop(
                     console,
                     conversation_history,
                     approval_callback,
+                    mcp_manager,
                 )
                 if not success:
                     # Tool execution failed or was denied

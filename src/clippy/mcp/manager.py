@@ -98,9 +98,6 @@ class Manager:
                 tools_result = await session.list_tools()
                 self._tools[server_id] = tools_result.tools or []
 
-                # Auto-trust servers that successfully connect
-                self._trust_store.set_trusted(server_id, True)
-
                 if self.console:
                     self.console.print(f"[green]✓ Connected to MCP server '{server_id}'[/green]")
 
