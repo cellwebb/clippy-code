@@ -1,5 +1,6 @@
 """Widget components for the document UI."""
 
+import os
 from typing import Any
 
 from textual.app import ComposeResult
@@ -12,10 +13,22 @@ class DocumentHeader(Static):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.update(
-            "👀📎 clippy - 📄 Document Mode\n"
-            "Type directly, press Enter to send • Type '(y)es'/'(n)o'/'(a)llow' when prompted"
-        )
+        self.update_header()
+
+    def update_header(self) -> None:
+        """Update the header content with current working directory."""
+        cwd = os.getcwd()
+        # Shorten the path if it's too long by showing just the last 2 parts
+        if len(cwd) > 50:
+            parts = cwd.split(os.sep)
+            if len(parts) > 2:
+                cwd = os.sep.join(["..."] + parts[-2:])
+
+        self.update(f"👀📎 clippy - 📄 Document Mode\n📁 {cwd}/")
+
+    def refresh_cwd(self) -> None:
+        """Refresh the header with updated current working directory."""
+        self.update_header()
 
 
 class DocumentRibbon(Vertical):
