@@ -29,6 +29,13 @@ def main() -> None:
     # Setup logging
     setup_logging(verbose=args.verbose)
 
+    # Suppress asyncio cleanup errors that occur during shutdown
+    # These are caused by MCP async contexts that can't be cleanly closed across event loops
+    import logging
+
+    asyncio_logger = logging.getLogger("asyncio")
+    asyncio_logger.setLevel(logging.CRITICAL)
+
     # Get API key (required)
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -74,6 +81,7 @@ def main() -> None:
         api_key=api_key,
         model=args.model,
         base_url=args.base_url or os.getenv("OPENAI_BASE_URL"),
+        mcp_manager=mcp_manager,
     )
 
     # Determine mode

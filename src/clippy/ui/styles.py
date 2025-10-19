@@ -267,4 +267,121 @@ ApprovalBackdrop {
 #approval-stop:hover {
     background: #a92326;
 }
+
+/* Truncated hint styles */
+.truncated-hint {
+    color: #666666;
+    text-style: italic;
+    padding: 0 0 1 0;
+}
+
+/* Error panel styles */
+#error-panel {
+    width: 85%;
+    height: auto;
+    max-height: 70%;
+    max-width: 120;
+    background: #fff5f5;
+    border: solid #d13438;
+    border-title-align: left;
+    border-title-color: white;
+    border-title-background: #d13438;
+    border-title-style: bold;
+    padding: 0;
+    margin: 2 4;
+}
+#error-title {
+    width: 100%;
+    height: auto;
+    background: #d13438;
+    color: white;
+    text-align: left;
+    text-style: bold;
+    padding: 1 2;
+    margin: 0;
+}
+#error-content {
+    width: 100%;
+    height: auto;
+    max-height: 20;
+    overflow-y: auto;
+    background: white;
+    padding: 2 3;
+}
+#error-main-message {
+    color: #d13438;
+    text-style: bold;
+    padding: 0 0 2 0;
+}
+#error-details-header {
+    color: #333333;
+    text-style: bold;
+    padding: 1 0 1 0;
+}
+#error-details {
+    color: #505050;
+    padding: 0 0 1 0;
+    background: #f5f5f5;
+    border: solid #e0e0e0;
+    margin: 0 0 1 0;
+}
+#suggestions-header {
+    color: #0078d4;
+    text-style: bold;
+    padding: 1 0 0 0;
+}
+.suggestion {
+    color: #505050;
+    padding: 0 0 0 1;
+}
+#error-buttons {
+    width: 100%;
+    height: auto;
+    align: center middle;
+    padding: 2 3;
+    background: #f0f0f0;
+    border-top: solid #d0d0d0;
+}
+#error-ok {
+    background: #0078d4;
+    color: white;
+    text-style: bold;
+    border: solid #003c74;
+}
+#error-ok:hover {
+    background: #005a9e;
+}
+#error-retry {
+    background: #107c10;
+    color: white;
+    text-style: bold;
+    border: solid #0e6b0e;
+}
+#error-retry:hover {
+    background: #0d5e0d;
+}
+
+/* Input section headers */
+#input-section-header {
+    color: #0078d4;
+    text-style: bold;
+    padding: 1 0 1 0;
+}
+
+/* Diff section headers */
+#diff-section-header {
+    color: #0078d4;
+    text-style: bold;
+    padding: 1 0 1 0;
+}
+
+/* MCP preview unavailable */
+#mcp-preview-unavailable {
+    color: #707070;
+    text-style: italic;
+    padding: 0 0 1 0;
+    background: #fff9e6;
+    border: solid #e0e0e0;
+    margin: 0 0 1 0;
+}
 """

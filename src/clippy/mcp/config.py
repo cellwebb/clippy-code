@@ -40,11 +40,11 @@ def load_config(path: str | None = None) -> Config | None:
     if path:
         config_paths.append(Path(path))
     else:
-        # Search standard locations - user config takes priority over repo root
+        # Search standard locations - user config takes priority over project configs
         config_paths.extend(
             [
                 Path.home() / ".clippy" / "mcp.json",  # User config (priority)
-                Path.cwd() / "mcp.json",  # Repo root
+                Path.cwd() / ".clippy" / "mcp.json",  # Project subdirectory
             ]
         )
 

@@ -43,14 +43,25 @@ def display_tool_request(
     if input_str:
         console.print(f"[cyan]{input_str}[/cyan]")
 
-    # Show diff preview when available (e.g., write_file), including during auto-approve
+    # Enhanced diff display for MCP tools that affect files
     if diff_content is not None:
         if diff_content == "":
-            console.print("[yellow]No changes (content identical)[/yellow]")
+            if is_mcp_tool(tool_name):
+                console.print("[yellow]No file changes (content identical)[/yellow]")
+            else:
+                console.print("[yellow]No changes (content identical)[/yellow]")
         else:
+            if is_mcp_tool(tool_name):
+                console.print("[bold yellow]MCP Tool File Changes:[/bold yellow]")
+            else:
+                console.print("[bold yellow]Preview of changes:[/bold yellow]")
+
             formatted_diff, _truncated = format_diff_for_display(diff_content, max_lines=100)
-            console.print("[bold yellow]Preview of changes:[/bold yellow]")
-            console.print(f"[yellow]{formatted_diff}[/yellow]")
+            if _truncated:
+                console.print(f"[yellow]{formatted_diff}[/yellow]")
+                console.print("[dim][... additional lines truncated][/dim]")
+            else:
+                console.print(f"[yellow]{formatted_diff}[/yellow]")
 
 
 def handle_tool_use(
@@ -153,11 +164,46 @@ def handle_tool_use(
     # Execute the tool
     success, message, result = executor.execute(tool_name, tool_input)
 
-    # Show result
-    if success:
-        console.print(f"[bold green]✓ {message}[/bold green]")
+    # Enhanced error handling for MCP tools
+    if not success and is_mcp_tool(tool_name):
+        try:
+            server_id, tool = parse_mcp_qualified_name(tool_name)
+
+            # Provide enhanced error context for MCP tools
+            if "not trusted" in message.lower():
+                console.print(f"[bold red]✗ MCP server '{server_id}' is not trusted[/bold red]")
+                console.print(
+                    f"[dim]Use '/mcp allow {server_id}' to trust this server for this session[/dim]"
+                )
+            elif "not connected" in message.lower():
+                console.print(f"[bold red]✗ Not connected to MCP server '{server_id}'[/bold red]")
+                console.print("[dim]Try '/mcp refresh' to reconnect to MCP servers[/dim]")
+            elif "not configured" in message.lower():
+                console.print(f"[bold red]✗ MCP server '{server_id}' not configured[/bold red]")
+                console.print("[dim]Check your mcp.json configuration file[/dim]")
+            else:
+                console.print(f"[bold red]✗ MCP Tool Error ({server_id}): {message}[/bold red]")
+                console.print(f"[dim]Tool: {tool}[/dim]")
+
+                # Provide specific suggestions based on error patterns
+                if "timeout" in message.lower():
+                    console.print(
+                        "[dim]Suggestion: The operation timed out - try again or check "
+                        "server status[/dim]"
+                    )
+                elif "permission" in message.lower():
+                    console.print(
+                        "[dim]Suggestion: Check file permissions or server access rights[/dim]"
+                    )
+
+        except ValueError:
+            console.print(f"[bold red]✗ MCP Tool Error: {message}[/bold red]")
     else:
-        console.print(f"[bold red]✗ {message}[/bold red]")
+        # Standard success/error display for non-MCP tools
+        if success:
+            console.print(f"[bold green]✓ {message}[/bold green]")
+        else:
+            console.print(f"[bold red]✗ {message}[/bold red]")
 
     # Add result to conversation
     add_tool_result(conversation_history, tool_use_id, success, message, result)
