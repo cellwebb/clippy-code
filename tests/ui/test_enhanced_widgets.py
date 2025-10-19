@@ -25,7 +25,7 @@ class TestApprovalDialog:
 
     def test_mcp_tool_dialog_initialization(self) -> None:
         """Test dialog initialization for MCP tools."""
-        tool_name = "mcp:test-server:write_file"
+        tool_name = "mcp__test-server__write_file"
         tool_input = {"path": "/tmp/test.txt", "content": "Hello, MCP!"}
 
         dialog = ApprovalDialog(tool_name, tool_input)
@@ -159,7 +159,7 @@ class TestIntegration:
 
     def test_mcp_naming_integration(self) -> None:
         """Test that MCP naming works correctly with the dialog."""
-        mcp_tool_name = "mcp:my-server:read_file"
+        mcp_tool_name = "mcp__my-server__read_file"
 
         try:
             server_id, tool_name = parse_mcp_qualified_name(mcp_tool_name)
@@ -174,7 +174,7 @@ class TestIntegration:
 
         # Test with malformed MCP tool name
         with pytest.raises(ValueError):
-            parse_mcp_qualified_name("mcp:incomplete")
+            parse_mcp_qualified_name("mcp__incomplete")
 
 
 def test_dialog_content_truncation() -> None:

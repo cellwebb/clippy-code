@@ -287,7 +287,7 @@ class TestExecutorMCPTools:
 
     def test_mcp_tool_without_manager(self, executor: ActionExecutor) -> None:
         """Test that MCP tools fail when manager is not set."""
-        success, message, content = executor.execute("mcp:server:tool", {})
+        success, message, content = executor.execute("mcp__server__tool", {})
 
         assert success is False
         assert "MCP manager not available" in message
@@ -298,7 +298,7 @@ class TestExecutorMCPTools:
         mock_manager.execute.return_value = (True, "Success", "result")
         executor.set_mcp_manager(mock_manager)
 
-        success, message, content = executor.execute("mcp:server:tool", {"arg": "value"})
+        success, message, content = executor.execute("mcp__server__tool", {"arg": "value"})
 
         assert success is True
         mock_manager.execute.assert_called_once_with("server", "tool", {"arg": "value"})
@@ -309,7 +309,7 @@ class TestExecutorMCPTools:
         mock_manager.execute.side_effect = Exception("MCP Error")
         executor.set_mcp_manager(mock_manager)
 
-        success, message, content = executor.execute("mcp:server:tool", {})
+        success, message, content = executor.execute("mcp__server__tool", {})
 
         assert success is False
         assert "Error executing MCP tool" in message
@@ -320,9 +320,9 @@ class TestExecutorMCPTools:
         mock_manager = MagicMock()
         executor.set_mcp_manager(mock_manager)
 
-        # "mcp:invalid" is actually invalid because it only has 2 parts, not 3
+        # "mcp__invalid" is actually invalid because it only has 2 parts, not 3
         # It won't be recognized as an MCP tool
-        success, message, content = executor.execute("mcp:invalid", {})
+        success, message, content = executor.execute("mcp__invalid", {})
 
         assert success is False
         # Will be treated as unknown tool since it's not a valid MCP format

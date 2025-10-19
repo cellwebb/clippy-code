@@ -42,7 +42,7 @@ def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | N
     """
     try:
         # Check if this is an MCP tool that might affect files
-        is_mcp = tool_name.startswith("mcp:")
+        is_mcp = tool_name.startswith("mcp__")
 
         if tool_name == "write_file":
             filepath = tool_input["path"]

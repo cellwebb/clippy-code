@@ -43,11 +43,11 @@ def test_get_all_tools_with_none_manager() -> None:
 
 def test_is_mcp_tool() -> None:
     """Test MCP tool name detection."""
-    # MCP tools start with "mcp:"
-    assert is_mcp_tool("mcp:server:tool") is True
-    assert is_mcp_tool("mcp:another_server:another_tool") is True
+    # MCP tools start with "mcp__"
+    assert is_mcp_tool("mcp__server__tool") is True
+    assert is_mcp_tool("mcp__another_server__another_tool") is True
 
-    # Regular tools don't start with "mcp:"
+    # Regular tools don't start with "mcp__"
     assert is_mcp_tool("read_file") is False
     assert is_mcp_tool("write_file") is False
     assert is_mcp_tool("list_directory") is False

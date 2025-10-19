@@ -79,6 +79,6 @@ def is_mcp_tool(name: str) -> bool:
         name: Tool name to check
 
     Returns:
-        True if the tool name is an MCP tool (starts with "mcp:")
+        True if the tool name is an MCP tool (starts with "mcp__")
     """
-    return name.startswith("mcp:")
+    return name.startswith("mcp__")
