@@ -3,6 +3,7 @@
 import sys
 
 from rich.console import Console
+from rich.markup import escape
 
 from ..agent import ClippyAgent, InterruptedExceptionError
 
@@ -20,5 +21,5 @@ def run_one_shot(agent: ClippyAgent, prompt: str, auto_approve: bool) -> None:
         console.print("\n[yellow]Interrupted[/yellow]")
         sys.exit(1)
     except Exception as e:
-        console.print(f"\n[bold red]Error: {e}[/bold red]")
+        console.print(f"\n[bold red]Error: {escape(str(e))}[/bold red]")
         sys.exit(1)

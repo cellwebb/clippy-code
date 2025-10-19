@@ -10,6 +10,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 
 from ..agent import ClippyAgent, InterruptedExceptionError
@@ -97,7 +98,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             console.print("\n[yellow]Goodbye![/yellow]")
             break
         except Exception as e:
-            console.print(f"\n[bold red]Unexpected error: {e}[/bold red]")
+            console.print(f"\n[bold red]Unexpected error: {escape(str(e))}[/bold red]")
             logger = logging.getLogger(__name__)
             logger.error(
                 f"Unexpected error in interactive mode: {type(e).__name__}: {e}", exc_info=True

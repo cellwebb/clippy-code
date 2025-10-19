@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 from rich.console import Console
+from rich.markup import escape
 
 from ..diff_utils import format_diff_for_display
 from ..executor import ActionExecutor
@@ -337,7 +338,7 @@ def ask_approval(
                     else:
                         console.print("[yellow]⚠ MCP manager not available[/yellow]")
                 except Exception as e:
-                    console.print(f"[yellow]⚠ Error trusting server: {e}[/yellow]")
+                    console.print(f"[yellow]⚠ Error trusting server: {escape(str(e))}[/yellow]")
                 return True
             else:
                 # Auto-approve this action type for non-MCP tools

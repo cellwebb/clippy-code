@@ -4,6 +4,7 @@ import os
 import sys
 
 from rich.console import Console
+from rich.markup import escape
 
 from ..agent import ClippyAgent
 from ..executor import ActionExecutor
@@ -63,7 +64,7 @@ def main() -> None:
             mcp_manager = Manager(config=mcp_config, console=console)
             mcp_manager.start()  # Now synchronous - runs in background thread
         except Exception as e:
-            console.print(f"[yellow]⚠ Warning: Failed to initialize MCP manager: {e}[/yellow]")
+            console.print(f"[yellow]⚠ Warning: Failed to initialize MCP manager: {escape(str(e))}[/yellow]")
             mcp_manager = None
 
     # Create permission manager

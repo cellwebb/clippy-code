@@ -6,6 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 
 from ..executor import ActionExecutor
@@ -107,7 +108,7 @@ def run_agent_loop(
                 try:
                     tool_input = json.loads(tool_call["function"]["arguments"])
                 except json.JSONDecodeError as e:
-                    console.print(f"[bold red]Error parsing tool arguments: {e}[/bold red]")
+                    console.print(f"[bold red]Error parsing tool arguments: {escape(str(e))}[/bold red]")
                     from .tool_handler import add_tool_result
 
                     add_tool_result(
