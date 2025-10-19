@@ -42,10 +42,12 @@ class DocumentApp(App[None]):
         self.current_approval_dialog: ApprovalDialog | None = None
         self.current_approval_backdrop: ApprovalBackdrop | None = None
         self.current_error_panel: ErrorPanel | None = None
+        self.header_widget: DocumentHeader | None = None
 
     def compose(self) -> ComposeResult:
         with Vertical(id="top-bar"):
-            yield DocumentHeader(id="header")
+            self.header_widget = DocumentHeader(id="header")
+            yield self.header_widget
             with Horizontal(id="toolbar"):
                 yield Button("Send", id="submit-btn")
                 yield Button("Status", id="status-btn")
@@ -183,6 +185,11 @@ class DocumentApp(App[None]):
             )
         except Exception:
             status_bar.update_status("unknown", 0, 0)
+
+    def refresh_header(self) -> None:
+        """Refresh the document header with updated current working directory."""
+        if self.header_widget:
+            self.header_widget.refresh_cwd()
 
     def request_approval(
         self, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
