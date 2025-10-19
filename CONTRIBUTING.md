@@ -159,35 +159,29 @@ Then open a pull request on GitHub.
 
 ```
 src/clippy/
-├── __init__.py
-├── __main__.py
-├── __version__.py
-├── agent/
-│   ├── __init__.py
-│   ├── conversation.py
-│   ├── core.py
-│   ├── errors.py
-│   ├── loop.py
-│   ├── tool_handler.py
-│   └── utils.py
 ├── cli/
+│   ├── main.py         # Main entry point
+│   ├── parser.py       # Argument parsing
+│   ├── oneshot.py      # One-shot mode implementation
+│   └── repl.py         # Interactive REPL mode
+├── agent/
+│   ├── core.py         # Core agent implementation
+│   ├── loop.py         # Agent loop logic
+│   ├── conversation.py # Conversation utilities
+│   └── tool_handler.py # Tool calling handler
+├── mcp/                # MCP (Model Context Protocol) integration
 │   ├── __init__.py
-│   ├── commands.py
-│   ├── main.py
-│   ├── oneshot.py
-│   ├── parser.py
-│   ├── repl.py
-│   └── setup.py
-├── diff_utils.py
-├── executor.py
-├── models.py
-├── models.yaml
-├── permissions.py
-├── prompts.py
-├── providers.py
-├── tool_schemas.py
+│   ├── config.py       # MCP configuration loading
+│   ├── errors.py       # MCP error handling
+│   ├── manager.py      # MCP server connection manager
+│   ├── naming.py       # MCP tool naming utilities
+│   ├── schema.py       # MCP schema conversion
+│   ├── transports.py   # MCP transport layer
+│   ├── trust.py        # MCP trust system
+│   └── types.py        # MCP type definitions
 ├── tools/
-│   ├── __init__.py
+│   ├── __init__.py     # Tool implementations and exports
+│   ├── catalog.py      # Tool catalog for merging built-in and MCP tools
 │   ├── create_directory.py
 │   ├── delete_file.py
 │   ├── edit_file.py
@@ -199,12 +193,18 @@ src/clippy/
 │   ├── read_files.py
 │   ├── search_files.py
 │   └── write_file.py
-└── ui/
-    ├── __init__.py
-    ├── document_app.py
-    ├── styles.py
-    ├── utils.py
-    └── widgets.py
+├── ui/
+|   ├── document_app.py # Textual-based document mode interface
+|   ├── styles.py       # CSS styling for document mode
+|   ├── widgets.py      # Custom UI widgets
+|   └── utils.py        # UI utility functions
+├── providers.py     # OpenAI-compatible LLM provider (~100 lines)
+├── executor.py      # Tool execution implementations
+├── permissions.py   # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
+├── models.py        # Model configuration loading and presets
+├── models.yaml      # Model presets for different providers
+├── prompts.py       # System prompts for the agent
+└── diff_utils.py    # Diff generation utilities
 ```
 
 ## Adding New Features
@@ -248,24 +248,20 @@ def your_tool(param: str) -> tuple[bool, str, Any]:
 2. Add the tool to `src/clippy/tools/__init__.py`:
 
 ```python
-from .your_tool import your_tool
+from .your_tool import your_tool, TOOL_SCHEMA as YOUR_TOOL_SCHEMA
 
 __all__ = [
     # existing tools...
     "your_tool",
 ]
-```
-
-3. Add the tool schema to `src/clippy/tool_schemas.py`:
-
-```python
-from .tools.your_tool import TOOL_SCHEMA as YOUR_TOOL_SCHEMA
 
 TOOLS: list[dict[str, Any]] = [
     # existing tools...
     YOUR_TOOL_SCHEMA,
 ]
 ```
+
+The tool catalog (`tools/catalog.py`) automatically discovers and includes all tools from the tools module.
 
 4. Add the action type in `src/clippy/permissions.py`:
 

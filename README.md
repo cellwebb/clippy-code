@@ -1,4 +1,4 @@
-# clippy-code 📎
+# clippy-code 👀📎
 
 [![Python 3.10–3.14](https://img.shields.io/badge/python-3.10%E2%80%933.14-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -222,8 +222,19 @@ src/clippy/
 │   ├── loop.py         # Agent loop logic
 │   ├── conversation.py # Conversation utilities
 │   └── tool_handler.py # Tool calling handler
+├── mcp/                # MCP (Model Context Protocol) integration
+│   ├── __init__.py
+│   ├── config.py       # MCP configuration loading
+│   ├── errors.py       # MCP error handling
+│   ├── manager.py      # MCP server connection manager
+│   ├── naming.py       # MCP tool naming utilities
+│   ├── schema.py       # MCP schema conversion
+│   ├── transports.py   # MCP transport layer
+│   ├── trust.py        # MCP trust system
+│   └── types.py        # MCP type definitions
 ├── tools/
-│   ├── __init__.py      # Tool schemas and aggregation
+│   ├── __init__.py     # Tool implementations and exports
+│   ├── catalog.py      # Tool catalog for merging built-in and MCP tools
 │   ├── create_directory.py
 │   ├── delete_file.py
 │   ├── edit_file.py
@@ -259,7 +270,7 @@ src/clippy/
 
 ### Available Models
 
-**OpenAI**: gpt-5 (default), gpt-5-mini
+**OpenAI**: gpt-4o (default), gpt-4o-mini, gpt-5
 
 **Cerebras**: cerebras (default), qwen-3-coder-480b
 
@@ -347,15 +358,15 @@ clippy-code has access to these tools:
 | `grep`             | Search patterns in files                          | ✅            |
 | `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            |
 
-For detailed information about MCP integration, see [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md).
+For detailed information about MCP integration, see [MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md).
 
 clippy-code can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
 
-To use MCP servers, create an `mcp.json` configuration file in your project root or home directory:
+To use MCP servers, create an `mcp.json` configuration file in your home directory (`~/.clippy/mcp.json`), project directory, or specify via `CLIPPY_MCP_CONFIG` environment variable:
 
 ```json
 {
-  "mcpServers": {
+  "mcp_servers": {
     "context7": {
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp", "--api-key", "${CTX7_API_KEY}"]
@@ -415,20 +426,25 @@ provider_name:
 
 ### Adding New Tools
 
-Tools follow a declarative pattern with three components:
+Tools follow a declarative pattern with four components:
 
-1. **Definition** (`tools/__init__.py`): JSON schema in OpenAI format
-2. **Permission** (`permissions.py`): Add to `ActionType` enum and permission config
-3. **Execution** (`executor.py`): Implement method returning `tuple[bool, str, Any]`
+1. **Definition & Implementation** (`tools/your_tool.py`): Co-located schema and implementation
+2. **Catalog Integration** (`tools/catalog.py`): Tool gets automatically included
+3. **Permission** (`permissions.py`): Add to `ActionType` enum and permission config
+4. **Execution** (`executor.py`): Implement method returning `tuple[bool, str, Any]`
 
 The steps are:
 
-1. Add a tool definition file in `src/clippy/tools/` (e.g., `your_tool.py`)
-2. Add the tool to `src/clippy/tools/__init__.py`
+1. Create a tool file in `src/clippy/tools/` (e.g., `your_tool.py`) with:
+   - `TOOL_SCHEMA` constant defining the tool's JSON schema
+   - Implementation function (e.g., `def your_tool(...) -> tuple[bool, str, Any]`)
+2. Add the tool export to `src/clippy/tools/__init__.py`
 3. Add the action type in `src/clippy/permissions.py`
 4. Add the tool execution to `src/clippy/executor.py`
 5. Add the tool to the action maps in `src/clippy/agent/tool_handler.py`
 6. Add tests for your tool in `tests/tools/test_your_tool.py`
+
+The tool catalog (`tools/catalog.py`) automatically discovers and includes all tools from the tools module.
 
 ## Skills Demonstrated
 
