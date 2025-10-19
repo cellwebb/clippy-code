@@ -125,6 +125,20 @@ Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, 
 7. Write tests in `tests/tools/test_your_tool.py`
 
 ### UI Modes
+code-with-clippy supports three UI modes:
+
+1. **One-shot mode**: `clippy "your task here"`
+2. **Interactive mode**: `clippy -i` (REPL-style interface)
+3. **Document mode**: `clippy -d` (Word-like TUI interface)
+
+Document mode features:
+
+- Word-inspired interface using Textual framework
+- Editable document area for conversations
+- Toolbar with buttons for common actions
+- Automatic prompt management
+- Visual status bar showing model/token info
+- Diff previews for file operations
 
 code-with-clippy supports three UI modes:
 
@@ -142,6 +156,46 @@ Document mode features:
 - Diff previews for file operations
 
 ### Conversation Management
+- **Reset**: Use `/reset`, `/clear`, or `/new` commands to clear conversation history
+- **Compact**: Use `/compact` command to summarize older messages and reduce token usage
+- **Status**: Use `/status` command to show current token usage and session info
+- **Model Switching**: Use `/model <name>` command to switch between different providers/models
+
+### MCP Integration
+
+code-with-clippy supports the Model Context Protocol (MCP) for dynamically discovering and using external tools. MCP enables extending the agent's capabilities without modifying the core codebase.
+
+Key MCP features:
+
+- **Dynamic Tool Discovery**: Automatically discovers tools from configured MCP servers
+- **Trust System**: Secure approval workflow for external tools
+- **Schema Mapping**: Converts MCP tool schemas to OpenAI-compatible format
+- **Error Handling**: Graceful handling of connection and execution failures
+
+MCP configuration:
+
+Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or project directory:
+
+```json
+{
+  "mcp_servers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "${CTX7_API_KEY}"]
+    }
+  }
+}
+```
+
+Available MCP commands in interactive/document mode:
+
+- `/mcp list` - Show configured MCP servers and connection status
+- `/mcp tools [server]` - List available tools from MCP servers
+- `/mcp refresh` - Refresh connections to MCP servers
+- `/mcp allow <server>` - Trust an MCP server (auto-approve its tools)
+- `/mcp revoke <server>` - Revoke trust for an MCP server
+
+MCP tools integrate seamlessly with code-with-clippy's permission system. By default, MCP tools require approval before execution, but trusted servers have their tools auto-approved.
 
 - **Reset**: Use `/reset`, `/clear`, or `/new` commands to clear conversation history
 - **Compact**: Use `/compact` command to summarize older messages and reduce token usage
@@ -149,6 +203,20 @@ Document mode features:
 - **Model Switching**: Use `/model <name>` command to switch between different providers/models
 
 ## Configuration
+Environment variables:
+
+- `OPENAI_API_KEY`: API key for OpenAI or OpenAI-compatible provider (required for OpenAI)
+- `CEREBRAS_API_KEY`: API key for Cerebras provider
+- `TOGETHER_API_KEY`: API key for Together AI provider
+- `GROQ_API_KEY`: API key for Groq provider
+- `DEEPSEEK_API_KEY`: API key for DeepSeek provider
+- `OPENAI_BASE_URL`: Base URL for alternate providers (e.g., https://api.cerebras.ai/v1)
+- `CLIPPY_MODEL`: Model identifier (default: gpt-5)
+- `CLIPPY_MCP_CONFIG`: Path to MCP configuration file (optional)
+
+For detailed MCP configuration and usage, see [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md).
+
+Config files (priority order): `.env` → `~/.clippy.env` → system env
 
 Environment variables:
 
