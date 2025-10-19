@@ -2,6 +2,7 @@
 
 import json
 import logging
+import sys
 from collections.abc import Callable
 from typing import Any
 
@@ -11,7 +12,7 @@ from rich.panel import Panel
 
 from ..executor import ActionExecutor
 from ..permissions import PermissionManager
-from ..providers import LLMProvider
+from ..providers import LLMProvider, Spinner
 from ..tools import catalog as tool_catalog
 from .errors import format_api_error
 from .tool_handler import handle_tool_use
@@ -57,7 +58,15 @@ def run_agent_loop(
     max_iterations = 50  # Prevent infinite loops
     logger.info(f"Starting agent loop with model: {model}, max_iterations: {max_iterations}")
 
+    # Track spinner between iterations
+    spinner: Spinner | None = None
+
     for iteration in range(max_iterations):
+        # Stop spinner from previous iteration
+        if spinner:
+            spinner.stop()
+            spinner = None
+
         logger.debug(f"Agent loop iteration {iteration + 1}/{max_iterations}")
 
         if check_interrupted():
@@ -169,11 +178,23 @@ def run_agent_loop(
             content = response.get("content", "")
             return content if isinstance(content, str) else ""
 
+        # Start spinner for next iteration (since we're continuing the loop)
+        # Detect document mode to disable spinner in document mode
+        in_document_mode = (
+            hasattr(sys.stdout, "_original_stdstream_copy") or not sys.stdout.isatty()
+        )
+        spinner = Spinner("Thinking", enabled=not in_document_mode)
+        spinner.start()
+
         # Warn if approaching iteration limit
         if iteration >= max_iterations - 5:
             logger.warning(f"Approaching iteration limit: {iteration + 1}/{max_iterations}")
 
-    # Max iterations reached - display warning
+    # Max iterations reached - cleanup and display warning
+    if spinner:
+        spinner.stop()
+        spinner = None
+
     logger.warning(f"Maximum iterations ({max_iterations}) reached")
     console.print(
         Panel(
