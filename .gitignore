@@ -83,6 +83,7 @@ site/
 
 # clippy-code specific
 .clippy_history
+.clippy/
 
 # Agents
 CLAUDE.md

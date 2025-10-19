@@ -1,0 +1,28 @@
+{
+    "mcpServers": {
+        "git": {
+            "command": "uvx",
+            "args": ["mcp-server-git"],
+            "env": {}
+        },
+        "filesystem": {
+            "command": "uvx",
+            "args": ["mcp-server-filesystem"],
+            "env": {}
+        },
+        "postgres": {
+            "command": "uvx",
+            "args": ["mcp-server-postgres"],
+            "env": {
+                "DATABASE_URL": "${DATABASE_URL}"
+            }
+        },
+        "llm": {
+            "command": "uvx",
+            "args": ["mcp-server-llm"],
+            "env": {
+                "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+            }
+        }
+    }
+}
