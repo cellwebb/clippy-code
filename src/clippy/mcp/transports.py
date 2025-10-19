@@ -11,12 +11,10 @@ class BaseTransport:
 
     async def connect(self) -> None:
         """Connect to the MCP server."""
-        # TODO: Implement in M1
         pass
 
     async def disconnect(self) -> None:
         """Disconnect from the MCP server."""
-        # TODO: Implement in M1
         pass
 
     async def send_request(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -29,7 +27,6 @@ class BaseTransport:
         Returns:
             Response data
         """
-        # TODO: Implement in M1
         return {}
 
 
@@ -57,4 +54,3 @@ class StdioTransport(BaseTransport):
         self.args = args
         self.env = env
         self.cwd = cwd
-        # TODO: Implement in M1
