@@ -9,6 +9,8 @@ from rich.markup import escape
 from rich.panel import Panel
 
 from ..agent import ClippyAgent
+from ..agent.subagent_config_manager import get_subagent_config_manager
+from ..agent.subagent_types import list_subagent_types
 from ..models import (
     get_model_config,
     get_provider,
@@ -38,28 +40,38 @@ def handle_help_command(console: Console) -> CommandResult:
     """Handle /help command."""
     console.print(
         Panel.fit(
-            "[bold]Commands:[/bold]\n"
+            "[bold]Session Control:[/bold]\n"
+            "  /help - Show this help message\n"
             "  /exit, /quit - Exit clippy-code\n"
-            "  /reset, /clear, /new - Reset conversation history\n"
+            "  /reset, /clear, /new - Reset conversation history\n\n"
+            "[bold]Session Info:[/bold]\n"
             "  /status - Show token usage and session info\n"
-            "  /compact - Summarize conversation to reduce context usage\n"
-            "  /providers - List available providers\n"
-            "  /provider <name> - Show provider details\n"
+            "  /compact - Summarize conversation to reduce context usage\n\n"
+            "[bold]Model Management:[/bold]\n"
             "  /model list - Show your saved models\n"
+            "  /model <name> - Switch to saved model\n"
             "  /model add <provider> <model_id> [options] - Add a new model\n"
             "  /model remove <name> - Remove a saved model\n"
             "  /model default <name> - Set model as default\n"
-            "  /model use <provider> <model_id> - Try a model without saving\n"
-            "  /model <name> - Switch to saved model\n"
+            "  /model use <provider> <model_id> - Try a model without saving\n\n"
+            "[bold]Subagent Configuration:[/bold]\n"
+            "  /subagent list - Show subagent type configurations\n"
+            "  /subagent set <type> <model> - Set model for a subagent type\n"
+            "  /subagent clear <type> - Clear model override for a subagent type\n"
+            "  /subagent reset - Clear all model overrides\n\n"
+            "[bold]Providers:[/bold]\n"
+            "  /providers - List available providers\n"
+            "  /provider <name> - Show provider details\n\n"
+            "[bold]Permissions:[/bold]\n"
             "  /auto list - List auto-approved actions\n"
             "  /auto revoke <action> - Revoke auto-approval for an action\n"
-            "  /auto clear - Clear all auto-approvals\n"
+            "  /auto clear - Clear all auto-approvals\n\n"
+            "[bold]MCP Servers:[/bold]\n"
             "  /mcp list - List configured MCP servers\n"
             "  /mcp tools [server] - List tools available from MCP servers\n"
             "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
             "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
-            "  /mcp revoke <server> - Revoke trust for an MCP server\n"
-            "  /help - Show this help message\n\n"
+            "  /mcp revoke <server> - Revoke trust for an MCP server\n\n"
             "[bold]Interrupt:[/bold]\n"
             "  Ctrl+C or double-ESC - Stop current execution",
             border_style="blue",
@@ -635,6 +647,131 @@ def _handle_mcp_revoke(mcp_manager: Any, console: Console, server_arg: str) -> N
     console.print(f"[green]✓ Revoked trust for MCP server '{server_id}'[/green]")
 
 
+def handle_subagent_command(
+    agent: ClippyAgent, console: Console, command_args: str
+) -> CommandResult:
+    """Handle /subagent commands."""
+    config_manager = get_subagent_config_manager()
+
+    if not command_args or command_args.lower() == "list":
+        # Show all subagent types and their model configurations
+        configs = config_manager.get_all_configurations()
+
+        if not configs:
+            console.print("[red]✗ No subagent types available[/red]")
+            return "continue"
+
+        config_lines = []
+        for subagent_type in sorted(configs.keys()):
+            type_config = configs[subagent_type]
+            override = type_config["model_override"]
+            max_iterations = type_config["max_iterations"]
+
+            if override:
+                model_info = f"[green]{override}[/green]"
+            else:
+                model_info = "[dim](inherits from parent)[/dim]"
+
+            config_lines.append(
+                f"  [cyan]{subagent_type:20}[/cyan] {model_info}  "
+                f"[dim]({max_iterations} iterations)[/dim]"
+            )
+
+        current_model = agent.model
+        console.print(
+            Panel.fit(
+                "[bold]Subagent Type Configurations:[/bold]\n\n"
+                + "\n".join(config_lines)
+                + f"\n\n[bold]Parent Model:[/bold] [cyan]{current_model}[/cyan]\n\n"
+                + "[dim]Usage: /subagent set <type> <model>[/dim]\n"
+                + "[dim]       /subagent clear <type>[/dim]",
+                title="Subagent Configuration",
+                border_style="cyan",
+            )
+        )
+        return "continue"
+
+    # Parse command arguments
+    try:
+        args = shlex.split(command_args)
+    except ValueError as e:
+        console.print(f"[red]✗ Error parsing arguments: {e}[/red]")
+        return "continue"
+
+    if not args:
+        console.print("[red]Usage: /subagent <command> [args][/red]")
+        console.print("[dim]Commands: list, set, clear, reset[/dim]")
+        return "continue"
+
+    subcommand = args[0].lower()
+
+    if subcommand == "set":
+        return _handle_subagent_set(console, args[1:])
+    elif subcommand == "clear":
+        return _handle_subagent_clear(console, args[1:])
+    elif subcommand == "reset":
+        return _handle_subagent_reset(console)
+    else:
+        console.print(f"[red]✗ Unknown subcommand: {subcommand}[/red]")
+        console.print("[dim]Commands: list, set, clear, reset[/dim]")
+        return "continue"
+
+
+def _handle_subagent_set(console: Console, args: list[str]) -> CommandResult:
+    """Handle /subagent set command."""
+    if len(args) < 2:
+        console.print("[red]Usage: /subagent set <type> <model>[/red]")
+        console.print(f"[dim]Available types: {', '.join(list_subagent_types())}[/dim]")
+        console.print("[dim]Example: /subagent set fast_general gpt-3.5-turbo[/dim]")
+        return "continue"
+
+    subagent_type = args[0]
+    model = args[1]
+
+    config_manager = get_subagent_config_manager()
+
+    try:
+        config_manager.set_model_override(subagent_type, model)
+        console.print(f"[green]✓ Set {subagent_type} to use model: {model}[/green]")
+    except ValueError as e:
+        console.print(f"[red]✗ {e}[/red]")
+
+    return "continue"
+
+
+def _handle_subagent_clear(console: Console, args: list[str]) -> CommandResult:
+    """Handle /subagent clear command."""
+    if not args:
+        console.print("[red]Usage: /subagent clear <type>[/red]")
+        console.print(f"[dim]Available types: {', '.join(list_subagent_types())}[/dim]")
+        return "continue"
+
+    subagent_type = args[0]
+    config_manager = get_subagent_config_manager()
+
+    if config_manager.clear_model_override(subagent_type):
+        console.print(f"[green]✓ Cleared model override for {subagent_type}[/green]")
+        console.print("[dim]Will now inherit from parent agent[/dim]")
+    else:
+        console.print(f"[yellow]⚠ No model override set for {subagent_type}[/yellow]")
+
+    return "continue"
+
+
+def _handle_subagent_reset(console: Console) -> CommandResult:
+    """Handle /subagent reset command."""
+    config_manager = get_subagent_config_manager()
+    count = config_manager.clear_all_overrides()
+
+    if count > 0:
+        console.print(f"[green]✓ Cleared {count} model override(s)[/green]")
+        console.print("[dim]All subagents will now inherit from parent agent[/dim]")
+    else:
+        console.print("[yellow]⚠ No model overrides to clear[/yellow]")
+
+    return "continue"
+
+
 def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> CommandResult | None:
     """
     Handle slash commands in interactive mode.
@@ -681,6 +818,12 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
         parts = user_input.split(maxsplit=1)
         command_args = parts[1] if len(parts) > 1 else ""
         return handle_model_command(agent, console, command_args)
+
+    # Subagent commands
+    if command_lower.startswith("/subagent"):
+        parts = user_input.split(maxsplit=1)
+        command_args = parts[1] if len(parts) > 1 else ""
+        return handle_subagent_command(agent, console, command_args)
 
     # Auto-approval commands
     if command_lower.startswith("/auto"):

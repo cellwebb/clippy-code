@@ -248,6 +248,41 @@ manager.get_chain_statistics()
 manager.interrupt_chain("subagent_name")
 ```
 
+### Model Configuration
+
+Configure which model each subagent type uses with the `/subagent` command:
+
+```bash
+# List current configurations for all subagent types
+/subagent list
+
+# Set a specific model for a subagent type
+/subagent set fast_general gpt-3.5-turbo
+/subagent set power_analysis claude-3-opus-20240229
+/subagent set code_review hf:zai-org/GLM-4.6
+
+# Clear model override (revert to inheriting from parent)
+/subagent clear fast_general
+
+# Reset all model overrides
+/subagent reset
+```
+
+**Model Selection Priority:**
+
+1. **Explicit model in config** - If you pass a model when creating a subagent, that takes highest priority
+2. **Type-specific override** - Model set via `/subagent set` for that subagent type
+3. **Parent model** - Inherits the model from the parent agent (default)
+
+**Configuration Storage:**
+Model overrides are stored in `~/.clippy/subagent_config.json` and persist across sessions.
+
+**Use Cases:**
+
+- Use faster, cheaper models for simple tasks (`fast_general` → `gpt-3.5-turbo`)
+- Use more capable models for complex analysis (`power_analysis` → `claude-3-opus-20240229`)
+- Use specialized models per task type (e.g., coding models for refactoring)
+
 ## Advanced Features
 
 ### Result Caching
@@ -292,26 +327,6 @@ code_review_result = await manager.execute_chain(root_node)
 # Visualize the execution tree
 tree_viz = manager.visualize_chain("code_reviewer")
 print(tree_viz)
-```
-
-### Model Optimization
-
-Different subagent types are optimized for specific models:
-
-```python
-# Get model recommendations for a task
-recommended_models = get_recommended_models_for_task(
-    "Perform deep architecture analysis"
-)
-# Returns: ["claude-3-opus-20240229", "gpt-4-turbo"]
-
-# Get optimization hints
-hints = get_optimization_hints("code_review", "complex")
-# Returns: {
-#     "model_suggestions": ["claude-3-sonnet-20240229", "gpt-4-turbo"],
-#     "iteration_suggestions": 20,
-#     "reason": "Complex code review benefits from more capable models"
-# }
 ```
 
 ## Best Practices

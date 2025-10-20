@@ -24,7 +24,7 @@ class DocumentHeader(Static):
             if len(parts) > 2:
                 cwd = os.sep.join(["..."] + parts[-2:])
 
-        self.update(f"👀📎 clippy - 📄 Document Mode\n📁 {cwd}/")
+        self.update(f"👀📎 clippy 95\n📁 {cwd}/")
 
     def refresh_cwd(self) -> None:
         """Refresh the header with updated current working directory."""
@@ -315,6 +315,7 @@ class ApprovalDialog(Container):
             # Show tool input with truncation and expand/collapse
             if self.tool_input:
                 import json
+
                 from rich.markup import escape
 
                 yield Static("Parameters:", id="input-section-header")

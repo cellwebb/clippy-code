@@ -87,9 +87,19 @@ class SubAgentManager:
         Returns:
             Created SubAgent instance
         """
-        # Validate configuration
+        # Check for model override from user configuration
+        from .subagent_config_manager import get_subagent_config_manager
         from .subagent_types import validate_subagent_config
 
+        config_manager = get_subagent_config_manager()
+        model_override = config_manager.get_model_override(config.subagent_type)
+
+        # Apply model override if configured and not already set in config
+        if model_override and (not hasattr(config, "model") or config.model is None):
+            config.model = model_override
+            logger.debug(f"Applied model override for {config.subagent_type}: {model_override}")
+
+        # Validate configuration
         config_dict = {
             "name": config.name,
             "task": config.task,
