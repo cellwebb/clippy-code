@@ -1,11 +1,15 @@
 """Tests for enhanced error handling."""
 
+import builtins
+import sys
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import pytest
 from openai import AuthenticationError
 
 from clippy.agent import ClippyAgent, handle_tool_use
+from clippy.agent.errors import format_api_error
 from clippy.executor import ActionExecutor
 from clippy.permissions import PermissionConfig, PermissionManager
 
@@ -111,3 +115,61 @@ class TestErrorHandling:
                 None,
             )
             assert success is False
+
+
+def _install_dummy_openai(monkeypatch) -> SimpleNamespace:
+    """Install a minimal openai module exposing the error hierarchy."""
+
+    class _BaseError(Exception):
+        def __init__(self, message: str = "error", *args, **kwargs) -> None:
+            super().__init__(message)
+
+    dummy_module = SimpleNamespace(
+        APIConnectionError=type("APIConnectionError", (_BaseError,), {}),
+        APITimeoutError=type("APITimeoutError", (_BaseError,), {}),
+        AuthenticationError=type("AuthenticationError", (_BaseError,), {}),
+        BadRequestError=type("BadRequestError", (_BaseError,), {}),
+        ConflictError=type("ConflictError", (_BaseError,), {}),
+        InternalServerError=type("InternalServerError", (_BaseError,), {}),
+        NotFoundError=type("NotFoundError", (_BaseError,), {}),
+        PermissionDeniedError=type("PermissionDeniedError", (_BaseError,), {}),
+        RateLimitError=type("RateLimitError", (_BaseError,), {}),
+        UnprocessableEntityError=type("UnprocessableEntityError", (_BaseError,), {}),
+    )
+
+    monkeypatch.setitem(sys.modules, "openai", dummy_module)
+    return dummy_module
+
+
+def test_format_api_error_authentication(monkeypatch):
+    """Ensure known OpenAI errors are rendered with friendly hints."""
+    dummy_module = _install_dummy_openai(monkeypatch)
+    error = dummy_module.AuthenticationError("bad key")
+
+    message = format_api_error(error)
+
+    assert "Authentication failed" in message
+    assert "OPENAI_API_KEY" in message
+
+
+def test_format_api_error_import_error(monkeypatch):
+    """Verify fallback messaging when openai import is unavailable."""
+    monkeypatch.delitem(sys.modules, "openai", raising=False)
+
+    original_import = builtins.__import__
+
+    def _raise_on_openai(name, *args, **kwargs):
+        if name == "openai":
+            raise ImportError("missing dependency")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _raise_on_openai)
+
+    class CustomError(Exception):
+        pass
+
+    error = CustomError("boom")
+
+    message = format_api_error(error)
+
+    assert message == "CustomError: boom"

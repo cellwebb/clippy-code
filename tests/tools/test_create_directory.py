@@ -8,6 +8,7 @@ import pytest
 
 from clippy.executor import ActionExecutor
 from clippy.permissions import ActionType, PermissionConfig, PermissionManager
+from clippy.tools.create_directory import create_directory
 
 
 @pytest.fixture
@@ -44,3 +45,59 @@ def test_create_directory_action_requires_approval() -> None:
     # The CREATE_DIR action should require approval
     assert ActionType.CREATE_DIR in config.require_approval
     assert config.can_auto_execute(ActionType.CREATE_DIR) is False
+
+
+def test_create_directory_permission_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Permission errors should be reported with a friendly message."""
+
+    def _raise_permission(
+        self, mode: int = 0o777, parents: bool = False, exist_ok: bool = False
+    ) -> None:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(Path, "mkdir", _raise_permission)
+
+    success, message, payload = create_directory("/protected/path")
+
+    assert success is False
+    assert "Permission denied" in message
+    assert payload is None
+
+
+def test_create_directory_os_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Other OS errors should surface their details."""
+
+    def _raise_os_error(
+        self, mode: int = 0o777, parents: bool = False, exist_ok: bool = False
+    ) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(Path, "mkdir", _raise_os_error)
+
+    success, message, payload = create_directory("/full-disk/path")
+
+    assert success is False
+    assert "OS error" in message
+    assert "disk full" in message
+    assert payload is None
+
+
+def test_create_directory_unexpected_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Unexpected exceptions should fall back to a generic failure message."""
+
+    class CustomError(Exception):
+        pass
+
+    def _raise_custom_error(
+        self, mode: int = 0o777, parents: bool = False, exist_ok: bool = False
+    ) -> None:
+        raise CustomError("unexpected")
+
+    monkeypatch.setattr(Path, "mkdir", _raise_custom_error)
+
+    success, message, payload = create_directory("/unexpected/path")
+
+    assert success is False
+    assert message.startswith("Failed to create directory")
+    assert "unexpected" in message
+    assert payload is None
