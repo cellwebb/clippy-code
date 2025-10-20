@@ -87,3 +87,4 @@ site/
 # Agents
 CLAUDE.md
 .claude/settings.local.json
+.serena/
