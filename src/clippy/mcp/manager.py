@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import threading
 from typing import Any
 
@@ -33,6 +34,9 @@ class Manager:
         self._session_contexts: dict[str, Any] = {}  # Server ID -> session context manager
         self._sessions: dict[str, Any] = {}  # Server ID -> active session
         self._tools: dict[str, list[types.Tool]] = {}  # Server ID -> tools
+        self._stderr_pipes: dict[str, tuple[int, int]] = {}  # Server ID -> (read_fd, write_fd)
+        self._stderr_threads: dict[str, threading.Thread] = {}  # Server ID -> logging thread
+        self._stderr_stop_events: dict[str, threading.Event] = {}  # Server ID -> stop event
         self._trust_store = TrustStore()
 
         # Create a persistent event loop in a background thread
@@ -61,6 +65,34 @@ class Manager:
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return future.result()
 
+    def _start_stderr_logger(self, server_id: str, read_fd: int) -> None:
+        """
+        Start a thread that reads from stderr pipe and logs to logger.
+
+        Args:
+            server_id: Server identifier for log messages
+            read_fd: File descriptor to read from
+        """
+        stop_event = threading.Event()
+        self._stderr_stop_events[server_id] = stop_event
+
+        def log_stderr() -> None:
+            """Read from pipe and log to logger."""
+            try:
+                with os.fdopen(read_fd, "r", buffering=1) as stderr_file:
+                    while not stop_event.is_set():
+                        line = stderr_file.readline()
+                        if not line:
+                            break
+                        if line.strip():
+                            logger.debug(f"[MCP:{server_id}] {line.rstrip()}")
+            except Exception as e:
+                logger.debug(f"Error reading stderr from MCP server '{server_id}': {e}")
+
+        thread = threading.Thread(target=log_stderr, daemon=True)
+        thread.start()
+        self._stderr_threads[server_id] = thread
+
     def start(self) -> None:
         """Start the MCP manager and initialize connections (synchronous wrapper)."""
         self._run_in_loop(self._async_start())
@@ -78,8 +110,19 @@ class Manager:
                     cwd=server_config.cwd,
                 )
 
+                # Create a pipe for stderr capture
+                # read_fd: we read from this to get stderr output
+                # write_fd: MCP server process writes to this
+                read_fd, write_fd = os.pipe()
+                self._stderr_pipes[server_id] = (read_fd, write_fd)
+
+                # Start a thread to read from stderr pipe and log it
+                self._start_stderr_logger(server_id, read_fd)
+
                 # Create and enter stdio client context to get streams
-                stdio_context = stdio_client(params)
+                # Redirect stderr to the write end of the pipe
+                errlog = os.fdopen(write_fd, "w")
+                stdio_context = stdio_client(params, errlog=errlog)
                 self._stdio_contexts[server_id] = stdio_context
                 read_stream, write_stream = await stdio_context.__aenter__()
 
@@ -144,10 +187,32 @@ class Manager:
                 # Suppress cleanup errors
                 pass
 
+            # Stop stderr logging thread and close pipes
+            if server_id in self._stderr_stop_events:
+                self._stderr_stop_events[server_id].set()
+
+            if server_id in self._stderr_threads:
+                thread = self._stderr_threads[server_id]
+                thread.join(timeout=1.0)
+
+            if server_id in self._stderr_pipes:
+                read_fd, write_fd = self._stderr_pipes[server_id]
+                try:
+                    os.close(read_fd)
+                except OSError:
+                    pass
+                try:
+                    os.close(write_fd)
+                except OSError:
+                    pass
+
         self._stdio_contexts.clear()
         self._session_contexts.clear()
         self._sessions.clear()
         self._tools.clear()
+        self._stderr_pipes.clear()
+        self._stderr_threads.clear()
+        self._stderr_stop_events.clear()
 
     def list_servers(self) -> list[dict[str, Any]]:
         """
