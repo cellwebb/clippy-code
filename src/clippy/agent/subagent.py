@@ -3,14 +3,16 @@
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..executor import ActionExecutor
 from ..permissions import PermissionManager
 from ..providers import LLMProvider
-from .conversation import create_system_prompt
-from .core import ClippyAgent
+from .conversation import create_system_prompt, get_token_count
 from .loop import run_agent_loop
+
+if TYPE_CHECKING:
+    from .core import ClippyAgent
 
 logger = logging.getLogger(__name__)
 
@@ -37,10 +39,10 @@ class SubAgentConfig:
     task: str
     subagent_type: str = "general"
     system_prompt: str | None = None
-    allowed_tools: list[str] | None = None
+    allowed_tools: list[str] | str | None = None  # Can be list, "all", or None
     model: str | None = None
     max_iterations: int = 25
-    timeout: int = 300
+    timeout: int | float = 300
     context: dict[str, Any] = field(default_factory=dict)
 
 
@@ -71,7 +73,7 @@ class SubAgent:
     def __init__(
         self,
         config: SubAgentConfig,
-        parent_agent: ClippyAgent,
+        parent_agent: "ClippyAgent",
         permission_manager: PermissionManager,
         executor: ActionExecutor,
     ) -> None:
@@ -239,11 +241,17 @@ class SubAgent:
 
     def _run_agent_loop(self) -> str:
         """Run the agent loop with custom parameters."""
-        # Import here to avoid circular imports
-        from .subagent_types import get_subagent_config
+        # Use max_iterations from config (already incorporates type defaults via SubAgentManager)
+        max_iterations = self.config.max_iterations
 
-        type_config = get_subagent_config(self.config.subagent_type)
-        max_iterations = type_config.get("max_iterations", self.config.max_iterations)
+        # Convert "all" to None for allowed_tools (None means all tools)
+        allowed_tools_config = self.config.allowed_tools
+        if allowed_tools_config == "all":
+            allowed_tools: list[str] | None = None
+        elif isinstance(allowed_tools_config, str):
+            allowed_tools = [allowed_tools_config]
+        else:
+            allowed_tools = allowed_tools_config
 
         return run_agent_loop(
             conversation_history=self.conversation_history,
@@ -257,7 +265,8 @@ class SubAgent:
             check_interrupted=lambda: self.interrupted,
             mcp_manager=self.parent_agent.mcp_manager,
             max_iterations=max_iterations,
-            allowed_tools=self.config.allowed_tools,
+            allowed_tools=allowed_tools,
+            parent_agent=self.parent_agent,
         )
 
     def _get_iteration_count(self) -> int:
@@ -286,6 +295,4 @@ class SubAgent:
         Returns:
             Dictionary with token usage information
         """
-        from .conversation import get_token_count
-
         return get_token_count(self.conversation_history, self.model, self.parent_agent.base_url)

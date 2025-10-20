@@ -17,30 +17,36 @@ python -m clippy -d   # Run in document mode (Word-like TUI)
 ```
 src/clippy/
 ├── cli/
-│   ├── main.py         # Main entry point
-│   ├── parser.py       # Argument parsing
-│   ├── oneshot.py      # One-shot mode implementation
-│   └── repl.py         # Interactive REPL mode
+│   ├── main.py             # Main entry point
+│   ├── parser.py           # Argument parsing
+│   ├── oneshot.py          # One-shot mode implementation
+│   └── repl.py             # Interactive REPL mode
 ├── agent/
-│   ├── core.py         # Core agent implementation
-│   ├── loop.py         # Agent loop logic
-│   ├── conversation.py # Conversation utilities
-│   └── tool_handler.py # Tool calling handler
-├── mcp/                # MCP (Model Context Protocol) integration
+│   ├── core.py             # Core agent implementation
+│   ├── loop.py             # Agent loop logic
+│   ├── conversation.py     # Conversation utilities
+│   ├── tool_handler.py     # Tool calling handler
+│   ├── subagent.py         # Subagent implementation
+│   ├── subagent_manager.py # Subagent lifecycle management
+│   ├── subagent_types.py   # Subagent type configurations
+│   ├── subagent_cache.py   # Result caching system
+│   └── subagent_chainer.py # Hierarchical execution chaining
+├── mcp/                    # MCP (Model Context Protocol) integration
 │   ├── __init__.py
-│   ├── config.py       # MCP configuration loading
-│   ├── errors.py       # MCP error handling
-│   ├── manager.py      # MCP server connection manager
-│   ├── naming.py       # MCP tool naming utilities
-│   ├── schema.py       # MCP schema conversion
-│   ├── transports.py   # MCP transport layer
-│   ├── trust.py        # MCP trust system
-│   └── types.py        # MCP type definitions
+│   ├── config.py           # MCP configuration loading
+│   ├── errors.py           # MCP error handling
+│   ├── manager.py          # MCP server connection manager
+│   ├── naming.py           # MCP tool naming utilities
+│   ├── schema.py           # MCP schema conversion
+│   ├── transports.py       # MCP transport layer
+│   ├── trust.py            # MCP trust system
+│   └── types.py            # MCP type definitions
 ├── tools/
-│   ├── __init__.py     # Tool implementations and exports
-│   ├── catalog.py      # Tool catalog for merging built-in and MCP tools
+│   ├── __init__.py         # Tool implementations and exports
+│   ├── catalog.py          # Tool catalog for merging built-in and MCP tools
 │   ├── create_directory.py
 │   ├── delete_file.py
+│   ├── delegate_to_subagent.py
 │   ├── edit_file.py
 │   ├── execute_command.py
 │   ├── get_file_info.py
@@ -48,20 +54,21 @@ src/clippy/
 │   ├── list_directory.py
 │   ├── read_file.py
 │   ├── read_files.py
+│   ├── run_parallel_subagents.py
 │   ├── search_files.py
 │   └── write_file.py
 ├── ui/
-|   ├── document_app.py # Textual-based document mode interface
-|   ├── styles.py       # CSS styling for document mode
-|   ├── widgets.py      # Custom UI widgets
-|   └── utils.py        # UI utility functions
-├── providers.py     # OpenAI-compatible LLM provider (~100 lines)
-├── executor.py      # Tool execution implementations
-├── permissions.py   # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
-├── models.py        # Model configuration loading and presets
-├── models.yaml      # Model presets for different providers
-├── prompts.py       # System prompts for the agent
-└── diff_utils.py    # Diff generation utilities
+|   ├── document_app.py     # Textual-based document mode interface
+|   ├── styles.py           # CSS styling for document mode
+|   ├── widgets.py          # Custom UI widgets
+|   └── utils.py            # UI utility functions
+├── providers.py            # OpenAI-compatible LLM provider
+├── executor.py             # Tool execution implementations
+├── permissions.py          # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
+├── models.py               # Model configuration loading and presets
+├── models.yaml             # Model presets for different providers
+├── prompts.py              # System prompts for the agent
+└── diff_utils.py           # Diff generation utilities
 ```
 
 ## Core Architecture
@@ -82,6 +89,10 @@ All LLM interactions go through a single `LLMProvider` class (~100 lines total).
 1. User input → `ClippyAgent`
 2. Loop (max 50 iterations): Call LLM → Process response → Execute tools → Add results → Repeat
 3. Tool execution: Check permissions → Get approval if needed → Execute → Return `(success, message, result)`
+4. **Subagent Delegation** (optional): Agent can spawn specialized subagents for complex subtasks
+   - Sequential or parallel execution
+   - Context isolation and specialized prompting
+   - Result caching and chaining support
 
 ### Tool System (3 parts + MCP integration)
 
@@ -103,7 +114,7 @@ Individual tool implementations are located in `src/clippy/tools/` directory wit
 ### Permissions
 
 - **AUTO_APPROVE**: read_file, list_directory, search_files, get_file_info, grep, read_files
-- **REQUIRE_APPROVAL**: write_file, delete_file, create_directory, execute_command, edit_file
+- **REQUIRE_APPROVAL**: write_file, delete_file, create_directory, execute_command, edit_file, delegate_to_subagent, run_parallel_subagents
 - **DENY**: Blocked operations (empty by default)
 
 ## Code Standards
@@ -138,6 +149,68 @@ Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, 
 7. Write tests in `tests/tools/test_your_tool.py`
 
 ### UI Modes
+
+### Subagent System
+
+clippy-code includes a powerful subagent system for complex task decomposition and parallel execution:
+
+#### Available Subagent Types
+
+- **general**: General-purpose tasks with all tools available
+- **code_review**: Read-only code analysis and review
+- **testing**: Test generation and execution
+- **refactor**: Code refactoring and improvement
+- **documentation**: Documentation generation and updates
+- **fast_general**: Quick tasks using faster models (gpt-3.5-turbo)
+- **power_analysis**: Deep analysis using powerful models (claude-3-opus)
+
+#### Subagent Features
+
+- **Task Delegation**: Main agent can delegate complex subtasks to specialized subagents
+- **Parallel Execution**: Multiple subagents can work on independent tasks concurrently
+- **Context Isolation**: Each subagent has its own conversation history and specialized prompting
+- **Result Caching**: Avoid re-executing identical tasks with intelligent caching
+- **Hierarchical Chaining**: Subagents can spawn their own subagents (with depth limits)
+- **Model Selection**: Different subagent types can use different optimized models
+
+#### Using Subagents
+
+The main agent can use two tools for subagent management:
+
+1. **delegate_to_subagent**: Create a single specialized subagent
+2. **run_parallel_subagents**: Create and run multiple subagents in parallel
+
+Example usage:
+
+```python
+# Single subagent delegation
+{
+    "task": "Review all Python files for security issues",
+    "subagent_type": "code_review",
+    "context": {"focus": "security", "exclude_patterns": ["test_*.py"]}
+}
+
+# Parallel subagent execution
+{
+    "subagents": [
+        {"task": "Write unit tests for auth module", "subagent_type": "testing"},
+        {"task": "Generate API documentation", "subagent_type": "documentation"},
+        {"task": "Refactor database queries", "subagent_type": "refactor"}
+    ],
+    "max_concurrent": 3
+}
+```
+
+#### Subagent Configuration
+
+Subagent behavior can be customized via environment variables:
+
+- `CLIPPY_MAX_CONCURRENT_SUBAGENTS`: Maximum parallel subagents (default: 3)
+- `CLIPPY_SUBAGENT_TIMEOUT`: Default timeout in seconds (default: 300)
+- `CLIPPY_SUBAGENT_CACHE_ENABLED`: Enable result caching (default: true)
+- `CLIPPY_SUBAGENT_CACHE_SIZE`: Maximum cache entries (default: 100)
+- `CLIPPY_SUBAGENT_CACHE_TTL`: Cache TTL in seconds (default: 3600)
+- `CLIPPY_MAX_SUBAGENT_DEPTH`: Maximum nesting depth (default: 3)
 
 ### Conversation Management
 
@@ -187,6 +260,15 @@ Environment variables:
 - `GROQ_API_KEY`: API key for Groq provider
 - `DEEPSEEK_API_KEY`: API key for DeepSeek provider
 - `OPENAI_BASE_URL`: Base URL for alternate providers (e.g., https://api.cerebras.ai/v1)
+
+### Subagent Configuration
+
+- `CLIPPY_MAX_CONCURRENT_SUBAGENTS`: Maximum parallel subagents (default: 3)
+- `CLIPPY_SUBAGENT_TIMEOUT`: Default timeout in seconds (default: 300)
+- `CLIPPY_SUBAGENT_CACHE_ENABLED`: Enable result caching (default: true)
+- `CLIPPY_SUBAGENT_CACHE_SIZE`: Maximum cache entries (default: 100)
+- `CLIPPY_SUBAGENT_CACHE_TTL`: Cache TTL in seconds (default: 3600)
+- `CLIPPY_MAX_SUBAGENT_DEPTH`: Maximum nesting depth (default: 3)
 
 MCP Configuration:
 

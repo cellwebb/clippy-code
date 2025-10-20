@@ -4,6 +4,8 @@ from typing import Any
 
 from .create_directory import TOOL_SCHEMA as CREATE_DIRECTORY_SCHEMA
 from .create_directory import create_directory
+from .delegate_to_subagent import create_subagent_and_execute
+from .delegate_to_subagent import get_tool_schema as get_delegate_schema
 from .delete_file import TOOL_SCHEMA as DELETE_FILE_SCHEMA
 from .delete_file import delete_file
 from .edit_file import TOOL_SCHEMA as EDIT_FILE_SCHEMA
@@ -26,44 +28,8 @@ from .write_file import TOOL_SCHEMA as WRITE_FILE_SCHEMA
 from .write_file import write_file
 
 
-def get_delegate_to_subagent_schema() -> dict[str, Any]:
-    """Get delegate_to_subagent schema dynamically to avoid circular imports."""
-    try:
-        from .delegate_to_subagent import get_tool_schema
-
-        return get_tool_schema()
-    except ImportError:
-        # Return a minimal schema if import fails
-        return {
-            "type": "function",
-            "function": {
-                "name": "delegate_to_subagent",
-                "description": "Delegate a task to a specialized subagent",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "task": {"type": "string"},
-                        "subagent_type": {"type": "string"},
-                    },
-                    "required": ["task", "subagent_type"],
-                },
-            },
-        }
-
-
-def get_create_subagent_and_execute() -> Any:
-    """Get create_subagent_and_execute function dynamically."""
-    try:
-        from .delegate_to_subagent import create_subagent_and_execute
-
-        return create_subagent_and_execute
-    except ImportError:
-        return None
-
-
-# Aggregate all tool schemas into a single list
 def get_all_tools() -> list[dict[str, Any]]:
-    """Get all tool schemas, loading delegate_to_subagent dynamically."""
+    """Get all tool schemas, loading delegate tools dynamically to avoid circular imports."""
     base_tools = [
         CREATE_DIRECTORY_SCHEMA,
         DELETE_FILE_SCHEMA,
@@ -80,8 +46,18 @@ def get_all_tools() -> list[dict[str, Any]]:
 
     # Add delegate_to_subagent schema if available
     try:
-        delegate_schema = get_delegate_to_subagent_schema()
+        delegate_schema = get_delegate_schema()
         base_tools.append(delegate_schema)
+    except Exception:
+        # Skip if schema loading fails
+        pass
+
+    # Add run_parallel_subagents schema if available
+    try:
+        from .run_parallel_subagents import get_tool_schema as get_parallel_schema
+
+        parallel_schema = get_parallel_schema()
+        base_tools.append(parallel_schema)
     except Exception:
         # Skip if schema loading fails
         pass
@@ -100,9 +76,30 @@ def get_tool_by_name(name: str) -> dict[str, Any] | None:
     return None
 
 
+def get_create_subagent_and_execute() -> Any:
+    """Get create_subagent_and_execute function dynamically."""
+    try:
+        from .delegate_to_subagent import create_subagent_and_execute
+
+        return create_subagent_and_execute
+    except ImportError:
+        return None
+
+
+def get_create_parallel_subagents_and_execute() -> Any:
+    """Get create_parallel_subagents_and_execute function dynamically."""
+    try:
+        from .run_parallel_subagents import create_parallel_subagents_and_execute
+
+        return create_parallel_subagents_and_execute
+    except ImportError:
+        return None
+
+
 __all__ = [
     "create_directory",
     "create_subagent_and_execute",
+    "create_parallel_subagents_and_execute",
     "delete_file",
     "edit_file",
     "execute_command",
@@ -117,4 +114,5 @@ __all__ = [
     "TOOLS",
     "get_tool_by_name",
     "get_create_subagent_and_execute",
+    "get_create_parallel_subagents_and_execute",
 ]

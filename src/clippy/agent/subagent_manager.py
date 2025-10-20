@@ -10,7 +10,9 @@ from ..permissions import PermissionManager
 
 if TYPE_CHECKING:
     from .core import ClippyAgent
-    from .subagent import SubAgent
+
+# Import SubAgent at runtime for actual usage and test mocking
+from .subagent import SubAgent, SubAgentResult
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,8 @@ class SubAgentManager:
         permission_manager: PermissionManager,
         executor: ActionExecutor,
         max_concurrent: int = DEFAULT_MAX_CONCURRENT,
+        enable_cache: bool = True,
+        enable_chaining: bool = True,
     ) -> None:
         """
         Initialize the SubAgentManager.
@@ -45,17 +49,35 @@ class SubAgentManager:
             permission_manager: Permission manager instance
             executor: Action executor instance
             max_concurrent: Maximum number of concurrent subagents
+            enable_cache: Whether to enable result caching
+            enable_chaining: Whether to enable subagent chaining
         """
         self.parent_agent = parent_agent
         self.permission_manager = permission_manager
         self.executor = executor
         self.max_concurrent = max_concurrent
+        self.cache_enabled = enable_cache
+        self.enable_chaining = enable_chaining
 
         # Track active subagents
         self.active_subagents: dict[str, SubAgent] = {}
         self.completed_subagents: list[SubAgent] = []
 
-    def create_subagent(self, config: Any) -> "SubAgent":
+        # Initialize advanced features
+        self._cache = None
+        self._chainer = None
+
+        if enable_cache:
+            from .subagent_cache import get_global_cache
+
+            self._cache = get_global_cache()
+
+        if enable_chaining:
+            from .subagent_chainer import get_global_chainer
+
+            self._chainer = get_global_chainer()
+
+    def create_subagent(self, config: Any) -> SubAgent:
         """
         Create a new subagent instance.
 
@@ -65,9 +87,6 @@ class SubAgentManager:
         Returns:
             Created SubAgent instance
         """
-        # Import here to avoid circular imports
-        from .subagent import SubAgent
-
         # Validate configuration
         from .subagent_types import validate_subagent_config
 
@@ -75,10 +94,15 @@ class SubAgentManager:
             "name": config.name,
             "task": config.task,
             "subagent_type": config.subagent_type,
-            "timeout": config.timeout,
-            "max_iterations": config.max_iterations,
-            "allowed_tools": config.allowed_tools,
         }
+
+        # Only add optional fields if they exist
+        if hasattr(config, "timeout") and config.timeout is not None:
+            config_dict["timeout"] = config.timeout
+        if hasattr(config, "max_iterations") and config.max_iterations is not None:
+            config_dict["max_iterations"] = config.max_iterations
+        if hasattr(config, "allowed_tools") and config.allowed_tools is not None:
+            config_dict["allowed_tools"] = config.allowed_tools
 
         is_valid, error_msg = validate_subagent_config(config_dict)
         if not is_valid:
@@ -98,7 +122,7 @@ class SubAgentManager:
         logger.info(f"Created subagent '{config.name}' of type '{config.subagent_type}'")
         return subagent
 
-    def run_sequential(self, subagents: list["SubAgent"]) -> list[Any]:
+    def run_sequential(self, subagents: list[SubAgent]) -> list[Any]:
         """
         Run multiple subagents sequentially.
 
@@ -124,7 +148,7 @@ class SubAgentManager:
         return results
 
     def run_parallel(
-        self, subagents: list["SubAgent"], max_concurrent: int | None = None
+        self, subagents: list[SubAgent], max_concurrent: int | None = None
     ) -> list[Any]:
         """
         Run multiple subagents in parallel.
@@ -169,7 +193,6 @@ class SubAgentManager:
                     logger.info(f"Subagent '{subagent.config.name}' completed: {result.success}")
                 except Exception as e:
                     logger.error(f"Subagent '{subagent.config.name}' failed with exception: {e}")
-                    from .subagent import SubAgentResult
 
                     results[index] = SubAgentResult(
                         success=False,
@@ -195,7 +218,7 @@ class SubAgentManager:
 
         return results
 
-    def get_active_subagents(self) -> list["SubAgent"]:
+    def get_active_subagents(self) -> list[SubAgent]:
         """
         Get list of currently active subagents.
 
@@ -313,7 +336,7 @@ class SubAgentManager:
         logger.info(f"Updated max_concurrent from {old_max} to {max_concurrent}")
 
     async def run_parallel_async(
-        self, subagents: list["SubAgent"], max_concurrent: int | None = None
+        self, subagents: list[SubAgent], max_concurrent: int | None = None
     ) -> list[Any]:
         """
         Run multiple subagents in parallel using asyncio.
@@ -342,7 +365,7 @@ class SubAgentManager:
         # Use asyncio to run subagent tasks in parallel
         semaphore = asyncio.Semaphore(max_workers)
 
-        async def run_single_subagent(subagent: "SubAgent") -> Any:
+        async def run_single_subagent(subagent: SubAgent) -> Any:
             async with semaphore:
                 # Run the synchronous subagent.run() in a thread pool
                 loop = asyncio.get_event_loop()
@@ -351,7 +374,6 @@ class SubAgentManager:
                     return result
                 except Exception as e:
                     logger.error(f"Async subagent '{subagent.config.name}' failed: {e}")
-                    from .subagent import SubAgentResult
 
                     return SubAgentResult(
                         success=False,
@@ -380,7 +402,6 @@ class SubAgentManager:
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 subagent = subagents[i]
-                from .subagent import SubAgentResult
 
                 final_results.append(
                     SubAgentResult(
@@ -400,3 +421,97 @@ class SubAgentManager:
                 final_results.append(result)
 
         return final_results
+
+    # Advanced Features Integration
+
+    def check_cache(
+        self,
+        task: str,
+        subagent_type: str,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """
+        Check cache for existing result.
+
+        Args:
+            task: The task description
+            subagent_type: Type of subagent
+            context: Additional context (optional)
+
+        Returns:
+            Cached result data or None if not found
+        """
+        if self._cache:
+            return self._cache.get(task, subagent_type, context)
+        return None
+
+    def store_cache(
+        self,
+        task: str,
+        subagent_type: str,
+        result_data: dict[str, Any],
+        context: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        Store result in cache.
+
+        Args:
+            task: The task description
+            subagent_type: Type of subagent
+            result_data: Result data to cache
+            context: Additional context (optional)
+        """
+        if self._cache:
+            self._cache.put(task, subagent_type, result_data, context)
+
+    def get_cache_statistics(self) -> dict[str, Any]:
+        """Get cache statistics."""
+        if self._cache:
+            return self._cache.get_statistics()
+        return {"enabled": False}
+
+    def clear_cache(self) -> None:
+        """Clear the cache."""
+        if self._cache:
+            self._cache.clear()
+
+    def enable_cache(self) -> None:
+        """Enable caching."""
+        if not self._cache:
+            from .subagent_cache import get_global_cache
+
+            self._cache = get_global_cache()
+            self._cache.enable()
+        self.cache_enabled = True
+
+    def disable_cache(self) -> None:
+        """Disable caching."""
+        if self._cache:
+            self._cache.disable()
+        self.cache_enabled = False
+
+    def get_chain_statistics(self) -> dict[str, Any]:
+        """Get chain execution statistics."""
+        if self._chainer:
+            return self._chainer.get_chain_statistics()
+        return {"enabled": False}
+
+    def get_active_chains(self) -> dict[str, dict[str, Any]]:
+        """Get information about active chains."""
+        if self._chainer:
+            return self._chainer.get_active_chains()
+        return {}
+
+    def interrupt_chain(self, subagent_name: str) -> bool:
+        """Interrupt a subagent chain."""
+        if self._chainer:
+            return self._chainer.interrupt_chain(subagent_name)
+        return False
+
+    def visualize_chain(self, subagent_name: str) -> str:
+        """Visualize a chain starting from a subagent."""
+        if self._chainer:
+            node = self._chainer._active_chains.get(subagent_name)
+            if node:
+                return self._chainer.visualize_chain(node)
+        return f"No active chain found for subagent: {subagent_name}"

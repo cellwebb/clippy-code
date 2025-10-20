@@ -156,6 +156,7 @@ def handle_tool_use(
         "grep": ActionType.GREP,  # Dedicated action type for grep
         "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
         "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
+        "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
     }
 
     # Handle MCP tools with special action types
@@ -250,6 +251,22 @@ def handle_tool_use(
 
             logger.debug("Handling delegate_to_subagent tool")
             success, message, result = create_subagent_and_execute(
+                parent_agent=parent_agent, permission_manager=permission_manager, **tool_input
+            )
+    # Special handling for run_parallel_subagents
+    elif tool_name == "run_parallel_subagents":
+        if parent_agent is None:
+            success, message, result = (
+                False,
+                "run_parallel_subagents requires parent agent context",
+                None,
+            )
+        else:
+            # Import here to avoid circular imports
+            from ..tools.run_parallel_subagents import create_parallel_subagents_and_execute
+
+            logger.debug("Handling run_parallel_subagents tool")
+            success, message, result = create_parallel_subagents_and_execute(
                 parent_agent=parent_agent, permission_manager=permission_manager, **tool_input
             )
     else:

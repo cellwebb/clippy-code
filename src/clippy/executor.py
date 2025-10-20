@@ -85,6 +85,7 @@ class ActionExecutor:
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
             "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
+            "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
         }
 
         action_type = action_map.get(tool_name)

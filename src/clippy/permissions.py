@@ -30,6 +30,7 @@ class ActionType(str, Enum):
     GREP = "grep"
     EDIT_FILE = "edit_file"
     DELEGATE_TO_SUBAGENT = "delegate_to_subagent"
+    RUN_PARALLEL_SUBAGENTS = "run_parallel_subagents"
 
     # MCP Action Types
     MCP_LIST_TOOLS = "mcp_list_tools"
@@ -55,6 +56,7 @@ class PermissionConfig(BaseModel):
         ActionType.EXECUTE_COMMAND,
         ActionType.EDIT_FILE,
         ActionType.DELEGATE_TO_SUBAGENT,  # Require approval for subagent delegation
+        ActionType.RUN_PARALLEL_SUBAGENTS,  # Require approval for parallel subagent execution
         ActionType.MCP_TOOL_CALL,  # Require approval for MCP tool calls by default
         ActionType.MCP_CONNECT,  # Require approval for MCP server connections
     }
