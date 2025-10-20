@@ -48,11 +48,6 @@ def load_config(path: str | None = None) -> Config | None:
             ]
         )
 
-        # Check environment variable
-        env_path = os.getenv("CLIPPY_MCP_CONFIG")
-        if env_path:
-            config_paths.append(Path(env_path))
-
     # Try each path
     for config_path in config_paths:
         if config_path.exists():
@@ -62,10 +57,6 @@ def load_config(path: str | None = None) -> Config | None:
 
                 # Resolve environment variables in the configuration
                 resolved_data = _resolve_env_variables(data)
-
-                # Convert legacy field name if present
-                if "mcpServers" in resolved_data:
-                    resolved_data["mcp_servers"] = resolved_data.pop("mcpServers")
 
                 return Config(**resolved_data)
             except Exception:

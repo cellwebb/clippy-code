@@ -1,9 +1,8 @@
 """Tests for LLM providers."""
 
 import time
-from unittest.mock import patch
 
-from clippy.providers import LLMProvider, Spinner
+from clippy.providers import Spinner
 
 
 class TestSpinner:
@@ -70,36 +69,6 @@ class TestLLMProvider:
         # This tests the import error handling
         # Skip actual import testing as it would require uninstalling openai
         pass
-
-    def test_get_default_model_value(self) -> None:
-        """Test default model value."""
-        # Test without actually importing OpenAI
-        import os
-
-        # Save original value
-        original = os.environ.get("CLIPPY_MODEL")
-
-        try:
-            # Test default
-            if "CLIPPY_MODEL" in os.environ:
-                del os.environ["CLIPPY_MODEL"]
-
-            # Patch where OpenAI is imported (inside the provider module)
-            with patch("openai.OpenAI"):
-                provider = LLMProvider(api_key="test-key")
-                assert provider.get_default_model() == "gpt-5"
-
-            # Test with env var
-            os.environ["CLIPPY_MODEL"] = "custom-model"
-            with patch("openai.OpenAI"):
-                provider = LLMProvider(api_key="test-key")
-                assert provider.get_default_model() == "custom-model"
-        finally:
-            # Restore original value
-            if original is not None:
-                os.environ["CLIPPY_MODEL"] = original
-            elif "CLIPPY_MODEL" in os.environ:
-                del os.environ["CLIPPY_MODEL"]
 
     def test_provider_initialization_basic(self) -> None:
         """Test basic provider initialization without complex mocking."""

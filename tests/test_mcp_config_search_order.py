@@ -21,7 +21,7 @@ def test_config_search_order_simple() -> None:
         # Create project config in .clippy subdirectory
         project_config_path = clippy_dir / "mcp.json"
         project_config = {
-            "mcpServers": {"project-server": {"command": "echo", "args": ["project"]}}
+            "mcp_servers": {"project-server": {"command": "echo", "args": ["project"]}}
         }
 
         import json
@@ -51,10 +51,10 @@ def test_config_search_order_explicit_path() -> None:
         user_config_path = Path(temp_dir) / "user_mcp.json"
 
         project_config = {
-            "mcpServers": {"project-server": {"command": "echo", "args": ["project"]}}
+            "mcp_servers": {"project-server": {"command": "echo", "args": ["project"]}}
         }
 
-        user_config = {"mcpServers": {"user-server": {"command": "echo", "args": ["user"]}}}
+        user_config = {"mcp_servers": {"user-server": {"command": "echo", "args": ["user"]}}}
 
         import json
 
@@ -70,63 +70,17 @@ def test_config_search_order_explicit_path() -> None:
         assert "project-server" not in config.mcp_servers
 
 
-def test_config_search_order_env_override() -> None:
-    """Test that environment variable override works in clean directory."""
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Create configs in a clean directory (no existing mcp.json)
-        project_config_path = Path(temp_dir) / "project_mcp.json"
-        env_config_path = Path(temp_dir) / "env_mcp.json"
-
-        project_config = {
-            "mcpServers": {"project-server": {"command": "echo", "args": ["project"]}}
-        }
-
-        env_config = {"mcpServers": {"env-server": {"command": "echo", "args": ["env"]}}}
-
-        import json
-
-        with open(project_config_path, "w") as f:
-            json.dump(project_config, f)
-        with open(env_config_path, "w") as f:
-            json.dump(env_config, f)
-
-        # Change to a different directory to avoid picking up existing config
-        clean_dir = Path(temp_dir) / "clean"
-        clean_dir.mkdir()
-
-        original_env = os.getenv("CLIPPY_MCP_CONFIG")
-        original_cwd = os.getcwd()
-
-        try:
-            os.chdir(clean_dir)
-            os.environ["CLIPPY_MCP_CONFIG"] = str(env_config_path)
-
-            config = load_config()
-            assert config is not None
-            assert "env-server" in config.mcp_servers
-            assert "project-server" not in config.mcp_servers
-
-        finally:
-            os.chdir(original_cwd)
-            if original_env:
-                os.environ["CLIPPY_MCP_CONFIG"] = original_env
-            else:
-                if "CLIPPY_MCP_CONFIG" in os.environ:
-                    del os.environ["CLIPPY_MCP_CONFIG"]
-
-
 def test_config_search_order_priority_logic() -> None:
     """Test the actual priority logic without mocking."""
     # The search order should be:
     # 1. User config (Path.home() / ".clippy" / "mcp.json")
-    # 2. Project root (Path.cwd() / "mcp.json")
-    # 3. Environment override (os.getenv("CLIPPY_MCP_CONFIG"))
+    # 2. Project subdirectory (Path.cwd() / ".clippy" / "mcp.json")
 
     # We can't easily test the user config without mocking Path.home(),
     # but we can verify the basic logic and priority structure
 
     # This test verifies that the search order is implemented correctly
-    # by checking that explicit paths work and env override works
+    # by checking that explicit paths work
 
     assert True  # The implementation in load_config follows the priority order
 

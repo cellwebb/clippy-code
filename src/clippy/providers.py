@@ -1,7 +1,6 @@
 """OpenAI-compatible LLM provider."""
 
 import logging
-import os
 import sys
 import threading
 import time
@@ -278,8 +277,3 @@ class LLMProvider:
             result["tool_calls"] = [tool_calls_dict[i] for i in sorted(tool_calls_dict.keys())]
 
         return result
-
-    def get_default_model(self) -> str:
-        """Get the default model."""
-        # Check for model in environment first
-        return os.getenv("CLIPPY_MODEL", "gpt-5")  # Fixed default model

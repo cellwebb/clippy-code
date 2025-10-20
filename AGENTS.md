@@ -187,12 +187,10 @@ Environment variables:
 - `GROQ_API_KEY`: API key for Groq provider
 - `DEEPSEEK_API_KEY`: API key for DeepSeek provider
 - `OPENAI_BASE_URL`: Base URL for alternate providers (e.g., https://api.cerebras.ai/v1)
-- `CLIPPY_MODEL`: Model identifier (default: gpt-4o)
-- `CLIPPY_MCP_CONFIG`: Path to MCP configuration file (optional)
 
 MCP Configuration:
 
-Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`), project directory, or specify via `CLIPPY_MCP_CONFIG`. See [MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md) for detailed configuration.
+Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or project directory (`.clippy/mcp.json`). See [MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md) for detailed configuration.
 
 For detailed MCP configuration and usage, see [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md).
 

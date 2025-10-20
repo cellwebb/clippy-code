@@ -45,7 +45,7 @@ class ClippyAgent:
             permission_manager: Permission manager instance
             executor: Action executor instance
             api_key: API key for OpenAI-compatible provider
-            model: Model identifier to use
+            model: Model identifier to use (required)
             base_url: Base URL for OpenAI-compatible API (for alternate providers)
             approval_callback: Optional callback function for approval requests
                              (used in document mode). Should accept (tool_name, tool_input)
@@ -63,8 +63,12 @@ class ClippyAgent:
         # Create provider (OpenAI-compatible)
         self.provider = LLMProvider(api_key=api_key, base_url=base_url)
 
-        # Set model (use provider default if not specified)
-        self.model = model or self.provider.get_default_model()
+        # Model is now required - callers must resolve the default model
+        if not model:
+            raise ValueError(
+                "Model must be specified. Use get_default_model_config() to get the default."
+            )
+        self.model = model
 
         self.console = Console()
         self.conversation_history: list[dict[str, Any]] = []

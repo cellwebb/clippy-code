@@ -32,6 +32,20 @@ def test_agent_initialization(mock_agent: ClippyAgent) -> None:
     assert mock_agent.provider is not None
 
 
+def test_agent_requires_model() -> None:
+    """Test that agent raises ValueError when initialized without a model."""
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = ActionExecutor(permission_manager)
+
+    with pytest.raises(ValueError, match="Model must be specified"):
+        ClippyAgent(
+            permission_manager=permission_manager,
+            executor=executor,
+            api_key="test-key",
+            model=None,  # This should raise ValueError
+        )
+
+
 def test_switch_model_changes_model(mock_agent: ClippyAgent) -> None:
     """Test switching to a different model."""
     success, message = mock_agent.switch_model(model="gpt-3.5-turbo")
