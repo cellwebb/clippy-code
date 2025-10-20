@@ -2,12 +2,15 @@
 
 import tempfile
 from collections.abc import Generator
+from importlib import import_module
 from pathlib import Path
 
 import pytest
 
 from clippy.executor import ActionExecutor
 from clippy.permissions import ActionType, PermissionConfig, PermissionManager
+
+GET_FILE_INFO_MODULE = import_module("clippy.tools.get_file_info")
 
 
 @pytest.fixture
@@ -44,6 +47,40 @@ def test_get_file_info_not_found(executor: ActionExecutor) -> None:
 
     assert success is False
     assert "File not found" in message
+
+
+def test_get_file_info_permission_error(
+    executor: ActionExecutor, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test get_file_info handles PermissionError from os.stat."""
+
+    def raise_permission_error(_path: str) -> None:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(GET_FILE_INFO_MODULE.os, "stat", raise_permission_error)
+
+    success, message, content = executor.execute("get_file_info", {"path": "restricted.txt"})
+
+    assert success is False
+    assert "Permission denied" in message
+    assert content is None
+
+
+def test_get_file_info_unexpected_error(
+    executor: ActionExecutor, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test get_file_info handles unexpected exceptions."""
+
+    def raise_runtime_error(_path: str) -> None:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(GET_FILE_INFO_MODULE.os, "stat", raise_runtime_error)
+
+    success, message, content = executor.execute("get_file_info", {"path": "broken.txt"})
+
+    assert success is False
+    assert "Failed to get file info" in message
+    assert content is None
 
 
 def test_get_file_info_action_is_auto_approved() -> None:

@@ -2,12 +2,15 @@
 
 import tempfile
 from collections.abc import Generator
+from importlib import import_module
 from pathlib import Path
 
 import pytest
 
 from clippy.executor import ActionExecutor
 from clippy.permissions import ActionType, PermissionConfig, PermissionManager
+
+DELETE_FILE_MODULE = import_module("clippy.tools.delete_file")
 
 
 @pytest.fixture
@@ -44,6 +47,40 @@ def test_delete_file_not_found(executor: ActionExecutor) -> None:
 
     assert success is False
     assert "File not found" in message
+
+
+def test_delete_file_permission_error(
+    executor: ActionExecutor, temp_dir: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test delete_file handles PermissionError from os.remove."""
+    def raise_permission_error(_path: str) -> None:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(DELETE_FILE_MODULE.os, "remove", raise_permission_error)
+    test_file = Path(temp_dir) / "locked.txt"
+    test_file.write_text("cannot touch this")
+
+    success, message, _ = executor.execute("delete_file", {"path": str(test_file)})
+
+    assert success is False
+    assert "Permission denied" in message
+
+
+def test_delete_file_os_error(
+    executor: ActionExecutor, temp_dir: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test delete_file handles OSError other than FileNotFoundError."""
+    def raise_os_error(_path: str) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(DELETE_FILE_MODULE.os, "remove", raise_os_error)
+    test_file = Path(temp_dir) / "busy.txt"
+    test_file.write_text("can't remove")
+
+    success, message, _ = executor.execute("delete_file", {"path": str(test_file)})
+
+    assert success is False
+    assert "OS error" in message
 
 
 def test_delete_file_action_requires_approval() -> None:

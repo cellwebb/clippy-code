@@ -173,3 +173,27 @@ def test_format_api_error_import_error(monkeypatch):
     message = format_api_error(error)
 
     assert message == "CustomError: boom"
+
+
+@pytest.mark.parametrize(
+    ("error_name", "expected"),
+    [
+        ("RateLimitError", "Rate limit exceeded"),
+        ("APIConnectionError", "Connection error"),
+        ("APITimeoutError", "Request timeout"),
+        ("BadRequestError", "Bad request"),
+        ("InternalServerError", "Server error"),
+        ("PermissionDeniedError", "Permission denied"),
+        ("NotFoundError", "Resource not found"),
+        ("ConflictError", "Conflict error"),
+        ("UnprocessableEntityError", "Unprocessable entity"),
+    ],
+)
+def test_format_api_error_known_branches(monkeypatch, error_name, expected):
+    """Exercise the specialised messaging for individual OpenAI errors."""
+    dummy_module = _install_dummy_openai(monkeypatch)
+    error = getattr(dummy_module, error_name)("boom")
+
+    message = format_api_error(error)
+
+    assert expected in message
