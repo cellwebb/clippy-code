@@ -10,6 +10,7 @@ from ..agent import ClippyAgent
 from ..executor import ActionExecutor
 from ..mcp.config import load_config
 from ..mcp.manager import Manager
+from ..models import get_default_model_config
 from ..permissions import PermissionConfig, PermissionManager
 from .oneshot import run_one_shot
 from .parser import create_parser
@@ -36,20 +37,35 @@ def main() -> None:
     asyncio_logger = logging.getLogger("asyncio")
     asyncio_logger.setLevel(logging.CRITICAL)
 
-    # Get API key (required)
-    api_key = os.getenv("OPENAI_API_KEY")
+    # Get default model configuration
+    default_model, default_provider = get_default_model_config()
+
+    if not default_model or not default_provider:
+        console = Console()
+        console.print("[bold red]Error:[/bold red] No default model configuration found.")
+        console.print("This should never happen - GPT-5 should be set as default.")
+        sys.exit(1)
+
+    # Use command line args if provided, otherwise use defaults
+    model = args.model if args.model else default_model.model_id
+    base_url = args.base_url if args.base_url else default_provider.base_url
+
+    # Get API key from environment
+    api_key_env = default_provider.api_key_env
+    api_key = os.getenv(api_key_env)
+
     if not api_key:
         console = Console()
         console.print(
-            "[bold red]Error:[/bold red] OPENAI_API_KEY not found in environment.\n\n"
+            f"[bold red]Error:[/bold red] {api_key_env} not found in environment.\n\n"
             "Please set your API key:\n"
             "  1. Create a .env file in the current directory, or\n"
             "  2. Create a .clippy.env file in your home directory, or\n"
-            "  3. Set the OPENAI_API_KEY environment variable\n\n"
-            "Example .env file:\n"
-            "  OPENAI_API_KEY=your_api_key_here\n"
+            "  3. Set the environment variable\n\n"
+            f"Example .env file:\n"
+            f"  {api_key_env}=your_api_key_here\n"
             "  OPENAI_BASE_URL=https://api.cerebras.ai/v1  # Optional, for alternate providers\n"
-            "  CLIPPY_MODEL=llama3.1-8b  # Optional, specify model"
+            "  CLIPPY_MODEL=gpt-5  # Optional, override default model"
         )
         sys.exit(1)
 
@@ -81,8 +97,8 @@ def main() -> None:
         permission_manager=permission_manager,
         executor=executor,
         api_key=api_key,
-        model=args.model,
-        base_url=args.base_url or os.getenv("OPENAI_BASE_URL"),
+        model=model,
+        base_url=base_url,
         mcp_manager=mcp_manager,
     )
 

@@ -64,7 +64,7 @@ build-backend = "hatchling.build"
 packages = ["src/clippy"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/clippy/models.yaml" = "clippy/models.yaml"
+"src/clippy/providers.yaml" = "clippy/providers.yaml"
 
 [tool.ruff]
 line-length = 100

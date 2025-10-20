@@ -251,11 +251,11 @@ src/clippy/
 |   ├── styles.py       # CSS styling for document mode
 |   ├── widgets.py      # Custom UI widgets
 |   └── utils.py        # UI utility functions
-├── providers.py     # OpenAI-compatible LLM provider (~100 lines)
+├── providers.py     # OpenAI-compatible LLM provider
 ├── executor.py      # Tool execution implementations
 ├── permissions.py   # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
-├── models.py        # Model configuration loading and presets
-├── models.yaml      # Model presets for different providers
+├── models.py        # Provider configuration and user model management
+├── providers.yaml   # Provider definitions (OpenAI, Cerebras, Ollama, etc.)
 ├── prompts.py       # System prompts for the agent
 └── diff_utils.py    # Diff generation utilities
 ```
@@ -264,25 +264,43 @@ src/clippy/
 
 ### Environment Variables
 
-- `CLIPPY_MODEL` - Model identifier (default: gpt-5)
-- `OPENAI_BASE_URL` - Base URL for alternate providers
-- Provider-specific API keys: `OPENAI_API_KEY`, `CEREBRAS_API_KEY`, etc.
+- Provider-specific API keys: `OPENAI_API_KEY`, `CEREBRAS_API_KEY`, `GROQ_API_KEY`, etc.
+- `CLIPPY_MODEL` - Optional model override (use `/model` commands instead)
+- `OPENAI_BASE_URL` - Optional base URL override (use `/model` commands instead)
 
-### Available Models
+### Provider-Based Model System
 
-**OpenAI**: gpt-4o (default), gpt-4o-mini, gpt-5
+clippy-code uses a flexible provider-based system. Instead of maintaining a fixed list of models, you:
 
-**Cerebras**: cerebras (default), qwen-3-coder-480b
+1. **Choose from available providers** (defined in `providers.yaml`): OpenAI, Cerebras, Ollama, Together AI, Groq, DeepSeek, ZAI
+2. **Save your favorite model configurations** using `/model add`
+3. **Switch between saved models** anytime with `/model <name>`
 
-**Ollama**: ollama (default), ollama-codellama, ollama-mistral, ollama-qwen
+The default model is **GPT-5** from OpenAI.
 
-**Together AI**: together-llama-8b (default), together-llama-70b
+#### Managing Models
 
-**Groq**: groq (default), groq-mixtral
+```bash
+# List your saved models
+/model list
 
-**DeepSeek**: deepseek (default), deepseek-chat
+# Try a model without saving
+/model use cerebras qwen-3-coder-480b
 
-See all available models with `/model list` in interactive mode.
+# Save a model
+/model add cerebras qwen-3-coder-480b --name "q3c"
+
+# Switch to a saved model
+/model q3c
+
+# Set a model as default
+/model default q3c
+
+# Remove a saved model
+/model remove q3c
+```
+
+Saved models are stored in `~/.clippy/models.json` and persist across sessions.
 
 ## Development Workflow
 
@@ -411,17 +429,20 @@ clippy-code has access to these tools:
 
 ### Adding New LLM Providers
 
-clippy-code works with any OpenAI-compatible API provider. Add new providers by updating `models.yaml`:
+clippy-code works with any OpenAI-compatible API provider. Add new providers by updating `providers.yaml`:
 
 ```yaml
-provider_name:
-  base_url: https://api.provider.com/v1
-  api_key_env: PROVIDER_API_KEY
-  default_model: provider-default
-  models:
-    provider-default:
-      model_id: provider-model-name
-      description: Provider Model Description
+providers:
+  provider_name:
+    base_url: https://api.provider.com/v1
+    api_key_env: PROVIDER_API_KEY
+    description: "Provider Name"
+```
+
+Then users can add their own model configurations:
+
+```bash
+/model add provider_name model-id --name "my-model" --desc "My custom model"
 ```
 
 ### Adding New Tools

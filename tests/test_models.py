@@ -1,167 +1,389 @@
-"""Tests for the model configuration system."""
+"""Tests for the new provider-based model configuration system."""
 
+import json
+import tempfile
 from pathlib import Path
 
-from clippy.models import ModelConfig, get_model_config, list_available_models
+from clippy.models import (
+    ProviderConfig,
+    UserModelConfig,
+    UserModelManager,
+    get_default_model_config,
+    get_model_config,
+    get_provider,
+    get_providers,
+    list_available_models,
+    list_available_providers,
+)
 
 
-def test_model_config_dataclass() -> None:
-    """Test ModelConfig dataclass creation."""
-    config = ModelConfig(
-        name="test-model",
-        model_id="test-id",
+def test_provider_config_dataclass() -> None:
+    """Test ProviderConfig dataclass creation."""
+    config = ProviderConfig(
+        name="test-provider",
         base_url="https://api.test.com/v1",
-        description="Test Model",
         api_key_env="TEST_API_KEY",
+        description="Test Provider",
     )
 
-    assert config.name == "test-model"
-    assert config.model_id == "test-id"
+    assert config.name == "test-provider"
     assert config.base_url == "https://api.test.com/v1"
-    assert config.description == "Test Model"
     assert config.api_key_env == "TEST_API_KEY"
+    assert config.description == "Test Provider"
 
 
-def test_yaml_file_exists() -> None:
-    """Test that models.yaml file exists."""
-    yaml_path = Path(__file__).parent.parent / "src" / "clippy" / "models.yaml"
-    assert yaml_path.exists(), "models.yaml file should exist"
+def test_user_model_config_dataclass() -> None:
+    """Test UserModelConfig dataclass creation."""
+    config = UserModelConfig(
+        name="my-model",
+        provider="openai",
+        model_id="gpt-5",
+        description="My GPT-5 Model",
+        is_default=True,
+    )
+
+    assert config.name == "my-model"
+    assert config.provider == "openai"
+    assert config.model_id == "gpt-5"
+    assert config.description == "My GPT-5 Model"
+    assert config.is_default is True
 
 
-def test_load_model_presets() -> None:
-    """Test loading model presets from YAML."""
-    models = list_available_models()
+def test_providers_yaml_exists() -> None:
+    """Test that providers.yaml file exists."""
+    yaml_path = Path(__file__).parent.parent / "src" / "clippy" / "providers.yaml"
+    assert yaml_path.exists(), "providers.yaml file should exist"
 
-    # Should have multiple models loaded
-    assert len(models) > 0, "Should load at least one model"
+
+def test_load_providers() -> None:
+    """Test loading providers from YAML."""
+    providers = get_providers()
+
+    # Should have multiple providers loaded
+    assert len(providers) > 0, "Should load at least one provider"
+
+    # Check that common providers exist
+    assert "openai" in providers
+    assert "cerebras" in providers
+    assert "ollama" in providers
 
     # Check structure
-    for name, description in models:
+    for name, provider in providers.items():
+        assert isinstance(provider, ProviderConfig)
+        assert provider.name == name
+        assert isinstance(provider.api_key_env, str)
+        assert isinstance(provider.description, str)
+
+
+def test_get_provider() -> None:
+    """Test getting a specific provider."""
+    provider = get_provider("openai")
+
+    assert provider is not None
+    assert provider.name == "openai"
+    assert provider.base_url is None  # OpenAI uses default
+    assert provider.api_key_env == "OPENAI_API_KEY"
+
+
+def test_get_provider_nonexistent() -> None:
+    """Test getting a provider that doesn't exist."""
+    provider = get_provider("nonexistent-provider")
+    assert provider is None
+
+
+def test_list_available_providers() -> None:
+    """Test listing available providers."""
+    providers = list_available_providers()
+
+    assert len(providers) > 0
+    # Each item should be (name, description) tuple
+    for name, description in providers:
         assert isinstance(name, str)
         assert isinstance(description, str)
         assert len(name) > 0
         assert len(description) > 0
 
 
-def test_get_openai_model() -> None:
-    """Test getting OpenAI model configuration."""
-    config = get_model_config("gpt-5")
+def test_user_model_manager_with_temp_dir() -> None:
+    """Test UserModelManager with a temporary directory."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
 
-    assert config is not None
-    if config is not None:
-        assert config.name == "gpt-5"
-        assert config.model_id == "gpt-5"
-        assert config.base_url is None  # OpenAI uses default
-        assert config.api_key_env == "OPENAI_API_KEY"
+        # Should create config directory
+        assert temp_config_dir.exists()
+        assert manager.models_file.exists()
 
-
-def test_get_cerebras_model() -> None:
-    """Test getting Cerebras model configuration."""
-    config = get_model_config("cerebras")
-
-    assert config is not None
-    if config is not None:
-        assert config.name == "cerebras"
-        assert config.model_id == "qwen-3-coder-480b"
-        assert config.base_url == "https://api.cerebras.ai/v1"
-        assert config.api_key_env == "CEREBRAS_API_KEY"
+        # Should have default model (gpt-5)
+        models = manager.list_models()
+        assert len(models) == 1
+        assert models[0].name == "gpt-5"
+        assert models[0].provider == "openai"
+        assert models[0].model_id == "gpt-5"
+        assert models[0].is_default is True
 
 
-def test_get_ollama_model() -> None:
-    """Test getting Ollama model configuration."""
-    config = get_model_config("ollama")
+def test_user_model_manager_add_model() -> None:
+    """Test adding a model to UserModelManager."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
 
-    assert config is not None
-    if config is not None:
-        assert config.name == "ollama"
-        assert config.model_id == "llama2"
-        assert config.base_url == "http://localhost:11434/v1"
-        assert config.api_key_env == "OLLAMA_API_KEY"
+        # Add a new model
+        success, message = manager.add_model(
+            name="my-llama",
+            provider="ollama",
+            model_id="llama3.2:latest",
+            is_default=False,
+        )
 
+        assert success is True
+        assert "Added model" in message
 
-def test_get_groq_model() -> None:
-    """Test getting Groq model configuration."""
-    config = get_model_config("groq")
+        # Verify it was added
+        models = manager.list_models()
+        assert len(models) == 2  # gpt-5 (default) + my-llama
 
-    assert config is not None
-    if config is not None:
-        assert config.name == "groq"
-        assert config.model_id == "llama3-70b-8192"
-        assert config.base_url == "https://api.groq.com/openai/v1"
-        assert config.api_key_env == "GROQ_API_KEY"
-
-
-def test_get_together_model() -> None:
-    """Test getting Together AI model configuration."""
-    config = get_model_config("together-llama-8b")
-
-    assert config is not None
-    if config is not None:
-        assert config.name == "together-llama-8b"
-        assert config.model_id == "meta-llama/Llama-3-8b-chat-hf"
-        assert config.base_url == "https://api.together.xyz/v1"
-        assert config.api_key_env == "TOGETHER_API_KEY"
+        # Get the specific model
+        llama = manager.get_model("my-llama")
+        assert llama is not None
+        assert llama.name == "my-llama"
+        assert llama.provider == "ollama"
+        assert llama.model_id == "llama3.2:latest"
+        assert llama.description == "ollama/llama3.2:latest"
+        assert llama.is_default is False
 
 
-def test_get_deepseek_model() -> None:
-    """Test getting DeepSeek model configuration."""
-    config = get_model_config("deepseek")
+def test_user_model_manager_add_duplicate() -> None:
+    """Test adding a duplicate model name."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
 
-    assert config is not None
-    if config is not None:
-        assert config.name == "deepseek"
-        assert config.model_id == "deepseek-coder"
-        assert config.base_url == "https://api.deepseek.com/v1"
-        assert config.api_key_env == "DEEPSEEK_API_KEY"
+        # Try to add a model with existing name
+        success, message = manager.add_model(
+            name="gpt-5",
+            provider="openai",
+            model_id="gpt-5",
+        )
 
-
-def test_get_nonexistent_model() -> None:
-    """Test getting a model that doesn't exist."""
-    config = get_model_config("nonexistent-model")
-    assert config is None
-
-
-def test_case_insensitive_lookup() -> None:
-    """Test that model lookup is case-insensitive."""
-    config_lower = get_model_config("gpt-5")
-    config_upper = get_model_config("gpt-5")
-    config_mixed = get_model_config("gpt-5")
-
-    assert config_lower is not None
-    assert config_upper is not None
-    assert config_mixed is not None
-    if config_lower is not None and config_upper is not None and config_mixed is not None:
-        assert config_lower.name == config_upper.name == config_mixed.name
+        assert success is False
+        assert "already exists" in message
 
 
-def test_all_models_have_required_fields() -> None:
-    """Test that all models have required fields populated."""
-    models = list_available_models()
+def test_user_model_manager_add_invalid_provider() -> None:
+    """Test adding a model with invalid provider."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
 
-    for name, description in models:
-        config = get_model_config(name)
-        assert config is not None
-        if config is not None:
-            assert config.name
-            assert config.model_id
-            assert config.description
-            assert config.api_key_env
-            # base_url can be None for OpenAI
+        # Try to add a model with non-existent provider
+        success, message = manager.add_model(
+            name="test",
+            provider="nonexistent",
+            model_id="test-model",
+        )
+
+        assert success is False
+        assert "Unknown provider" in message
 
 
-def test_api_key_env_vars_unique_per_provider() -> None:
-    """Test that different providers use different API key env vars."""
-    openai = get_model_config("gpt-5")
-    cerebras = get_model_config("cerebras")
-    groq = get_model_config("groq")
+def test_user_model_manager_remove_model() -> None:
+    """Test removing a model."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
 
-    assert openai is not None
-    assert cerebras is not None
-    assert groq is not None
+        # Add a model
+        manager.add_model(
+            name="temp-model",
+            provider="openai",
+            model_id="gpt-4o",
+        )
 
-    if openai is not None and cerebras is not None and groq is not None:
-        assert openai.api_key_env == "OPENAI_API_KEY"
-        assert cerebras.api_key_env == "CEREBRAS_API_KEY"
-        assert groq.api_key_env == "GROQ_API_KEY"
-        assert openai.api_key_env != cerebras.api_key_env
-        assert cerebras.api_key_env != groq.api_key_env
+        # Remove it
+        success, message = manager.remove_model("temp-model")
+
+        assert success is True
+        assert "Removed model" in message
+
+        # Verify it's gone
+        model = manager.get_model("temp-model")
+        assert model is None
+
+
+def test_user_model_manager_remove_nonexistent() -> None:
+    """Test removing a model that doesn't exist."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
+
+        success, message = manager.remove_model("nonexistent")
+
+        assert success is False
+        assert "not found" in message
+
+
+def test_user_model_manager_set_default() -> None:
+    """Test setting a model as default."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
+
+        # Add a new model
+        manager.add_model(
+            name="my-model",
+            provider="openai",
+            model_id="gpt-4o",
+        )
+
+        # Set it as default
+        success, message = manager.set_default("my-model")
+
+        assert success is True
+        assert "default" in message.lower()
+
+        # Verify it's now default
+        default = manager.get_default_model()
+        assert default is not None
+        assert default.name == "my-model"
+        assert default.is_default is True
+
+        # Verify old default is no longer default
+        gpt5_model = manager.get_model("gpt-5")
+        assert gpt5_model is not None
+        assert gpt5_model.is_default is False
+
+
+def test_user_model_manager_get_default() -> None:
+    """Test getting the default model."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
+
+        default = manager.get_default_model()
+
+        assert default is not None
+        assert default.name == "gpt-5"
+        assert default.is_default is True
+
+
+def test_get_model_config() -> None:
+    """Test getting a model configuration and its provider."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
+
+        # Add a test model
+        manager.add_model(
+            name="test-model",
+            provider="cerebras",
+            model_id="llama3.1-8b",
+        )
+
+        # Manually update global manager for testing
+        import clippy.models
+
+        clippy.models._user_manager = manager
+
+        # Get the model config
+        model, provider = get_model_config("test-model")
+
+        assert model is not None
+        assert provider is not None
+        assert model.name == "test-model"
+        assert model.provider == "cerebras"
+        assert model.model_id == "llama3.1-8b"
+        assert model.description == "cerebras/llama3.1-8b"
+        assert provider.name == "cerebras"
+        assert provider.base_url == "https://api.cerebras.ai/v1"
+
+
+def test_get_default_model_config() -> None:
+    """Test getting the default model configuration."""
+    # Reset global manager to ensure clean state
+    import clippy.models
+
+    clippy.models._user_manager = None
+
+    model, provider = get_default_model_config()
+
+    assert model is not None
+    assert provider is not None
+    assert model.is_default is True
+    assert model.name == "gpt-5"
+    assert model.provider == "openai"
+    assert provider.name == "openai"
+
+
+def test_list_available_models() -> None:
+    """Test listing available user models."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
+
+        # Add some models
+        manager.add_model("model1", "openai", "gpt-4o")
+        manager.add_model("model2", "cerebras", "llama3.1-8b", is_default=False)
+
+        # Manually update global manager for testing
+        import clippy.models
+
+        clippy.models._user_manager = manager
+
+        models = list_available_models()
+
+        # Should have 3 models: gpt-5 (default) + model1 + model2
+        assert len(models) >= 2
+
+        # Check structure
+        for name, description, is_default in models:
+            assert isinstance(name, str)
+            assert isinstance(description, str)
+            assert isinstance(is_default, bool)
+
+
+def test_persistence() -> None:
+    """Test that model configurations persist across manager instances."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+
+        # Create manager and add a model
+        manager1 = UserModelManager(config_dir=temp_config_dir)
+        manager1.add_model("persistent", "ollama", "llama2")
+
+        # Create a new manager instance pointing to same directory
+        manager2 = UserModelManager(config_dir=temp_config_dir)
+
+        # Should be able to retrieve the model
+        model = manager2.get_model("persistent")
+        assert model is not None
+        assert model.name == "persistent"
+        assert model.model_id == "llama2"
+
+
+def test_json_format() -> None:
+    """Test that the JSON file has correct format."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
+
+        # Add a model
+        manager.add_model("test", "openai", "gpt-4o")
+
+        # Read the JSON file directly
+        with open(manager.models_file) as f:
+            data = json.load(f)
+
+        # Verify structure
+        assert "models" in data
+        assert isinstance(data["models"], list)
+        assert len(data["models"]) == 2  # gpt-5 + test
+
+        # Verify each model has required fields
+        for model in data["models"]:
+            assert "name" in model
+            assert "provider" in model
+            assert "model_id" in model
+            assert "description" in model
+            assert "is_default" in model

@@ -1,6 +1,7 @@
 """Command handlers for interactive CLI mode."""
 
 import os
+import shlex
 from typing import Any, Literal
 
 from rich.console import Console
@@ -8,7 +9,13 @@ from rich.markup import escape
 from rich.panel import Panel
 
 from ..agent import ClippyAgent
-from ..models import get_model_config, list_available_models
+from ..models import (
+    get_model_config,
+    get_provider,
+    get_user_manager,
+    list_available_models,
+    list_available_providers,
+)
 from ..permissions import ActionType, PermissionLevel
 
 CommandResult = Literal["continue", "break", "run"]
@@ -36,8 +43,14 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /reset, /clear, /new - Reset conversation history\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n"
-            "  /model list - Show available model presets\n"
-            "  /model <name> - Switch to a preset model\n"
+            "  /providers - List available providers\n"
+            "  /provider <name> - Show provider details\n"
+            "  /model list - Show your saved models\n"
+            "  /model add <provider> <model_id> [options] - Add a new model\n"
+            "  /model remove <name> - Remove a saved model\n"
+            "  /model default <name> - Set model as default\n"
+            "  /model use <provider> <model_id> - Try a model without saving\n"
+            "  /model <name> - Switch to saved model\n"
             "  /auto list - List auto-approved actions\n"
             "  /auto revoke <action> - Revoke auto-approval for an action\n"
             "  /auto clear - Clear all auto-approvals\n"
@@ -155,53 +168,271 @@ def handle_compact_command(agent: ClippyAgent, console: Console) -> CommandResul
     return "continue"
 
 
+def handle_providers_command(console: Console) -> CommandResult:
+    """Handle /providers command."""
+    providers = list_available_providers()
+
+    if not providers:
+        console.print("[yellow]No providers available[/yellow]")
+        return "continue"
+
+    provider_list = "\n".join(f"  [cyan]{name:12}[/cyan] - {desc}" for name, desc in providers)
+
+    console.print(
+        Panel.fit(
+            f"[bold]Available Providers:[/bold]\n\n{provider_list}\n\n"
+            f"[dim]Usage: /model add <provider> <model_id>[/dim]",
+            title="Providers",
+            border_style="cyan",
+        )
+    )
+    return "continue"
+
+
+def handle_provider_command(console: Console, provider_name: str) -> CommandResult:
+    """Handle /provider <name> command."""
+    provider = get_provider(provider_name)
+
+    if not provider:
+        console.print(f"[red]✗ Unknown provider: {provider_name}[/red]")
+        console.print("[dim]Use /providers to see available providers[/dim]")
+        return "continue"
+
+    api_key = os.getenv(provider.api_key_env, "")
+    api_key_status = "[green]✓ Set[/green]" if api_key else "[yellow]⚠ Not set[/yellow]"
+
+    console.print(
+        Panel.fit(
+            f"[bold]Provider:[/bold] [cyan]{provider.name}[/cyan]\n\n"
+            f"[bold]Description:[/bold] {provider.description}\n"
+            f"[bold]Base URL:[/bold] {provider.base_url or 'Default'}\n"
+            f"[bold]API Key Env:[/bold] {provider.api_key_env} {api_key_status}\n\n"
+            f"[dim]Usage: /model add {provider.name} <model_id>[/dim]",
+            title="Provider Details",
+            border_style="cyan",
+        )
+    )
+    return "continue"
+
+
 def handle_model_command(agent: ClippyAgent, console: Console, command_args: str) -> CommandResult:
-    """Handle /model command."""
+    """Handle /model commands."""
     if not command_args or command_args.lower() == "list":
-        # Show available models
+        # Show user's saved models
         models = list_available_models()
-        model_list = "\n".join(f"  [cyan]{name:20}[/cyan] - {desc}" for name, desc in models)
+
+        if not models:
+            console.print(
+                Panel.fit(
+                    "[bold]No saved models yet[/bold]\n\n"
+                    "[dim]Add a model to get started:\n"
+                    '  /model add openai gpt-5 --name "gpt-5" --default\n'
+                    '  /model add cerebras qwen-3-coder-480b --name "q3c"[/dim]',
+                    title="Models",
+                    border_style="yellow",
+                )
+            )
+            return "continue"
+
+        model_lines = []
+        for name, desc, is_default in models:
+            default_indicator = " [green](default)[/green]" if is_default else ""
+            model_lines.append(f"  [cyan]{name:20}[/cyan] - {desc}{default_indicator}")
+
         current_model = agent.model
         current_provider = agent.base_url or "OpenAI"
+
         console.print(
             Panel.fit(
-                f"[bold]Available Model Presets:[/bold]\n\n{model_list}\n\n"
+                "[bold]Your Saved Models:[/bold]\n\n" + "\n".join(model_lines) + f"\n\n"
                 f"[bold]Current:[/bold] {current_model} ({current_provider})\n\n"
-                f"[dim]Usage: /model <name>[/dim]",
+                f"[dim]Usage: /model <name> to switch[/dim]",
                 title="Models",
                 border_style="cyan",
             )
         )
+        return "continue"
+
+    # Parse command arguments
+    try:
+        args = shlex.split(command_args)
+    except ValueError as e:
+        console.print(f"[red]✗ Error parsing arguments: {e}[/red]")
+        return "continue"
+
+    if not args:
+        console.print("[red]Usage: /model <command> [args][/red]")
+        console.print("[dim]Commands: list, add, remove, default, use, <name>[/dim]")
+        return "continue"
+
+    subcommand = args[0].lower()
+
+    if subcommand == "add":
+        return _handle_model_add(console, args[1:])
+    elif subcommand == "remove":
+        return _handle_model_remove(console, args[1:])
+    elif subcommand == "default":
+        return _handle_model_default(console, args[1:])
+    elif subcommand == "use":
+        return _handle_model_use(agent, console, args[1:])
     else:
-        # Switch to specified model
-        model_name = command_args.strip()
-        config = get_model_config(model_name)
+        # Treat as model name to switch to
+        return _handle_model_switch(agent, console, command_args)
 
-        if config:
-            # Use preset configuration
-            # Load API key from environment variable specified in config
-            api_key = os.getenv(config.api_key_env)
 
-            if not api_key:
-                console.print(
-                    f"[yellow]⚠ Warning: {config.api_key_env} not set in "
-                    f"environment[/yellow]\n"
-                    f"[dim]The model may fail if it requires authentication.[/dim]"
-                )
-                # Continue anyway - some providers like Ollama might not need a key
-                api_key = "not-set"
+def _handle_model_add(console: Console, args: list[str]) -> CommandResult:
+    """Handle /model add command."""
+    if len(args) < 2:
+        console.print(
+            "[red]Usage: /model add <provider> <model_id> [options][/red]\n"
+            "[dim]Options: --name <name>, --default[/dim]"
+        )
+        console.print(
+            '[dim]Example: /model add cerebras qwen-3-coder-480b --name "q3c" --default[/dim]'
+        )
+        return "continue"
 
-            success, message = agent.switch_model(
-                model=config.model_id, base_url=config.base_url, api_key=api_key
-            )
+    provider = args[0]
+    model_id = args[1]
+
+    # Parse optional arguments
+    name = None
+    is_default = False
+
+    i = 2
+    while i < len(args):
+        if args[i] == "--name" and i + 1 < len(args):
+            name = args[i + 1]
+            i += 2
+        elif args[i] == "--default":
+            is_default = True
+            i += 1
         else:
-            # Treat as custom model ID (keep current base_url and api_key)
-            success, message = agent.switch_model(model=model_name)
+            console.print(f"[red]✗ Unknown argument: {args[i]}[/red]")
+            return "continue"
 
-        if success:
-            console.print(f"[green]✓ {message}[/green]")
-        else:
-            console.print(f"[red]✗ {message}[/red]")
+    # Use model_id as name if not specified
+    if not name:
+        name = model_id.replace(":", "-").replace("/", "-")
+
+    # Add the model
+    user_manager = get_user_manager()
+    success, message = user_manager.add_model(name, provider, model_id, is_default)
+
+    if success:
+        console.print(f"[green]✓ {message}[/green]")
+        if is_default:
+            console.print("[dim]Set as default model[/dim]")
+    else:
+        console.print(f"[red]✗ {message}[/red]")
+
+    return "continue"
+
+
+def _handle_model_remove(console: Console, args: list[str]) -> CommandResult:
+    """Handle /model remove command."""
+    if not args:
+        console.print("[red]Usage: /model remove <name>[/red]")
+        return "continue"
+
+    name = args[0]
+    user_manager = get_user_manager()
+    success, message = user_manager.remove_model(name)
+
+    if success:
+        console.print(f"[green]✓ {message}[/green]")
+    else:
+        console.print(f"[red]✗ {message}[/red]")
+
+    return "continue"
+
+
+def _handle_model_default(console: Console, args: list[str]) -> CommandResult:
+    """Handle /model default command."""
+    if not args:
+        console.print("[red]Usage: /model default <name>[/red]")
+        return "continue"
+
+    name = args[0]
+    user_manager = get_user_manager()
+    success, message = user_manager.set_default(name)
+
+    if success:
+        console.print(f"[green]✓ {message}[/green]")
+    else:
+        console.print(f"[red]✗ {message}[/red]")
+
+    return "continue"
+
+
+def _handle_model_use(agent: ClippyAgent, console: Console, args: list[str]) -> CommandResult:
+    """Handle /model use command (try without saving)."""
+    if len(args) < 2:
+        console.print("[red]Usage: /model use <provider> <model_id>[/red]")
+        console.print("[dim]Example: /model use ollama llama3.2:latest[/dim]")
+        return "continue"
+
+    provider_name = args[0]
+    model_id = args[1]
+
+    # Get provider
+    provider = get_provider(provider_name)
+    if not provider:
+        console.print(f"[red]✗ Unknown provider: {provider_name}[/red]")
+        console.print("[dim]Use /providers to see available providers[/dim]")
+        return "continue"
+
+    # Get API key
+    api_key = os.getenv(provider.api_key_env)
+    if not api_key and provider.name != "ollama":
+        console.print(
+            f"[yellow]⚠ Warning: {provider.api_key_env} not set in environment[/yellow]\n"
+            f"[dim]The model may fail if it requires authentication.[/dim]"
+        )
+        api_key = "not-set"
+
+    # Switch to model
+    success, message = agent.switch_model(
+        model=model_id, base_url=provider.base_url, api_key=api_key
+    )
+
+    if success:
+        console.print(f"[green]✓ Using {provider_name}/{model_id} (temporary)[/green]")
+        console.print("[dim]Use /model add to save this configuration[/dim]")
+    else:
+        console.print(f"[red]✗ {message}[/red]")
+
+    return "continue"
+
+
+def _handle_model_switch(agent: ClippyAgent, console: Console, model_name: str) -> CommandResult:
+    """Handle switching to a saved model."""
+    model, provider = get_model_config(model_name)
+
+    if not model or not provider:
+        console.print(f"[red]✗ Model '{model_name}' not found[/red]")
+        console.print("[dim]Use /model list to see your saved models[/dim]")
+        return "continue"
+
+    # Get API key
+    api_key = os.getenv(provider.api_key_env)
+    if not api_key and provider.name != "ollama":
+        console.print(
+            f"[yellow]⚠ Warning: {provider.api_key_env} not set in environment[/yellow]\n"
+            f"[dim]The model may fail if it requires authentication.[/dim]"
+        )
+        api_key = "not-set"
+
+    # Switch to model
+    success, message = agent.switch_model(
+        model=model.model_id, base_url=provider.base_url, api_key=api_key
+    )
+
+    if success:
+        console.print(f"[green]✓ Switched to {model.name}[/green]")
+        console.print(f"[dim]Using {provider.name}/{model.model_id}[/dim]")
+    else:
+        console.print(f"[red]✗ {message}[/red]")
 
     return "continue"
 
@@ -432,6 +663,18 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
     # Compact command
     if command_lower == "/compact":
         return handle_compact_command(agent, console)
+
+    # Provider commands
+    if command_lower == "/providers":
+        return handle_providers_command(console)
+
+    if command_lower.startswith("/provider "):
+        parts = user_input.split(maxsplit=1)
+        if len(parts) > 1:
+            return handle_provider_command(console, parts[1])
+        else:
+            console.print("[red]Usage: /provider <name>[/red]")
+            return "continue"
 
     # Model commands
     if command_lower.startswith("/model"):
