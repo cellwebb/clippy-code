@@ -380,6 +380,8 @@ def _aggregate_results(results: list[Any]) -> str:
     Returns:
         Summary string
     """
+    from rich.markup import escape
+
     successful_results = [r for r in results if r.success]
     failed_results = [r for r in results if not r.success]
 
@@ -400,8 +402,10 @@ def _aggregate_results(results: list[Any]) -> str:
     if successful_results:
         summary_parts.append("\n✅ Successful Subagents:")
         for i, result in enumerate(successful_results, 1):
+            # Escape Rich markup to prevent tag conflicts
+            safe_output = escape(result.output[:100])
             summary_parts.append(
-                f"   {i}. {result.output[:100]}{'...' if len(result.output) > 100 else ''}"
+                f"   {i}. {safe_output}{'...' if len(result.output) > 100 else ''}"
             )
 
     # Failed results summary
@@ -409,8 +413,10 @@ def _aggregate_results(results: list[Any]) -> str:
         summary_parts.append("\n❌ Failed Subagents:")
         for i, result in enumerate(failed_results, 1):
             error_info = result.error or "Unknown error"
+            # Escape Rich markup to prevent tag conflicts
+            safe_error = escape(error_info[:100])
             summary_parts.append(
-                f"   {i}. {error_info[:100]}{'...' if len(error_info) > 100 else ''}"
+                f"   {i}. {safe_error}{'...' if len(error_info) > 100 else ''}"
             )
 
     return "\n".join(summary_parts)

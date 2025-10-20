@@ -61,7 +61,7 @@ class TestSubAgentManager:
     def test_manager_initialization(self, manager):
         """Test manager initialization."""
         assert manager.max_concurrent == 3
-        assert manager.enable_cache is False
+        assert manager.cache_enabled is False
         assert manager.enable_chaining is False
         assert len(manager.active_subagents) == 0
         assert len(manager.completed_subagents) == 0

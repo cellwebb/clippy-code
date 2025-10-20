@@ -314,16 +314,32 @@ class ApprovalDialog(Container):
 
             # Show tool input with truncation and expand/collapse
             if self.tool_input:
+                import json
+                from rich.markup import escape
+
                 yield Static("Parameters:", id="input-section-header")
 
                 # Format and potentially truncate input
                 input_lines = []
                 for k, v in self.tool_input.items():
-                    value_str = str(v)
-                    # Truncate very long values
-                    if len(value_str) > 100:
-                        value_str = value_str[:97] + "..."
-                    input_lines.append(f"  [bold]{k}:[/bold] {value_str}")
+                    try:
+                        # Try JSON formatting for complex structures
+                        if isinstance(v, (dict, list)):
+                            value_str = json.dumps(v, indent=2)
+                        else:
+                            value_str = str(v)
+                    except Exception:
+                        # Fallback to simple string representation
+                        value_str = str(v)
+
+                    # Truncate very long values (increased limit for better visibility)
+                    max_length = 500
+                    if len(value_str) > max_length:
+                        value_str = value_str[: max_length - 3] + "..."
+
+                    # Escape Rich markup to prevent tag conflicts
+                    safe_value = escape(value_str)
+                    input_lines.append(f"  [bold]{k}:[/bold] {safe_value}")
 
                 input_text = "\n".join(input_lines)
 

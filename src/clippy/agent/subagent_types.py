@@ -100,7 +100,7 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "grep",
         ],
-        "model": "gpt-3.5-turbo",  # Fast model for simple tasks
+        "model": None,  # Inherit from parent agent
         "max_iterations": 10,
     },
     "power_analysis": {
@@ -110,7 +110,7 @@ SUBAGENT_TYPES = {
             "Take time to think through complex problems thoroughly."
         ),
         "allowed_tools": "all",
-        "model": "claude-3-opus-20240229",  # Powerful model for complex analysis
+        "model": None,  # Inherit from parent agent
         "max_iterations": 40,
     },
 }
@@ -268,25 +268,11 @@ def get_recommended_models_for_task(task_description: str) -> list[str]:
         task_description: Description of the task
 
     Returns:
-        List of recommended model names
+        Empty list (model recommendations removed - users should choose their own models)
     """
-    task_lower = task_description.lower()
-
-    # Simple keyword-based recommendations
-    if any(keyword in task_lower for keyword in ["simple", "quick", "basic", "list", "find"]):
-        return ["gpt-3.5-turbo", "claude-3-haiku-20240307"]
-
-    if any(keyword in task_lower for keyword in ["complex", "analysis", "architecture", "design"]):
-        return ["claude-3-opus-20240229", "gpt-4-turbo", "claude-3-sonnet-20240229"]
-
-    if any(keyword in task_lower for keyword in ["code", "programming", "refactor"]):
-        return ["gpt-4-turbo", "claude-3-sonnet-20240229", "claude-3-opus-20240229"]
-
-    if any(keyword in task_lower for keyword in ["document", "write", "explain"]):
-        return ["claude-3-sonnet-20240229", "gpt-4-turbo"]
-
-    # Default recommendations
-    return ["gpt-4-turbo", "claude-3-sonnet-20240229"]
+    # Model recommendations removed - users should manage their own model preferences
+    # Use the parent agent's model or configure specific models per subagent type
+    return []
 
 
 def get_optimization_hints(subagent_type: str, task_complexity: str = "medium") -> dict[str, Any]:
@@ -298,70 +284,61 @@ def get_optimization_hints(subagent_type: str, task_complexity: str = "medium") 
         task_complexity: Complexity level (simple, medium, complex)
 
     Returns:
-        Dictionary with optimization hints
+        Dictionary with optimization hints (iteration suggestions and reasoning)
     """
-    hints = {"model_suggestions": [], "iteration_suggestions": 0}
+    hints = {"iteration_suggestions": 0, "reason": ""}
 
     if subagent_type == "general":
         if task_complexity == "simple":
             hints.update(
                 {
-                    "model_suggestions": ["gpt-3.5-turbo", "claude-3-haiku-20240307"],
                     "iteration_suggestions": 10,
-                    "reason": "Simple general tasks can use faster models",
+                    "reason": "Simple general tasks need fewer iterations",
                 }
             )
         elif task_complexity == "complex":
             hints.update(
                 {
-                    "model_suggestions": ["gpt-4-turbo", "claude-3-sonnet-20240229"],
                     "iteration_suggestions": 30,
-                    "reason": "Complex general tasks benefit from more capable models",
+                    "reason": "Complex general tasks need more iterations",
                 }
             )
 
     elif subagent_type == "code_review":
         hints.update(
             {
-                "model_suggestions": ["claude-3-sonnet-20240229", "gpt-4-turbo"],
                 "iteration_suggestions": 15,
-                "reason": (
-                    "Code review needs good reasoning but doesn't require the most powerful models"
-                ),
+                "reason": "Code review typically needs moderate iterations",
             }
         )
 
     elif subagent_type == "testing":
         hints.update(
             {
-                "model_suggestions": ["gpt-4-turbo", "claude-3-sonnet-20240229"],
                 "iteration_suggestions": 25,
-                "reason": "Test generation requires good understanding of code structure",
+                "reason": "Test generation requires multiple iterations to ensure coverage",
             }
         )
 
     elif subagent_type == "refactor":
         hints.update(
             {
-                "model_suggestions": ["claude-3-opus-20240229", "gpt-4-turbo"],
                 "iteration_suggestions": 30,
-                "reason": "Refactoring benefits from deep analysis capabilities",
+                "reason": "Refactoring requires careful analysis and multiple passes",
             }
         )
 
     elif subagent_type == "documentation":
         hints.update(
             {
-                "model_suggestions": ["claude-3-sonnet-20240229", "gpt-4-turbo"],
                 "iteration_suggestions": 20,
-                "reason": "Documentation generation needs good writing abilities",
+                "reason": "Documentation generation needs moderate iterations",
             }
         )
 
     elif subagent_type == "fast_general":
         hints.update(
             {
-                "model_suggestions": ["gpt-3.5-turbo", "claude-3-haiku-20240307"],
                 "iteration_suggestions": 10,
                 "reason": "Optimized for speed with simple tasks",
             }
@@ -370,9 +347,8 @@ def get_optimization_hints(subagent_type: str, task_complexity: str = "medium") 
     elif subagent_type == "power_analysis":
         hints.update(
             {
-                "model_suggestions": ["claude-3-opus-20240229", "gpt-4-turbo"],
                 "iteration_suggestions": 40,
-                "reason": "Deep analysis requires the most capable models",
+                "reason": "Deep analysis requires many iterations for thoroughness",
             }
         )
 
