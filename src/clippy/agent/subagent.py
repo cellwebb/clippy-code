@@ -194,10 +194,11 @@ class SubAgent:
 
             # Print start indicator
             self.console.print(
-                f"[bold cyan]╭─ Starting Subagent: {self.config.name} ({self.config.subagent_type})[/bold cyan]"
+                f"[bold cyan]╭─ Starting Subagent: {self.config.name} "
+                f"({self.config.subagent_type})[/bold cyan]"
             )
             self.console.print(f"[cyan]│[/cyan] Task: {self.config.task}")
-            self.console.print(f"[cyan]╰─[/cyan]")
+            self.console.print("[cyan]╰─[/cyan]")
 
             # Add task to conversation
             self.conversation_history.append({"role": "user", "content": self.config.task})

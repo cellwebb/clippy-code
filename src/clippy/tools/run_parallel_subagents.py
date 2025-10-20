@@ -415,8 +415,6 @@ def _aggregate_results(results: list[Any]) -> str:
             error_info = result.error or "Unknown error"
             # Escape Rich markup to prevent tag conflicts
             safe_error = escape(error_info[:100])
-            summary_parts.append(
-                f"   {i}. {safe_error}{'...' if len(error_info) > 100 else ''}"
-            )
+            summary_parts.append(f"   {i}. {safe_error}{'...' if len(error_info) > 100 else ''}")
 
     return "\n".join(summary_parts)

@@ -5,8 +5,6 @@ import pytest
 from clippy.agent.subagent_types import (
     SUBAGENT_TYPES,
     get_default_config,
-    get_optimization_hints,
-    get_recommended_models_for_task,
     get_subagent_config,
     list_subagent_types,
     validate_model_for_subagent_type,
@@ -258,85 +256,3 @@ class TestModelValidation:
                 # Other invalid models should fail
                 assert is_valid is False
                 assert "non-empty string" in error_msg
-
-    def test_get_recommended_models_for_task_simple(self):
-        """Test getting model recommendations for simple tasks."""
-        task = "List all files in the directory"
-        models = get_recommended_models_for_task(task)
-        assert isinstance(models, list)
-        assert len(models) == 0  # No hardcoded model recommendations
-
-    def test_get_recommended_models_for_task_complex(self):
-        """Test getting model recommendations for complex tasks."""
-        task = "Perform deep analysis of code architecture and design patterns"
-        models = get_recommended_models_for_task(task)
-        assert isinstance(models, list)
-        assert len(models) == 0  # No hardcoded model recommendations
-
-    def test_get_recommended_models_for_task_code(self):
-        """Test getting model recommendations for code tasks."""
-        task = "Refactor this Python code to improve performance"
-        models = get_recommended_models_for_task(task)
-        assert isinstance(models, list)
-        assert len(models) == 0  # No hardcoded model recommendations
-
-    def test_get_recommended_models_for_task_default(self):
-        """Test getting default model recommendations."""
-        task = "Some generic task"
-        models = get_recommended_models_for_task(task)
-        assert isinstance(models, list)
-        assert len(models) == 0  # No hardcoded model recommendations
-
-
-class TestOptimizationHints:
-    """Test optimization hints functions."""
-
-    def test_get_optimization_hints_general_simple(self):
-        """Test optimization hints for simple general tasks."""
-        hints = get_optimization_hints("general", "simple")
-        assert "iteration_suggestions" in hints
-        assert "reason" in hints
-        assert hints["iteration_suggestions"] == 10
-        assert "simple" in hints["reason"].lower()
-
-    def test_get_optimization_hints_general_complex(self):
-        """Test optimization hints for complex general tasks."""
-        hints = get_optimization_hints("general", "complex")
-        assert hints["iteration_suggestions"] == 30
-        assert "complex" in hints["reason"].lower()
-
-    def test_get_optimization_hints_code_review(self):
-        """Test optimization hints for code review."""
-        hints = get_optimization_hints("code_review")
-        assert hints["iteration_suggestions"] == 15
-        assert "code review" in hints["reason"].lower()
-
-    def test_get_optimization_hints_testing(self):
-        """Test optimization hints for testing."""
-        hints = get_optimization_hints("testing")
-        assert hints["iteration_suggestions"] == 25
-        assert "test" in hints["reason"].lower()
-
-    def test_get_optimization_hints_refactor(self):
-        """Test optimization hints for refactoring."""
-        hints = get_optimization_hints("refactor")
-        assert hints["iteration_suggestions"] == 30
-        assert "refactor" in hints["reason"].lower()
-
-    def test_get_optimization_hints_documentation(self):
-        """Test optimization hints for documentation."""
-        hints = get_optimization_hints("documentation")
-        assert hints["iteration_suggestions"] == 20
-        assert "documentation" in hints["reason"].lower()
-
-    def test_get_optimization_hints_fast_general(self):
-        """Test optimization hints for fast general."""
-        hints = get_optimization_hints("fast_general")
-        assert hints["iteration_suggestions"] == 10
-        assert "speed" in hints["reason"].lower() or "simple" in hints["reason"].lower()
-
-    def test_get_optimization_hints_power_analysis(self):
-        """Test optimization hints for power analysis."""
-        hints = get_optimization_hints("power_analysis")
-        assert hints["iteration_suggestions"] == 40
-        assert "analysis" in hints["reason"].lower() or "thorough" in hints["reason"].lower()

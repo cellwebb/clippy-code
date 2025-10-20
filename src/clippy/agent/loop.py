@@ -6,7 +6,6 @@ import sys
 from collections.abc import Callable
 from typing import Any
 
-from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
 
@@ -26,7 +25,7 @@ def run_agent_loop(
     model: str,
     permission_manager: PermissionManager,
     executor: ActionExecutor,
-    console: Console,
+    console: Any,  # Console or SubAgentConsoleWrapper
     auto_approve_all: bool,
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None,
     check_interrupted: Callable[[], bool],
