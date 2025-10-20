@@ -53,6 +53,7 @@ def test_delete_file_permission_error(
     executor: ActionExecutor, temp_dir: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test delete_file handles PermissionError from os.remove."""
+
     def raise_permission_error(_path: str) -> None:
         raise PermissionError("denied")
 
@@ -70,6 +71,7 @@ def test_delete_file_os_error(
     executor: ActionExecutor, temp_dir: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Test delete_file handles OSError other than FileNotFoundError."""
+
     def raise_os_error(_path: str) -> None:
         raise OSError("disk full")
 
