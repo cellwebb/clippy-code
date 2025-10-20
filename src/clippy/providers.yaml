@@ -1,0 +1,49 @@
+# Provider configurations for LLM services
+# Each provider defines the infrastructure (base URL, API key, description)
+# Users can combine any provider with any model name through the model management system
+
+providers:
+  openai:
+    base_url: null  # null = use default OpenAI endpoint
+    api_key_env: OPENAI_API_KEY
+    description: "OpenAI API"
+
+  cerebras:
+    base_url: https://api.cerebras.ai/v1
+    api_key_env: CEREBRAS_API_KEY
+    description: "Cerebras AI"
+
+  groq:
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+    description: "Groq"
+
+  lmstudio:
+    base_url: http://localhost:1234/v1
+    api_key_env: LMSTUDIO_API_KEY # Usually not needed, can be "lmstudio" or empty
+    description: "LM Studio (local)"
+
+  ollama:
+    base_url: http://localhost:11434/v1
+    api_key_env: OLLAMA_API_KEY  # Usually not needed, can be "ollama" or empty
+    description: "Ollama (local)"
+
+  openrouter:
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    description: "OpenRouter"
+
+  synthetic:
+    base_url: https://api.synthetic.new/openai/v1
+    api_key_env: SYNTHETIC_API_KEY
+    description: "Synthetic AI"
+
+  together:
+    base_url: https://api.together.xyz/v1
+    api_key_env: TOGETHER_API_KEY
+    description: "Together AI"
+
+  zai:
+    base_url: https://api.z.ai/api/coding/paas/v4/
+    api_key_env: ZAI_API_KEY
+    description: "ZAI coding plan"

@@ -309,7 +309,9 @@ class DocumentApp(App[None]):
                     self.agent.permission_manager.update_permission(
                         action_type, PermissionLevel.AUTO_APPROVE
                     )
-                    conv_log.write(f"[green]Auto-approving {escape(tool_name)} for this session[/green]")
+                    conv_log.write(
+                        f"[green]Auto-approving {escape(tool_name)} for this session[/green]"
+                    )
                     return True
                 else:
                     # Fallback to regular approval
@@ -447,7 +449,9 @@ class DocumentApp(App[None]):
                 self.agent.permission_manager.update_permission(
                     action_type, PermissionLevel.REQUIRE_APPROVAL
                 )
-                conv_log.write(f"[green]Revoked auto-approval for {escape(action_to_revoke)}[/green]")
+                conv_log.write(
+                    f"[green]Revoked auto-approval for {escape(action_to_revoke)}[/green]"
+                )
             else:
                 conv_log.write(f"[red]Unknown action type: {escape(action_to_revoke)}[/red]")
         elif subcommand == "clear":
@@ -550,7 +554,8 @@ class DocumentApp(App[None]):
             if tool["server_id"] != current_server:
                 current_server = tool["server_id"]
                 conv_log.write(f"\n[bold]Server: {escape(current_server)}[/bold]")
-            conv_log.write(f"  • [cyan]{escape(tool['name'])}[/cyan] - {escape(tool['description'])}")
+            tool_desc = f"  • [cyan]{escape(tool['name'])}[/cyan] - {escape(tool['description'])}"
+            conv_log.write(tool_desc)
         conv_log.write("")
 
     def _handle_mcp_status(self, mcp_manager: Any, conv_log: RichLog) -> None:
@@ -881,11 +886,14 @@ class DocumentApp(App[None]):
 
         conv_log.write("\n📎 [bold]Available Model Presets[/bold]\n")
 
-        for name, desc in models:
+        for name, desc, is_default in models:
+            default_indicator = " [green](default)[/green]" if is_default else ""
             if name == current_model:
-                conv_log.write(f"• [green]★ {name:20}[/green] - {desc} [dim](current)[/dim]")
+                conv_log.write(
+                    f"• [green]★ {name:20}[/green] - {desc}{default_indicator} [dim](current)[/dim]"
+                )
             else:
-                conv_log.write(f"• [cyan]{name:20}[/cyan] - {desc}")
+                conv_log.write(f"• [cyan]{name:20}[/cyan] - {desc}{default_indicator}")
 
         conv_log.write("")
         conv_log.write("[bold]Current Configuration:[/bold]")
@@ -908,17 +916,23 @@ class DocumentApp(App[None]):
             self.show_models()
         else:
             model_name = parts[1].strip()
-            config = get_model_config(model_name)
-            if config:
-                api_key = os.getenv(config.api_key_env) or "not-set"
+            model_config, provider_config = get_model_config(model_name)
+            if model_config and provider_config:
+                api_key = os.getenv(provider_config.api_key_env) or "not-set"
                 success, message = self.agent.switch_model(
-                    model=config.model_id, base_url=config.base_url, api_key=api_key
+                    model=model_config.model_id,
+                    base_url=provider_config.base_url,
+                    api_key=api_key,
                 )
             else:
                 success, message = self.agent.switch_model(model=model_name)
-            conv_log.write(
-                f"[green]✓ {escape(message)}[/green]" if success else f"[red]✗ {escape(message)}[/red]"
+
+            status_msg = (
+                f"[green]✓ {escape(message)}[/green]"
+                if success
+                else f"[red]✗ {escape(message)}[/red]"
             )
+            conv_log.write(status_msg)
             conv_log.write("")
         self.update_status_bar()
 
