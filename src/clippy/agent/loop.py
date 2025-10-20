@@ -31,6 +31,9 @@ def run_agent_loop(
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None,
     check_interrupted: Callable[[], bool],
     mcp_manager: Any = None,
+    max_iterations: int = 50,
+    allowed_tools: list[str] | None = None,
+    parent_agent: Any = None,
 ) -> str:
     """
     Run the main agent loop.
@@ -46,6 +49,9 @@ def run_agent_loop(
         approval_callback: Optional callback for approval requests
         check_interrupted: Callback to check if execution was interrupted
         mcp_manager: Optional MCP manager instance
+        max_iterations: Maximum number of iterations (default: 50)
+        allowed_tools: List of allowed tool names (default: all tools)
+        parent_agent: Parent agent instance for subagent delegation
 
     Returns:
         Final response from the agent
@@ -55,7 +61,7 @@ def run_agent_loop(
     """
     from .core import InterruptedExceptionError
 
-    max_iterations = 50  # Prevent infinite loops
+    # Use the provided max_iterations parameter instead of hardcoding
     logger.info(f"Starting agent loop with model: {model}, max_iterations: {max_iterations}")
 
     # Track spinner between iterations
@@ -75,6 +81,16 @@ def run_agent_loop(
 
         # Get current tools (built-in + MCP)
         tools = tool_catalog.get_all_tools(mcp_manager)
+
+        # Filter tools if allowed_tools is specified
+        if allowed_tools is not None:
+            filtered_tools = []
+            for tool in tools:
+                tool_name = tool["function"]["name"]
+                if tool_name in allowed_tools:
+                    filtered_tools.append(tool)
+            tools = filtered_tools
+
         logger.debug(f"Loaded {len(tools)} tools for iteration {iteration + 1}")
 
         # Call provider (returns OpenAI message dict)
@@ -154,6 +170,7 @@ def run_agent_loop(
                     conversation_history,
                     approval_callback,
                     mcp_manager,
+                    parent_agent,
                 )
                 if not success:
                     logger.warning(f"Tool execution failed or denied: {tool_name}")
@@ -185,10 +202,6 @@ def run_agent_loop(
         )
         spinner = Spinner("Thinking", enabled=not in_document_mode)
         spinner.start()
-
-        # Warn if approaching iteration limit
-        if iteration >= max_iterations - 5:
-            logger.warning(f"Approaching iteration limit: {iteration + 1}/{max_iterations}")
 
     # Max iterations reached - cleanup and display warning
     if spinner:

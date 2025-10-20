@@ -122,6 +122,7 @@ def handle_tool_use(
     conversation_history: list[dict[str, Any]],
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None = None,
     mcp_manager: Any = None,
+    parent_agent: Any = None,
 ) -> bool:
     """
     Handle a tool use request.
@@ -154,6 +155,7 @@ def handle_tool_use(
         "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
         "grep": ActionType.GREP,  # Dedicated action type for grep
         "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+        "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
     }
 
     # Handle MCP tools with special action types
@@ -234,7 +236,25 @@ def handle_tool_use(
     # For MCP tools, bypass trust check if user explicitly approved
     bypass_trust = user_approved and is_mcp_tool(tool_name)
     logger.debug(f"Executing tool: {tool_name}, bypass_trust: {bypass_trust}")
-    success, message, result = executor.execute(tool_name, tool_input, bypass_trust)
+    # Special handling for delegate_to_subagent
+    if tool_name == "delegate_to_subagent":
+        if parent_agent is None:
+            success, message, result = (
+                False,
+                "delegate_to_subagent requires parent agent context",
+                None,
+            )
+        else:
+            # Import here to avoid circular imports
+            from ..tools.delegate_to_subagent import create_subagent_and_execute
+
+            logger.debug("Handling delegate_to_subagent tool")
+            success, message, result = create_subagent_and_execute(
+                parent_agent=parent_agent, permission_manager=permission_manager, **tool_input
+            )
+    else:
+        # Execute the tool
+        success, message, result = executor.execute(tool_name, tool_input, bypass_trust)
     logger.debug(f"Tool execution result: success={success}, message={message}")
 
     # Enhanced error handling for MCP tools

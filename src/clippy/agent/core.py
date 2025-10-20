@@ -14,6 +14,7 @@ from .conversation import (
     get_token_count,
 )
 from .loop import run_agent_loop
+from .subagent_manager import SubAgentManager
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class InterruptedExceptionError(Exception):
 
 class ClippyAgent:
     """AI coding assistant powered by OpenAI-compatible LLMs - here to help you with
-    that paperclip!."""
+    that paperclip!"""
 
     def __init__(
         self,
@@ -37,6 +38,7 @@ class ClippyAgent:
         base_url: str | None = None,
         approval_callback: Any = None,
         mcp_manager: Any = None,
+        max_concurrent_subagents: int = 3,
     ) -> None:
         """
         Initialize the ClippyAgent.
@@ -52,6 +54,7 @@ class ClippyAgent:
                              and return bool (True for approve, False for deny).
                              Can raise InterruptedExceptionError to stop execution.
             mcp_manager: Optional MCP manager instance for tool discovery
+            max_concurrent_subagents: Maximum number of concurrent subagents
         """
         self.permission_manager = permission_manager
         self.executor = executor
@@ -75,6 +78,14 @@ class ClippyAgent:
         self.interrupted = False
         self.approval_callback = approval_callback
         self.mcp_manager = mcp_manager
+
+        # Initialize subagent manager
+        self.subagent_manager = SubAgentManager(
+            parent_agent=self,
+            permission_manager=permission_manager,
+            executor=executor,
+            max_concurrent=max_concurrent_subagents,
+        )
 
     def run(self, user_message: str, auto_approve_all: bool = False) -> str:
         """
@@ -115,6 +126,7 @@ class ClippyAgent:
             approval_callback=self.approval_callback,
             check_interrupted=lambda: self.interrupted,
             mcp_manager=self.mcp_manager,
+            parent_agent=self,  # Pass self for subagent delegation
         )
 
     def reset_conversation(self) -> None:

@@ -5,19 +5,19 @@ from typing import Any
 
 from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from .permissions import ActionType, PermissionManager
-from .tools import (
-    create_directory,
-    delete_file,
-    edit_file,
-    execute_command,
-    get_file_info,
-    grep,
-    list_directory,
-    read_file,
-    read_files,
-    search_files,
-    write_file,
-)
+
+# Import tool functions explicitly to avoid module/function conflicts
+from .tools.create_directory import create_directory
+from .tools.delete_file import delete_file
+from .tools.edit_file import edit_file
+from .tools.execute_command import execute_command
+from .tools.get_file_info import get_file_info
+from .tools.grep import grep
+from .tools.list_directory import list_directory
+from .tools.read_file import read_file
+from .tools.read_files import read_files
+from .tools.search_files import search_files
+from .tools.write_file import write_file
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +84,7 @@ class ActionExecutor:
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+            "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
         }
 
         action_type = action_map.get(tool_name)

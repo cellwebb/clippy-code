@@ -25,20 +25,71 @@ from .search_files import search_files
 from .write_file import TOOL_SCHEMA as WRITE_FILE_SCHEMA
 from .write_file import write_file
 
+
+def get_delegate_to_subagent_schema() -> dict[str, Any]:
+    """Get delegate_to_subagent schema dynamically to avoid circular imports."""
+    try:
+        from .delegate_to_subagent import get_tool_schema
+
+        return get_tool_schema()
+    except ImportError:
+        # Return a minimal schema if import fails
+        return {
+            "type": "function",
+            "function": {
+                "name": "delegate_to_subagent",
+                "description": "Delegate a task to a specialized subagent",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "task": {"type": "string"},
+                        "subagent_type": {"type": "string"},
+                    },
+                    "required": ["task", "subagent_type"],
+                },
+            },
+        }
+
+
+def get_create_subagent_and_execute() -> Any:
+    """Get create_subagent_and_execute function dynamically."""
+    try:
+        from .delegate_to_subagent import create_subagent_and_execute
+
+        return create_subagent_and_execute
+    except ImportError:
+        return None
+
+
 # Aggregate all tool schemas into a single list
-TOOLS: list[dict[str, Any]] = [
-    CREATE_DIRECTORY_SCHEMA,
-    DELETE_FILE_SCHEMA,
-    EDIT_FILE_SCHEMA,
-    EXECUTE_COMMAND_SCHEMA,
-    GET_FILE_INFO_SCHEMA,
-    GREP_SCHEMA,
-    LIST_DIRECTORY_SCHEMA,
-    READ_FILE_SCHEMA,
-    READ_FILES_SCHEMA,
-    SEARCH_FILES_SCHEMA,
-    WRITE_FILE_SCHEMA,
-]
+def get_all_tools() -> list[dict[str, Any]]:
+    """Get all tool schemas, loading delegate_to_subagent dynamically."""
+    base_tools = [
+        CREATE_DIRECTORY_SCHEMA,
+        DELETE_FILE_SCHEMA,
+        EDIT_FILE_SCHEMA,
+        EXECUTE_COMMAND_SCHEMA,
+        GET_FILE_INFO_SCHEMA,
+        GREP_SCHEMA,
+        LIST_DIRECTORY_SCHEMA,
+        READ_FILE_SCHEMA,
+        READ_FILES_SCHEMA,
+        SEARCH_FILES_SCHEMA,
+        WRITE_FILE_SCHEMA,
+    ]
+
+    # Add delegate_to_subagent schema if available
+    try:
+        delegate_schema = get_delegate_to_subagent_schema()
+        base_tools.append(delegate_schema)
+    except Exception:
+        # Skip if schema loading fails
+        pass
+
+    return base_tools
+
+
+TOOLS = get_all_tools()
 
 
 def get_tool_by_name(name: str) -> dict[str, Any] | None:
@@ -51,6 +102,7 @@ def get_tool_by_name(name: str) -> dict[str, Any] | None:
 
 __all__ = [
     "create_directory",
+    "create_subagent_and_execute",
     "delete_file",
     "edit_file",
     "execute_command",
@@ -64,4 +116,5 @@ __all__ = [
     "write_file",
     "TOOLS",
     "get_tool_by_name",
+    "get_create_subagent_and_execute",
 ]
