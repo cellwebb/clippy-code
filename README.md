@@ -213,30 +213,36 @@ clippy-code follows a layered architecture with clear separation of concerns:
 ```
 src/clippy/
 ├── cli/
-│   ├── main.py         # Main entry point
-│   ├── parser.py       # Argument parsing
-│   ├── oneshot.py      # One-shot mode implementation
-│   └── repl.py         # Interactive REPL mode
+│   ├── main.py             # Main entry point
+│   ├── parser.py           # Argument parsing
+│   ├── oneshot.py          # One-shot mode implementation
+│   └── repl.py             # Interactive REPL mode
 ├── agent/
-│   ├── core.py         # Core agent implementation
-│   ├── loop.py         # Agent loop logic
-│   ├── conversation.py # Conversation utilities
-│   └── tool_handler.py # Tool calling handler
-├── mcp/                # MCP (Model Context Protocol) integration
+│   ├── core.py             # Core agent implementation
+│   ├── loop.py             # Agent loop logic
+│   ├── conversation.py     # Conversation utilities
+│   ├── tool_handler.py     # Tool calling handler
+│   ├── subagent.py         # Subagent implementation
+│   ├── subagent_manager.py # Subagent lifecycle management
+│   ├── subagent_types.py   # Subagent type configurations
+│   ├── subagent_cache.py   # Result caching system
+│   └── subagent_chainer.py # Hierarchical execution chaining
+├── mcp/                    # MCP (Model Context Protocol) integration
 │   ├── __init__.py
-│   ├── config.py       # MCP configuration loading
-│   ├── errors.py       # MCP error handling
-│   ├── manager.py      # MCP server connection manager
-│   ├── naming.py       # MCP tool naming utilities
-│   ├── schema.py       # MCP schema conversion
-│   ├── transports.py   # MCP transport layer
-│   ├── trust.py        # MCP trust system
-│   └── types.py        # MCP type definitions
+│   ├── config.py           # MCP configuration loading
+│   ├── errors.py           # MCP error handling
+│   ├── manager.py          # MCP server connection manager
+│   ├── naming.py           # MCP tool naming utilities
+│   ├── schema.py           # MCP schema conversion
+│   ├── transports.py       # MCP transport layer
+│   ├── trust.py            # MCP trust system
+│   └── types.py            # MCP type definitions
 ├── tools/
-│   ├── __init__.py     # Tool implementations and exports
-│   ├── catalog.py      # Tool catalog for merging built-in and MCP tools
+│   ├── __init__.py         # Tool implementations and exports
+│   ├── catalog.py          # Tool catalog for merging built-in and MCP tools
 │   ├── create_directory.py
 │   ├── delete_file.py
+│   ├── delegate_to_subagent.py
 │   ├── edit_file.py
 │   ├── execute_command.py
 │   ├── get_file_info.py
@@ -244,20 +250,21 @@ src/clippy/
 │   ├── list_directory.py
 │   ├── read_file.py
 │   ├── read_files.py
+│   ├── run_parallel_subagents.py
 │   ├── search_files.py
 │   └── write_file.py
 ├── ui/
-|   ├── document_app.py # Textual-based document mode interface
-|   ├── styles.py       # CSS styling for document mode
-|   ├── widgets.py      # Custom UI widgets
-|   └── utils.py        # UI utility functions
-├── providers.py     # OpenAI-compatible LLM provider
-├── executor.py      # Tool execution implementations
-├── permissions.py   # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
-├── models.py        # Provider configuration and user model management
-├── providers.yaml   # Provider definitions (OpenAI, Cerebras, Ollama, etc.)
-├── prompts.py       # System prompts for the agent
-└── diff_utils.py    # Diff generation utilities
+|   ├── document_app.py     # Textual-based document mode interface
+|   ├── styles.py           # CSS styling for document mode
+|   ├── widgets.py          # Custom UI widgets
+|   └── utils.py            # UI utility functions
+├── providers.py            # OpenAI-compatible LLM provider
+├── executor.py             # Tool execution implementations
+├── permissions.py          # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
+├── models.py               # Model configuration loading and presets
+├── models.yaml             # Model presets for different providers
+├── prompts.py              # System prompts for the agent
+└── diff_utils.py           # Diff generation utilities
 ```
 
 ## Configuration & Models

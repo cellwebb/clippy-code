@@ -17,6 +17,41 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class SubAgentConsoleWrapper:
+    """
+    Console wrapper that prefixes all output with subagent indicator.
+
+    This makes it clear when messages/tool calls are from a subagent vs main agent.
+    """
+
+    def __init__(self, wrapped_console: Any, subagent_name: str, subagent_type: str):
+        """
+        Initialize console wrapper.
+
+        Args:
+            wrapped_console: The original console to wrap
+            subagent_name: Name of the subagent
+            subagent_type: Type of the subagent
+        """
+        self._console = wrapped_console
+        self._subagent_name = subagent_name
+        self._subagent_type = subagent_type
+        self._prefix = f"[dim cyan]\\[{subagent_type}:{subagent_name}][/dim cyan] "
+
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        """Print with subagent prefix."""
+        # Add prefix to the first argument if it's a string
+        if args and isinstance(args[0], str):
+            prefixed_args = (self._prefix + args[0],) + args[1:]
+            self._console.print(*prefixed_args, **kwargs)
+        else:
+            self._console.print(self._prefix, *args, **kwargs)
+
+    def __getattr__(self, name: str) -> Any:
+        """Delegate all other attributes to wrapped console."""
+        return getattr(self._console, name)
+
+
 @dataclass
 class SubAgentResult:
     """Result from a subagent execution."""
@@ -107,6 +142,13 @@ class SubAgent:
         # Determine model to use
         self.model = config.model or parent_agent.model
 
+        # Create console wrapper for prefixed output
+        self.console = SubAgentConsoleWrapper(
+            wrapped_console=parent_agent.console,
+            subagent_name=config.name,
+            subagent_type=config.subagent_type,
+        )
+
         # Isolated conversation history
         self.conversation_history: list[dict[str, Any]] = []
 
@@ -150,6 +192,13 @@ class SubAgent:
         try:
             logger.info(f"Starting subagent '{self.config.name}' with task: {self.config.task}")
 
+            # Print start indicator
+            self.console.print(
+                f"[bold cyan]╭─ Starting Subagent: {self.config.name} ({self.config.subagent_type})[/bold cyan]"
+            )
+            self.console.print(f"[cyan]│[/cyan] Task: {self.config.task}")
+            self.console.print(f"[cyan]╰─[/cyan]")
+
             # Add task to conversation
             self.conversation_history.append({"role": "user", "content": self.config.task})
 
@@ -177,6 +226,13 @@ class SubAgent:
             logger.info(
                 f"Subagent '{self.config.name}' completed successfully in {execution_time:.2f}s"
             )
+
+            # Print completion indicator
+            self.console.print(
+                f"[bold green]✓ Subagent Complete: {self.config.name}[/bold green] "
+                f"[dim]({execution_time:.2f}s, {self.result.iterations_used} iterations)[/dim]"
+            )
+
             return self.result
 
         except TimeoutError:
@@ -198,6 +254,13 @@ class SubAgent:
             )
 
             logger.warning(f"Subagent '{self.config.name}' timed out after {execution_time:.2f}s")
+
+            # Print timeout indicator
+            self.console.print(
+                f"[bold yellow]⏱ Subagent Timeout: {self.config.name}[/bold yellow] "
+                f"[dim](exceeded {self.config.timeout}s limit)[/dim]"
+            )
+
             return self.result
 
         except Exception as e:
@@ -220,6 +283,13 @@ class SubAgent:
             )
 
             logger.error(f"Subagent '{self.config.name}' failed: {e}")
+
+            # Print error indicator
+            self.console.print(
+                f"[bold red]✗ Subagent Failed: {self.config.name}[/bold red] "
+                f"[dim]({type(e).__name__}: {str(e)})[/dim]"
+            )
+
             return self.result
 
     def _run_with_timeout(self) -> str:
@@ -259,7 +329,7 @@ class SubAgent:
             model=self.model,
             permission_manager=self.permission_manager,
             executor=self.executor,
-            console=self.parent_agent.console,  # Use parent's console
+            console=self.console,  # Use wrapped console with subagent prefix
             auto_approve_all=False,  # Never auto-approve for subagents
             approval_callback=None,  # Subagents don't use approval callbacks
             check_interrupted=lambda: self.interrupted,

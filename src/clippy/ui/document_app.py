@@ -232,18 +232,42 @@ class DocumentApp(App[None]):
         self.call_from_thread(hide_input)
 
         # Create backdrop and dialog for centered modal display
-        self.current_approval_backdrop = ApprovalBackdrop()
-        self.current_approval_dialog = ApprovalDialog(
-            tool_name, tool_input, diff_content, id="approval-dialog"
-        )
+        try:
+            import logging
 
-        # Mount backdrop with dialog from main thread to avoid event loop issues
-        def mount_modal() -> None:
-            if self.current_approval_backdrop and self.current_approval_dialog:
-                self.mount(self.current_approval_backdrop)
-                self.current_approval_backdrop.mount(self.current_approval_dialog)
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Creating approval dialog for tool: {tool_name}")
 
-        self.call_from_thread(mount_modal)
+            self.current_approval_backdrop = ApprovalBackdrop()
+            self.current_approval_dialog = ApprovalDialog(
+                tool_name, tool_input, diff_content, id="approval-dialog"
+            )
+
+            # Mount backdrop with dialog from main thread to avoid event loop issues
+            def mount_modal() -> None:
+                try:
+                    if self.current_approval_backdrop and self.current_approval_dialog:
+                        logger.debug("Mounting approval dialog")
+                        self.mount(self.current_approval_backdrop)
+                        self.current_approval_backdrop.mount(self.current_approval_dialog)
+                        logger.debug("Approval dialog mounted successfully")
+                except Exception as e:
+                    logger.error(f"Error mounting approval dialog: {e}", exc_info=True)
+                    # Write error to conversation log
+                    conv_log.write(f"\n[red]Error showing approval dialog: {escape(str(e))}[/red]")
+                    # Auto-reject to unblock
+                    self.approval_queue.put("no")
+
+            self.call_from_thread(mount_modal)
+        except Exception as e:
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error creating approval dialog: {e}", exc_info=True)
+            conv_log.write(f"\n[red]Error creating approval dialog: {escape(str(e))}[/red]")
+            # Auto-reject to unblock
+            self.approval_queue.put("no")
+            raise InterruptedExceptionError()
 
         self.waiting_for_approval = True
 

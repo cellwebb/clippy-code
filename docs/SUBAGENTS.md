@@ -17,6 +17,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 ### General Purpose
 
 #### `general`
+
 - **Purpose**: General-purpose tasks with full tool access
 - **Tools**: All standard tools available
 - **Max Iterations**: 25
@@ -24,6 +25,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Use Case**: When you need a generalist assistant with full capabilities
 
 #### `fast_general`
+
 - **Purpose**: Quick tasks requiring fast response
 - **Tools**: Read-only tools (read_file, list_directory, search_files, get_file_info, grep)
 - **Max Iterations**: 10
@@ -31,6 +33,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Use Case**: Simple lookups, file searches, quick information gathering
 
 #### `power_analysis`
+
 - **Purpose**: Deep analysis of complex systems
 - **Tools**: All standard tools available
 - **Max Iterations**: 40
@@ -40,6 +43,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 ### Specialized Tasks
 
 #### `code_review`
+
 - **Purpose**: Code quality analysis and review
 - **Tools**: Read-only (read_file, read_files, grep, search_files, list_directory, get_file_info)
 - **Max Iterations**: 15
@@ -47,6 +51,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Use Case**: Security analysis, code quality checks, best practices review
 
 #### `testing`
+
 - **Purpose**: Test generation and quality assurance
 - **Tools**: Testing-focused (read_file, write_file, execute_command, search_files, grep, list_directory, get_file_info, create_directory)
 - **Max Iterations**: 30
@@ -54,6 +59,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Use Case**: Unit test creation, integration testing, test coverage analysis
 
 #### `refactor`
+
 - **Purpose**: Code improvement and restructuring
 - **Tools**: Refactoring tools (read_file, read_files, write_file, edit_file, search_files, grep, list_directory, get_file_info, create_directory)
 - **Max Iterations**: 30
@@ -61,6 +67,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Use Case**: Code cleanup, performance optimization, design pattern implementation
 
 #### `documentation`
+
 - **Purpose**: Documentation creation and maintenance
 - **Tools**: Documentation tools (read_file, read_files, write_file, search_files, grep, list_directory, get_file_info, create_directory)
 - **Max Iterations**: 20
@@ -115,6 +122,84 @@ Use the `run_parallel_subagents` tool to execute multiple subagents concurrently
     "aggregate_results": True
 }
 ```
+
+## Visual Indicators
+
+Subagent activity is clearly marked with visual indicators to distinguish it from main agent operations:
+
+### Console Output Prefixes
+
+All subagent messages and tool calls are prefixed with `[subagent_type:name]` in cyan:
+
+```
+[code_review:security_check] Reading file: auth.py
+[testing:test_gen] Writing file: test_auth.py
+[general:task_1] Executing command: npm test
+```
+
+### Status Messages
+
+#### Starting
+
+```
+╭─ Starting Subagent: security_check (code_review)
+│ Task: Analyze authentication code for security vulnerabilities
+╰─
+```
+
+#### Completion
+
+```
+✓ Subagent Complete: security_check (2.34s, 12 iterations)
+```
+
+#### Timeout
+
+```
+⏱ Subagent Timeout: slow_task (exceeded 300s limit)
+```
+
+#### Failure
+
+```
+✗ Subagent Failed: analysis_task (RuntimeError: Analysis incomplete)
+```
+
+### Benefits
+
+- **Clear Attribution**: Immediately see which agent (main or subagent) is performing actions
+- **Easy Debugging**: Track subagent execution flow and identify bottlenecks
+- **Status Visibility**: Understand subagent progress and completion status
+- **Type Identification**: Know which specialized subagent type is being used
+
+### Document Mode Compatibility
+
+The visual indicators work seamlessly in document mode (`clippy -d`). The approval dialogs have been enhanced to handle:
+
+- **Rich markup escaping**: Subagent output containing markup tags is safely escaped
+- **Complex tool inputs**: JSON formatting for nested structures (dict/list parameters)
+- **Error recovery**: Comprehensive error handling prevents silent crashes
+
+If document mode encounters issues with subagent approvals, check the logs:
+
+```bash
+# List recent log files (newest first)
+ls -lt ~/.clippy/logs/
+
+# View the most recent log file
+tail -100 ~/.clippy/logs/clippy-*.log | tail -100
+
+# Or view a specific session's log
+tail -100 ~/.clippy/logs/clippy-2025-10-20-143022.log
+```
+
+**Note**: Each clippy session creates a new timestamped log file. The system automatically keeps the 20 most recent log files and removes older ones.
+
+Look for:
+
+- `Error creating approval dialog:` - Issue during dialog initialization
+- `Error mounting approval dialog:` - Issue during rendering
+- Errors are also displayed in the conversation log for visibility
 
 ## Configuration
 
@@ -294,7 +379,7 @@ hints = get_optimization_hints("code_review", "complex")
         },
         {
             "task": "Generate API endpoint tests",
-            "subagent_type": "testing", 
+            "subagent_type": "testing",
             "context": {
                 "module": "api",
                 "test_types": ["endpoint", "authentication"],

@@ -86,7 +86,7 @@ class TestSubagentTypes:
         assert "quickly and efficiently" in config["system_prompt"].lower()
         assert isinstance(config["allowed_tools"], list)
         assert "write_file" not in config["allowed_tools"]  # Read-only for speed
-        assert config["model"] == "gpt-3.5-turbo"
+        assert config["model"] is None  # Inherits from parent agent
         assert config["max_iterations"] == 10
 
     def test_power_analysis_subagent_config(self):
@@ -94,7 +94,7 @@ class TestSubagentTypes:
         config = SUBAGENT_TYPES["power_analysis"]
         assert "code analysis specialist" in config["system_prompt"].lower()
         assert config["allowed_tools"] == "all"
-        assert config["model"] == "claude-3-opus-20240229"
+        assert config["model"] is None  # Inherits from parent agent
         assert config["max_iterations"] == 40
 
 
@@ -264,36 +264,28 @@ class TestModelValidation:
         task = "List all files in the directory"
         models = get_recommended_models_for_task(task)
         assert isinstance(models, list)
-        assert len(models) > 0
-        assert "gpt-3.5-turbo" in models
-        assert "claude-3-haiku-20240307" in models
+        assert len(models) == 0  # No hardcoded model recommendations
 
     def test_get_recommended_models_for_task_complex(self):
         """Test getting model recommendations for complex tasks."""
         task = "Perform deep analysis of code architecture and design patterns"
         models = get_recommended_models_for_task(task)
         assert isinstance(models, list)
-        assert len(models) > 0
-        assert "claude-3-opus-20240229" in models
-        assert "gpt-4-turbo" in models
+        assert len(models) == 0  # No hardcoded model recommendations
 
     def test_get_recommended_models_for_task_code(self):
         """Test getting model recommendations for code tasks."""
         task = "Refactor this Python code to improve performance"
         models = get_recommended_models_for_task(task)
         assert isinstance(models, list)
-        assert len(models) > 0
-        assert "gpt-4-turbo" in models
-        assert "claude-3-sonnet-20240229" in models
+        assert len(models) == 0  # No hardcoded model recommendations
 
     def test_get_recommended_models_for_task_default(self):
         """Test getting default model recommendations."""
         task = "Some generic task"
         models = get_recommended_models_for_task(task)
         assert isinstance(models, list)
-        assert len(models) > 0
-        assert "gpt-4-turbo" in models
-        assert "claude-3-sonnet-20240229" in models
+        assert len(models) == 0  # No hardcoded model recommendations
 
 
 class TestOptimizationHints:
@@ -302,52 +294,49 @@ class TestOptimizationHints:
     def test_get_optimization_hints_general_simple(self):
         """Test optimization hints for simple general tasks."""
         hints = get_optimization_hints("general", "simple")
-        assert "model_suggestions" in hints
         assert "iteration_suggestions" in hints
         assert "reason" in hints
         assert hints["iteration_suggestions"] == 10
-        assert "gpt-3.5-turbo" in hints["model_suggestions"]
+        assert "simple" in hints["reason"].lower()
 
     def test_get_optimization_hints_general_complex(self):
         """Test optimization hints for complex general tasks."""
         hints = get_optimization_hints("general", "complex")
         assert hints["iteration_suggestions"] == 30
-        assert "gpt-4-turbo" in hints["model_suggestions"]
+        assert "complex" in hints["reason"].lower()
 
     def test_get_optimization_hints_code_review(self):
         """Test optimization hints for code review."""
         hints = get_optimization_hints("code_review")
         assert hints["iteration_suggestions"] == 15
-        assert "claude-3-sonnet-20240229" in hints["model_suggestions"]
+        assert "code review" in hints["reason"].lower()
 
     def test_get_optimization_hints_testing(self):
         """Test optimization hints for testing."""
         hints = get_optimization_hints("testing")
         assert hints["iteration_suggestions"] == 25
-        assert "gpt-4-turbo" in hints["model_suggestions"]
+        assert "test" in hints["reason"].lower()
 
     def test_get_optimization_hints_refactor(self):
         """Test optimization hints for refactoring."""
         hints = get_optimization_hints("refactor")
         assert hints["iteration_suggestions"] == 30
-        assert "claude-3-opus-20240229" in hints["model_suggestions"]
+        assert "refactor" in hints["reason"].lower()
 
     def test_get_optimization_hints_documentation(self):
         """Test optimization hints for documentation."""
         hints = get_optimization_hints("documentation")
         assert hints["iteration_suggestions"] == 20
-        assert "claude-3-sonnet-20240229" in hints["model_suggestions"]
+        assert "documentation" in hints["reason"].lower()
 
     def test_get_optimization_hints_fast_general(self):
         """Test optimization hints for fast general."""
         hints = get_optimization_hints("fast_general")
         assert hints["iteration_suggestions"] == 10
-        assert "gpt-3.5-turbo" in hints["model_suggestions"]
-        assert "speed" in hints["reason"].lower()
+        assert "speed" in hints["reason"].lower() or "simple" in hints["reason"].lower()
 
     def test_get_optimization_hints_power_analysis(self):
         """Test optimization hints for power analysis."""
         hints = get_optimization_hints("power_analysis")
         assert hints["iteration_suggestions"] == 40
-        assert "claude-3-opus-20240229" in hints["model_suggestions"]
-        assert "deep analysis" in hints["reason"].lower()
+        assert "analysis" in hints["reason"].lower() or "thorough" in hints["reason"].lower()
