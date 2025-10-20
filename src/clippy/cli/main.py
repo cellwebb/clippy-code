@@ -10,12 +10,37 @@ from ..agent import ClippyAgent
 from ..executor import ActionExecutor
 from ..mcp.config import load_config
 from ..mcp.manager import Manager
-from ..models import get_default_model_config
+from ..models import get_default_model_config, get_model_config
 from ..permissions import PermissionConfig, PermissionManager
 from .oneshot import run_one_shot
 from .parser import create_parser
 from .repl import run_interactive
 from .setup import load_env, setup_logging
+
+
+def resolve_model(
+    model_input: str | None,
+) -> tuple[str | None, str | None, str | None]:
+    """Resolve a model input to (model_id, base_url, api_key_env).
+
+    Args:
+        model_input: User model name, raw model ID, or None for default
+
+    Returns:
+        Tuple of (model_id, base_url, api_key_env)
+        Returns (None, None, None) if model_input is None
+    """
+    if model_input is None:
+        return None, None, None
+
+    # Try to look up as a user model name first
+    user_model, provider = get_model_config(model_input)
+    if user_model and provider:
+        return user_model.model_id, provider.base_url, provider.api_key_env
+
+    # If not found in user models, treat as a raw model ID
+    # In this case, we need to use the default provider settings
+    return model_input, None, None
 
 
 def main() -> None:
@@ -46,12 +71,28 @@ def main() -> None:
         console.print("This should never happen - GPT-5 should be set as default.")
         sys.exit(1)
 
-    # Use command line args if provided, otherwise use defaults
-    model = args.model if args.model else default_model.model_id
-    base_url = args.base_url if args.base_url else default_provider.base_url
+    # Resolve model input (handles user model names and raw model IDs)
+    resolved_model, resolved_base_url, resolved_api_key_env = resolve_model(args.model)
+
+    # Use resolved values if available, otherwise use defaults
+    if resolved_model:
+        # User specified a model (either name or raw ID)
+        model = resolved_model
+        # Use resolved base_url if available, otherwise check for --base-url, otherwise use default
+        base_url = (
+            resolved_base_url
+            if resolved_base_url
+            else (args.base_url if args.base_url else default_provider.base_url)
+        )
+        # Use resolved api_key_env if available, otherwise use default
+        api_key_env = resolved_api_key_env if resolved_api_key_env else default_provider.api_key_env
+    else:
+        # No model specified, use defaults
+        model = default_model.model_id
+        base_url = args.base_url if args.base_url else default_provider.base_url
+        api_key_env = default_provider.api_key_env
 
     # Get API key from environment
-    api_key_env = default_provider.api_key_env
     api_key = os.getenv(api_key_env)
 
     if not api_key:
@@ -65,7 +106,6 @@ def main() -> None:
             f"Example .env file:\n"
             f"  {api_key_env}=your_api_key_here\n"
             "  OPENAI_BASE_URL=https://api.cerebras.ai/v1  # Optional, for alternate providers\n"
-            "  CLIPPY_MODEL=gpt-5  # Optional, override default model"
         )
         sys.exit(1)
 

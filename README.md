@@ -265,8 +265,7 @@ src/clippy/
 ### Environment Variables
 
 - Provider-specific API keys: `OPENAI_API_KEY`, `CEREBRAS_API_KEY`, `GROQ_API_KEY`, etc.
-- `CLIPPY_MODEL` - Optional model override (use `/model` commands instead)
-- `OPENAI_BASE_URL` - Optional base URL override (use `/model` commands instead)
+- `OPENAI_BASE_URL` - Optional base URL override
 
 ### Provider-Based Model System
 
@@ -380,7 +379,7 @@ For detailed information about MCP integration, see [MCP_DOCUMENTATION.md](docs/
 
 clippy-code can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
 
-To use MCP servers, create an `mcp.json` configuration file in your home directory (`~/.clippy/mcp.json`), project directory, or specify via `CLIPPY_MCP_CONFIG` environment variable:
+To use MCP servers, create an `mcp.json` configuration file in your home directory (`~/.clippy/mcp.json`) or project directory (`.clippy/mcp.json`):
 
 ```json
 {

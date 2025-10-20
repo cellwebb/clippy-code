@@ -30,7 +30,6 @@ To use MCP servers, create an `mcp.json` configuration file. The configuration c
 
 1. `$HOME/.clippy/mcp.json` (user-level configuration - highest priority)
 2. `$PWD/.clippy/mcp.json` (project-level configuration)
-3. Path specified by `CLIPPY_MCP_CONFIG` environment variable
 
 The configuration file uses JSON format with the following structure:
 
