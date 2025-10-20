@@ -138,7 +138,7 @@ def _split_pattern_lines(pattern: str) -> list[str]:
 
 def _find_matching_lines(lines: list[str], pattern: str, match_pattern_line: bool) -> list[int]:
     """Find all lines matching the pattern."""
-    matching_indices = []
+    matching_indices: list[int] = []
 
     # Check if pattern contains newlines (multi-line pattern)
     is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
