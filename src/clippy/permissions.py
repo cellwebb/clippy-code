@@ -29,6 +29,7 @@ class ActionType(str, Enum):
     GET_FILE_INFO = "get_file_info"
     GREP = "grep"
     EDIT_FILE = "edit_file"
+    DELEGATE_TO_SUBAGENT = "delegate_to_subagent"
 
     # MCP Action Types
     MCP_LIST_TOOLS = "mcp_list_tools"
@@ -53,6 +54,7 @@ class PermissionConfig(BaseModel):
         ActionType.CREATE_DIR,
         ActionType.EXECUTE_COMMAND,
         ActionType.EDIT_FILE,
+        ActionType.DELEGATE_TO_SUBAGENT,  # Require approval for subagent delegation
         ActionType.MCP_TOOL_CALL,  # Require approval for MCP tool calls by default
         ActionType.MCP_CONNECT,  # Require approval for MCP server connections
     }

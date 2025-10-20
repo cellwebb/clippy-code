@@ -2,11 +2,12 @@
 
 ## Overview
 
-This document outlines the plan for implementing a subagent system in CLIppy. Subagents are specialized agent instances that can be spawned by the main agent to handle specific subtasks, enabling more complex, modular, and efficient task execution.
+This document outlines the plan for implementing a subagent system in clippy-code. Subagents are specialized agent instances that can be spawned by the main agent to handle specific subtasks, enabling more complex, modular, and efficient task execution.
 
 ## Motivation
 
 ### Current Limitations
+
 1. **Monolithic execution**: Single agent handles all tasks sequentially within a 50-iteration loop
 2. **No parallelization**: Can't run multiple independent tasks concurrently
 3. **Context pollution**: All tasks share the same conversation history
@@ -14,6 +15,7 @@ This document outlines the plan for implementing a subagent system in CLIppy. Su
 5. **Difficult debugging**: Hard to isolate specific subtask failures
 
 ### Benefits of Subagents
+
 1. **Task delegation**: Main agent can delegate complex subtasks to specialized subagents
 2. **Parallel execution**: Multiple subagents can work on independent tasks concurrently
 3. **Context isolation**: Each subagent has its own conversation history
@@ -27,6 +29,7 @@ This document outlines the plan for implementing a subagent system in CLIppy. Su
 ### Core Components
 
 #### 1. SubAgent Class (`src/clippy/agent/subagent.py`)
+
 ```python
 class SubAgent:
     """
@@ -44,12 +47,14 @@ class SubAgent:
 ```
 
 Key methods:
+
 - `run(task: str) -> SubAgentResult`: Execute the subagent's task
 - `get_status() -> SubAgentStatus`: Get current execution status
 - `interrupt()`: Interrupt the subagent's execution
 - `get_result() -> SubAgentResult`: Get the final result
 
 #### 2. SubAgentManager (`src/clippy/agent/subagent_manager.py`)
+
 ```python
 class SubAgentManager:
     """
@@ -65,6 +70,7 @@ class SubAgentManager:
 ```
 
 Key methods:
+
 - `create_subagent(config: SubAgentConfig) -> SubAgent`
 - `run_sequential(subagents: list[SubAgent]) -> list[SubAgentResult]`
 - `run_parallel(subagents: list[SubAgent], max_concurrent: int) -> list[SubAgentResult]`
@@ -72,6 +78,7 @@ Key methods:
 - `terminate_all()`
 
 #### 3. SubAgent Tool (`src/clippy/tools/delegate_to_subagent.py`)
+
 ```python
 TOOL_SCHEMA = {
     "type": "function",
@@ -116,6 +123,7 @@ TOOL_SCHEMA = {
 ```
 
 #### 4. Subagent Types & Configurations
+
 Define specialized subagent types in `src/clippy/agent/subagent_types.py`:
 
 ```python
@@ -229,6 +237,7 @@ class SubAgentResult:
 ### Phase 1: Core Subagent Infrastructure (Week 1)
 
 #### Step 1.1: Create SubAgent Class
+
 - File: `src/clippy/agent/subagent.py`
 - Implement basic SubAgent class extending or wrapping ClippyAgent
 - Add isolated conversation history
@@ -237,6 +246,7 @@ class SubAgentResult:
 - Add iteration tracking and limits
 
 #### Step 1.2: Create SubAgentManager
+
 - File: `src/clippy/agent/subagent_manager.py`
 - Implement subagent lifecycle management
 - Add sequential execution support
@@ -244,12 +254,14 @@ class SubAgentResult:
 - Add result aggregation
 
 #### Step 1.3: Define Subagent Types
+
 - File: `src/clippy/agent/subagent_types.py`
 - Define SUBAGENT_TYPES configuration
 - Add configuration validation
 - Add helper functions for loading configs
 
 #### Step 1.4: Update Core Agent
+
 - Modify `src/clippy/agent/core.py` to integrate SubAgentManager
 - Add `self.subagent_manager` to ClippyAgent
 - Pass necessary dependencies to manager
@@ -257,18 +269,21 @@ class SubAgentResult:
 ### Phase 2: Tool Integration (Week 2)
 
 #### Step 2.1: Create delegate_to_subagent Tool
+
 - File: `src/clippy/tools/delegate_to_subagent.py`
 - Implement tool schema (TOOL_SCHEMA)
 - Implement execution logic
 - Add to tool catalog in `src/clippy/tools/__init__.py`
 
 #### Step 2.2: Add to Executor
+
 - Update `src/clippy/executor.py`
 - Add `ActionType.DELEGATE_TO_SUBAGENT` enum
 - Implement `execute_delegate_to_subagent()` method
 - Add to action_map
 
 #### Step 2.3: Permission Configuration
+
 - Update `src/clippy/permissions.py`
 - Add `DELEGATE_TO_SUBAGENT` to permission config
 - Default: REQUIRE_APPROVAL (user should approve subagent creation)
@@ -277,18 +292,21 @@ class SubAgentResult:
 ### Phase 3: Parallel Execution (Week 3)
 
 #### Step 3.1: Add Async Support
+
 - Update SubAgentManager with async/await support
 - Implement `run_parallel()` method using asyncio
 - Add max_concurrent_subagents limit
 - Add resource pooling for API calls
 
 #### Step 3.2: Add run_parallel_subagents Tool
+
 - File: `src/clippy/tools/run_parallel_subagents.py`
 - Schema for running multiple subagents in parallel
 - Coordinate execution through SubAgentManager
 - Return aggregated results
 
 #### Step 3.3: Status Monitoring
+
 - Add subagent status tracking
 - Implement progress reporting
 - Add `/subagents` command to CLI for viewing active subagents
@@ -297,21 +315,25 @@ class SubAgentResult:
 ### Phase 4: Advanced Features (Week 4)
 
 #### Step 4.1: Context Sharing
+
 - Add mechanism for subagents to access parent context (read-only)
 - Implement context filtering (what info to share)
 - Add context summarization for large parent histories
 
 #### Step 4.2: Result Caching
+
 - Cache subagent results for similar tasks
 - Implement cache invalidation logic
 - Add `/subagent cache clear` command
 
 #### Step 4.3: Subagent Chaining
+
 - Allow subagents to spawn their own subagents (with depth limit)
 - Implement hierarchical result aggregation
 - Add visualization of subagent tree
 
 #### Step 4.4: Model Selection per Subagent
+
 - Allow different models for different subagent types
 - Add to SUBAGENT_TYPES config
 - E.g., fast model for simple tasks, powerful model for complex ones
@@ -319,24 +341,28 @@ class SubAgentResult:
 ### Phase 5: Testing & Documentation (Week 5)
 
 #### Step 5.1: Unit Tests
+
 - `tests/agent/test_subagent.py` - Test SubAgent class
 - `tests/agent/test_subagent_manager.py` - Test manager
 - `tests/tools/test_delegate_to_subagent.py` - Test tool
 - Mock LLM calls, test isolation and result handling
 
 #### Step 5.2: Integration Tests
+
 - `tests/integration/test_subagent_workflow.py`
 - Test end-to-end subagent delegation
 - Test parallel execution
 - Test error scenarios
 
 #### Step 5.3: Documentation
+
 - Update CLAUDE.md with subagent architecture
 - Update AGENTS.md with usage examples
 - Create SUBAGENTS.md with detailed guide
 - Add examples to README.md
 
 #### Step 5.4: Examples
+
 - Create `examples/subagent_code_review.py`
 - Create `examples/subagent_parallel_testing.py`
 - Create `examples/subagent_refactoring.py`
@@ -447,10 +473,12 @@ CLIPPY_MAX_SUBAGENT_DEPTH=3
 ### Permission Levels for Subagents
 
 1. **AUTO_APPROVE**:
+
    - Read-only subagent types (e.g., code_review with only read tools)
    - Documentation subagents reading existing files
 
 2. **REQUIRE_APPROVAL**:
+
    - Subagents that can write/modify files (testing, refactor)
    - Subagents that can execute commands
    - Subagents running in parallel (batch approval)
@@ -478,15 +506,18 @@ CLIPPY_MAX_SUBAGENT_DEPTH=3
 ### Subagent Failure Scenarios
 
 1. **Timeout**: Subagent exceeds time limit
+
    - Main agent receives timeout error
    - Partial results returned if available
    - Main agent can retry or adjust approach
 
 2. **Iteration Limit**: Subagent reaches max iterations
+
    - Return partial results with warning
    - Main agent can continue or spawn new subagent
 
 3. **Tool Permission Denied**: Subagent tries unauthorized tool
+
    - Subagent execution stops
    - Error reported to main agent
    - Main agent can grant permission or adjust task
@@ -518,18 +549,21 @@ SubAgentResult(
 ## Testing Strategy
 
 ### Unit Tests
+
 - Test SubAgent in isolation with mocked LLM
 - Test SubAgentManager lifecycle operations
 - Test tool schema and execution
 - Test permission checks
 
 ### Integration Tests
+
 - Test end-to-end subagent delegation
 - Test parallel execution with multiple subagents
 - Test error handling and recovery
 - Test conversation history isolation
 
 ### Performance Tests
+
 - Measure overhead of subagent creation
 - Test parallel execution efficiency
 - Benchmark token usage with/without subagents
@@ -556,12 +590,12 @@ SubAgentResult(
 
 ## Risks & Mitigations
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
+| Risk                 | Impact | Mitigation                                 |
+| -------------------- | ------ | ------------------------------------------ |
 | Increased complexity | Medium | Keep API simple, good docs, clear examples |
-| Token cost explosion | High | Strict limits, monitoring, user approval |
-| Debugging difficulty | Medium | Detailed logging, visualization tools |
-| Performance overhead | Low | Async execution, resource pooling |
+| Token cost explosion | High   | Strict limits, monitoring, user approval   |
+| Debugging difficulty | Medium | Detailed logging, visualization tools      |
+| Performance overhead | Low    | Async execution, resource pooling          |
 | Permission confusion | Medium | Clear UX, sensible defaults, documentation |
 
 ## Success Metrics
