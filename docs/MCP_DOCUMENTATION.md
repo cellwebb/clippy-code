@@ -59,6 +59,8 @@ The configuration file uses JSON format with the following structure:
 - `cwd`: Optional working directory for the server process
 - `timeout_s`: Optional timeout in seconds for server operations (default: 30)
 
+**Note**: Stderr output from MCP servers is automatically redirected to clippy's debug logs to keep your terminal clean. This means progress indicators and debug messages won't clutter your terminal, but they're still available in the logs if needed for debugging.
+
 ### Environment Variable Substitution
 
 You can use environment variable substitution in your MCP configuration using the syntax `${VAR_NAME}`:
@@ -199,4 +201,4 @@ If MCP tools fail to execute:
 1. Ensure the server process is running correctly
 2. Check for network or permission issues
 3. Verify API keys and authentication
-4. Review server logs for detailed error information
+4. Check clippy's debug logs (`~/.clippy/logs/`) for stderr output from the MCP server - all MCP server stderr is automatically logged there
