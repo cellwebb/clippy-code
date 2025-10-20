@@ -1,5 +1,6 @@
 """Tests for the SubAgentManager class."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -501,3 +502,188 @@ class TestSubAgentManager:
         assert results[0].success is True
         assert results[1].success is False
         assert "Test error" in results[1].error
+
+    @pytest.mark.asyncio
+    async def test_run_parallel_async_success(self, manager):
+        """Async execution should run subagents and track completion."""
+        subagents = []
+        expected_results = []
+        for i in range(2):
+            subagent = MagicMock(spec=SubAgent)
+            subagent.config = SubAgentConfig(
+                name=f"async_{i}", task=f"Async Task {i}", subagent_type="general"
+            )
+            result = SubAgentResult(
+                success=True,
+                output=f"Async result {i}",
+                error=None,
+                iterations_used=i + 1,
+                execution_time=0.2,
+            )
+            subagent.run.return_value = result
+            subagents.append(subagent)
+            expected_results.append(result)
+            manager.active_subagents[subagent.config.name] = subagent
+
+        results = await manager.run_parallel_async(subagents, max_concurrent=2)
+
+        assert results == expected_results
+        assert len(manager.completed_subagents) == 2
+        assert manager.active_subagents == {}
+
+    @pytest.mark.asyncio
+    async def test_run_parallel_async_exception(self, manager):
+        """Async execution should convert exceptions to error results."""
+        success_agent = MagicMock(spec=SubAgent)
+        success_agent.config = SubAgentConfig(
+            name="async_success", task="Task", subagent_type="general"
+        )
+        success_agent.run.return_value = SubAgentResult(
+            success=True,
+            output="ok",
+            error=None,
+            iterations_used=1,
+            execution_time=0.1,
+        )
+
+        failing_agent = MagicMock(spec=SubAgent)
+        failing_agent.config = SubAgentConfig(
+            name="async_failure", task="Task", subagent_type="general"
+        )
+        failing_agent.run.side_effect = Exception("boom")
+
+        manager.active_subagents.update(
+            {
+                success_agent.config.name: success_agent,
+                failing_agent.config.name: failing_agent,
+            }
+        )
+
+        results = await manager.run_parallel_async([success_agent, failing_agent], max_concurrent=2)
+
+        assert results[0].success is True
+        assert results[1].success is False
+        assert "Async subagent execution failed: boom" in results[1].error
+        assert manager.active_subagents == {}
+        assert len(manager.completed_subagents) == 2
+
+    def test_cache_operations(
+        self,
+        mock_parent_agent,
+        mock_permission_manager,
+        mock_executor,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Ensure cache helpers delegate to the cache implementation."""
+
+        class FakeCache:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, tuple[Any, ...]]] = []
+                self.enabled = True
+                self.cleared = False
+
+            def get(self, task, subagent_type, context):
+                self.calls.append(("get", (task, subagent_type, context)))
+                return {"cached": True}
+
+            def put(self, task, subagent_type, data, context):
+                self.calls.append(("put", (task, subagent_type, context, data)))
+
+            def get_statistics(self):
+                return {"enabled": self.enabled, "calls": len(self.calls)}
+
+            def clear(self):
+                self.cleared = True
+
+            def enable(self):
+                self.enabled = True
+
+            def disable(self):
+                self.enabled = False
+
+        first_cache = FakeCache()
+        second_cache = FakeCache()
+
+        from clippy.agent import subagent_cache as cache_module
+
+        cache_iter = iter([first_cache, second_cache])
+
+        monkeypatch.setattr(cache_module, "get_global_cache", lambda: next(cache_iter))
+
+        manager = SubAgentManager(
+            parent_agent=mock_parent_agent,
+            permission_manager=mock_permission_manager,
+            executor=mock_executor,
+            max_concurrent=2,
+            enable_cache=True,
+            enable_chaining=False,
+        )
+
+        cached = manager.check_cache("task", "general", {"k": "v"})
+        assert cached == {"cached": True}
+
+        manager.store_cache("task", "general", {"result": "data"}, {"k": "v"})
+        stats = manager.get_cache_statistics()
+        assert stats["enabled"] is True
+        assert first_cache.cleared is False
+
+        manager.clear_cache()
+        assert first_cache.cleared is True
+
+        manager.disable_cache()
+        assert manager.cache_enabled is False
+        assert first_cache.enabled is False
+
+        manager._cache = None
+        manager.enable_cache()
+        assert manager.cache_enabled is True
+        assert manager._cache is second_cache
+        assert second_cache.enabled is True
+
+    def test_chain_helpers(
+        self,
+        mock_parent_agent,
+        mock_permission_manager,
+        mock_executor,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Verify chain-related helpers delegate to the chainer."""
+
+        class FakeChainer:
+            def __init__(self) -> None:
+                self.interrupted: list[str] = []
+                self._active_chains = {"alpha": "node-alpha"}
+
+            def get_chain_statistics(self):
+                return {"enabled": True, "depth": 1}
+
+            def get_active_chains(self):
+                return {"alpha": {"depth": 0}}
+
+            def interrupt_chain(self, name: str) -> bool:
+                self.interrupted.append(name)
+                return True
+
+            def visualize_chain(self, node) -> str:
+                return f"visual {node}"
+
+        fake_chainer = FakeChainer()
+        from clippy.agent import subagent_chainer as chainer_module
+
+        monkeypatch.setattr(chainer_module, "get_global_chainer", lambda: fake_chainer)
+
+        manager = SubAgentManager(
+            parent_agent=mock_parent_agent,
+            permission_manager=mock_permission_manager,
+            executor=mock_executor,
+            max_concurrent=2,
+            enable_cache=False,
+            enable_chaining=True,
+        )
+
+        assert manager.get_chain_statistics() == {"enabled": True, "depth": 1}
+        assert manager.get_active_chains() == {"alpha": {"depth": 0}}
+        assert manager.interrupt_chain("alpha") is True
+        assert fake_chainer.interrupted == ["alpha"]
+        assert manager.visualize_chain("alpha") == "visual node-alpha"
+        assert manager.visualize_chain("missing").startswith("No active chain")

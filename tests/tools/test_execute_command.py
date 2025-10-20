@@ -38,9 +38,7 @@ def test_execute_command(executor: ActionExecutor) -> None:
     assert "Hello from command" in content
 
 
-def test_execute_command_failure(
-    executor: ActionExecutor, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_execute_command_failure(executor: ActionExecutor, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test execute_command handles non-zero return codes."""
 
     class FakeResult:
@@ -74,9 +72,7 @@ def test_execute_command_directory_traversal(executor: ActionExecutor) -> None:
     assert content is None
 
 
-def test_execute_command_timeout(
-    executor: ActionExecutor, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_execute_command_timeout(executor: ActionExecutor, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test execute_command handles subprocess timeouts."""
 
     def raise_timeout(*_args: object, **_kwargs: object) -> None:

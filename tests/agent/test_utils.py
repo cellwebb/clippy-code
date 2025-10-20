@@ -178,3 +178,26 @@ def test_generate_mcp_diff_summary_existing_file(tmp_path: Path) -> None:
     assert "Existing file: 4 characters" in summary
     assert "Operation: Write/Update content" in summary
     assert "Tool: mcp__update" in summary
+
+
+def test_generate_preview_diff_returns_empty_for_no_changes(tmp_file: Path) -> None:
+    unchanged = tmp_file.read_text(encoding="utf-8")
+
+    diff = utils.generate_preview_diff("write_file", {"path": str(tmp_file), "content": unchanged})
+
+    assert diff == ""
+
+
+def test_generate_preview_diff_handles_diff_exception(
+    tmp_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _boom(*args, **kwargs):
+        raise RuntimeError("diff failure")
+
+    monkeypatch.setattr("clippy.agent.utils.generate_diff", _boom)
+
+    diff = utils.generate_preview_diff(
+        "write_file", {"path": str(tmp_file), "content": "alternate\n"}
+    )
+
+    assert diff is None

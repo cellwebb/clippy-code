@@ -67,3 +67,48 @@ def test_write_file_action_requires_approval() -> None:
     # The WRITE_FILE action should require approval
     assert ActionType.WRITE_FILE in config.require_approval
     assert config.can_auto_execute(ActionType.WRITE_FILE) is False
+
+
+def test_write_file_creates_parent_directories(executor: ActionExecutor, temp_dir: str) -> None:
+    """Ensure the tool creates missing parent directories."""
+    nested_file = Path(temp_dir) / "nested" / "dir" / "output.txt"
+
+    success, message, _ = executor.execute(
+        "write_file", {"path": str(nested_file), "content": "hello"}
+    )
+
+    assert success is True
+    assert nested_file.exists()
+    assert nested_file.read_text() == "hello"
+    assert "Successfully wrote" in message
+
+
+def test_write_file_python_syntax_error(executor: ActionExecutor, temp_dir: str) -> None:
+    """Python syntax errors should be surfaced instead of writing invalid code."""
+    bad_file = Path(temp_dir) / "broken.py"
+
+    success, message, _ = executor.execute(
+        "write_file", {"path": str(bad_file), "content": "def broken("}
+    )
+
+    assert success is False
+    assert "Syntax error" in message
+    assert bad_file.exists() is False
+
+
+def test_write_file_handles_os_error(
+    executor: ActionExecutor, temp_dir: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unexpected OS errors should be reported to the caller."""
+    target = Path(temp_dir) / "fail.txt"
+
+    def _boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("builtins.open", _boom)
+
+    success, message, _ = executor.execute("write_file", {"path": str(target), "content": "data"})
+
+    assert success is False
+    assert "OS error when writing" in message
+    assert target.exists() is False
