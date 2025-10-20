@@ -105,6 +105,29 @@ def test_edit_file_replace_multiline_pattern_three_lines(
     assert test_file.read_text() == expected
 
 
+def test_edit_file_replace_multiline_pattern_trailing_newline(
+    executor: ActionExecutor, temp_dir: str
+) -> None:
+    """Test replacing a multi-line pattern that ends with a trailing newline."""
+    test_file = Path(temp_dir) / "test.py"
+    test_file.write_text("alpha\nbeta\nomega\n")
+
+    success, message, content = executor.execute(
+        "edit_file",
+        {
+            "path": str(test_file),
+            "operation": "replace",
+            "pattern": "alpha\nbeta\n",
+            "content": "gamma\n",
+            "match_pattern_line": True,
+        },
+    )
+
+    assert success is True
+    assert "Successfully performed replace operation" in message
+    assert test_file.read_text() == "gamma\nomega\n"
+
+
 def test_edit_file_delete_multiline_pattern(executor: ActionExecutor, temp_dir: str) -> None:
     """Test deleting a multi-line pattern."""
     # Create a test file with a multi-line pattern to delete

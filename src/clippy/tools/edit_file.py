@@ -127,6 +127,15 @@ def _normalize_content(content: str, eol: str) -> str:
     return normalized
 
 
+def _split_pattern_lines(pattern: str) -> list[str]:
+    """Split a multi-line pattern while preserving intentional blank lines."""
+    normalized_pattern = pattern.replace("\r\n", "\n")
+    lines = normalized_pattern.splitlines()
+    if normalized_pattern.endswith("\n") and not lines:
+        return [""]
+    return lines
+
+
 def _find_matching_lines(lines: list[str], pattern: str, match_pattern_line: bool) -> list[int]:
     """Find all lines matching the pattern."""
     matching_indices = []
@@ -136,8 +145,9 @@ def _find_matching_lines(lines: list[str], pattern: str, match_pattern_line: boo
 
     if is_multiline_pattern and match_pattern_line:
         # For multi-line patterns with exact matching, we need to match across multiple lines
-        normalized_pattern = pattern.replace("\r\n", "\n")
-        pattern_lines = normalized_pattern.split("\n")
+        pattern_lines = _split_pattern_lines(pattern)
+        if not pattern_lines:
+            return matching_indices
 
         # Try to find the pattern starting at each line
         for i in range(len(lines) - len(pattern_lines) + 1):
@@ -390,8 +400,9 @@ def apply_edit_operation(
                 # For multi-line patterns, we need to replace multiple lines
                 is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
                 if is_multiline_pattern:
-                    normalized_pattern = pattern.replace("\r\n", "\n")
-                    pattern_lines = normalized_pattern.split("\n")
+                    pattern_lines = _split_pattern_lines(pattern)
+                    if not pattern_lines:
+                        return False, "Pattern is empty for multi-line replace", None
 
                     # Remove the old lines
                     for _ in range(len(pattern_lines)):
@@ -431,8 +442,9 @@ def apply_edit_operation(
             is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
             if is_multiline_pattern and match_pattern_line:
                 # Delete in reverse order, but account for multi-line patterns
-                normalized_pattern = pattern.replace("\r\n", "\n")
-                pattern_lines = normalized_pattern.split("\n")
+                pattern_lines = _split_pattern_lines(pattern)
+                if not pattern_lines:
+                    return False, "Pattern is empty for multi-line delete", None
 
                 for start_idx in reversed(matching_indices):
                     for _ in range(len(pattern_lines)):
