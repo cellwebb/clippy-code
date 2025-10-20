@@ -1,12 +1,16 @@
 """Tests for the execute_command tool."""
 
+import subprocess
 import tempfile
 from collections.abc import Generator
+from importlib import import_module
 
 import pytest
 
 from clippy.executor import ActionExecutor
 from clippy.permissions import ActionType, PermissionConfig, PermissionManager
+
+EXECUTE_COMMAND_MODULE = import_module("clippy.tools.execute_command")
 
 
 @pytest.fixture
@@ -32,6 +36,61 @@ def test_execute_command(executor: ActionExecutor) -> None:
 
     assert success is True
     assert "Hello from command" in content
+
+
+def test_execute_command_failure(
+    executor: ActionExecutor, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test execute_command handles non-zero return codes."""
+
+    class FakeResult:
+        def __init__(self) -> None:
+            self.returncode = 5
+            self.stdout = "out"
+            self.stderr = "err"
+
+    def fake_run(*_args: object, **_kwargs: object) -> FakeResult:
+        return FakeResult()
+
+    monkeypatch.setattr(EXECUTE_COMMAND_MODULE.subprocess, "run", fake_run)
+
+    success, message, content = executor.execute(
+        "execute_command", {"command": "false", "working_dir": "."}
+    )
+
+    assert success is False
+    assert "return code 5" in message
+    assert content == "outerr"
+
+
+def test_execute_command_directory_traversal(executor: ActionExecutor) -> None:
+    """Test execute_command rejects working directories with traversal attempts."""
+    success, message, content = executor.execute(
+        "execute_command", {"command": "echo test", "working_dir": "../outside"}
+    )
+
+    assert success is False
+    assert "Directory traversal not allowed" in message
+    assert content is None
+
+
+def test_execute_command_timeout(
+    executor: ActionExecutor, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test execute_command handles subprocess timeouts."""
+
+    def raise_timeout(*_args: object, **_kwargs: object) -> None:
+        raise subprocess.TimeoutExpired(cmd="sleep 40", timeout=30)
+
+    monkeypatch.setattr(EXECUTE_COMMAND_MODULE.subprocess, "run", raise_timeout)
+
+    success, message, content = executor.execute(
+        "execute_command", {"command": "sleep 40", "working_dir": "."}
+    )
+
+    assert success is False
+    assert "timed out" in message
+    assert content is None
 
 
 def test_execute_command_action_requires_approval() -> None:
