@@ -616,10 +616,8 @@ def _handle_mcp_refresh(mcp_manager: Any, console: Console) -> None:
     """Handle /mcp refresh command."""
     console.print("[cyan]Refreshing MCP server connections...[/cyan]")
     try:
-        import asyncio
-
-        asyncio.run(mcp_manager.stop())
-        asyncio.run(mcp_manager.start())
+        mcp_manager.stop()
+        mcp_manager.start()
         console.print("[green]✓ MCP servers refreshed[/green]")
     except Exception as e:
         console.print(f"[red]✗ Error refreshing MCP servers: {escape(str(e))}[/red]")
