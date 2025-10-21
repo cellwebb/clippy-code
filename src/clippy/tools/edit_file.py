@@ -224,11 +224,10 @@ def _find_matching_lines(lines: list[str], pattern: str) -> tuple[list[int], boo
 
                 chars_seen += len(line)
 
-            # Add all spanned lines to matching_indices
+            # Add only the start line to matching_indices
+            # (This counts matches, not individual lines in the match)
             if start_line is not None and end_line is not None:
-                for line_idx in range(start_line, end_line + 1):
-                    if line_idx not in matching_indices:
-                        matching_indices.append(line_idx)
+                matching_indices.append(start_line)
 
             # Skip past the entire pattern to avoid overlapping matches
             start = idx + len(pattern_normalized)
@@ -419,9 +418,43 @@ def apply_edit_operation(
             if not matching_indices:
                 return False, f"Pattern '{pattern}' not found in file", None
 
-            # Delete in reverse order to avoid index shifting
-            for i in reversed(matching_indices):
-                lines.pop(i)
+            # Handle multi-line patterns with string replacement
+            if "\n" in pattern:
+                # Multi-line pattern - use string replacement to delete entire pattern
+                full_content = "".join(lines)
+                pattern_normalized = pattern.replace("\r\n", "\n")
+
+                # If pattern doesn't end with newline, also delete the trailing newline
+                # This prevents leaving blank lines behind
+                delete_pattern = pattern_normalized
+                if not delete_pattern.endswith("\n"):
+                    delete_pattern += "\n"
+
+                # Delete all occurrences
+                new_full_content = full_content.replace(delete_pattern, "")
+
+                # Re-split into lines, preserving EOL style
+                new_lines = new_full_content.splitlines(keepends=True)
+
+                # Ensure trailing EOL is preserved if original had one
+                if lines and lines[-1].endswith(eol):
+                    if new_lines and not new_lines[-1].endswith(eol):
+                        new_lines[-1] += eol
+
+                lines.clear()
+                lines.extend(new_lines)
+            elif fuzzy_used:
+                # Fuzzy match returns window of lines to delete
+                start_idx = matching_indices[0]
+                end_idx = matching_indices[-1] + 1
+                # Delete all lines in the window
+                for _ in range(start_idx, end_idx):
+                    lines.pop(start_idx)
+            else:
+                # Single-line pattern - delete matching lines
+                # Delete in reverse order to avoid index shifting
+                for i in reversed(matching_indices):
+                    lines.pop(i)
 
         elif operation == "append":
             normalized_content = _normalize_content(content, eol)

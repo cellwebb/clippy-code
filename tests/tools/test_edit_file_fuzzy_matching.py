@@ -73,8 +73,10 @@ def test_fuzzy_match_with_missing_whitespace(executor: ActionExecutor, sample_fi
         {
             "path": str(sample_file),
             "operation": "replace",
-            "pattern": "def calculate_total(items):\n\"\"\"Calculate the total price ofitems.\"\"\"",  # Missing space before "items"
-            "content": "def calculate_total(items):\n    \"\"\"Calculate sum of item prices.\"\"\"",
+            "pattern": (
+                'def calculate_total(items):\n"""Calculate the total price ofitems."""'
+            ),  # Missing space before "items"
+            "content": 'def calculate_total(items):\n    """Calculate sum of item prices."""',
         },
     )
 
@@ -120,8 +122,10 @@ def test_fuzzy_match_with_minor_typo(executor: ActionExecutor, sample_file: Path
         {
             "path": str(sample_file),
             "operation": "replace",
-            "pattern": "def calculate_total(items):\n    \"\"\"Calculate the total priCe of items.\"\"\"",
-            "content": "def calculate_total(items):\n    \"\"\"Sum up all item prices.\"\"\"",
+            "pattern": (
+                'def calculate_total(items):\n    """Calculate the total priCe of items."""'
+            ),
+            "content": 'def calculate_total(items):\n    """Sum up all item prices."""',
         },
     )
 
@@ -261,7 +265,7 @@ def test_fuzzy_match_multiline_pattern(executor: ActionExecutor, sample_file: Pa
             "path": str(sample_file),
             "operation": "replace",
             "pattern": pattern,
-            "content": "def calculate_total(items):\n    \"\"\"Sum item prices.\"\"\"\n    total = 0",
+            "content": ('def calculate_total(items):\n    """Sum item prices."""\n    total = 0'),
         },
     )
 
@@ -276,9 +280,7 @@ def test_fuzzy_match_multiline_pattern(executor: ActionExecutor, sample_file: Pa
 # ============================================================================
 
 
-def test_fuzzy_match_with_indentation_differences(
-    executor: ActionExecutor, tmp_path: Path
-) -> None:
+def test_fuzzy_match_with_indentation_differences(executor: ActionExecutor, tmp_path: Path) -> None:
     """Test fuzzy matching correctly rejects patterns with wrong indentation."""
     file_path = tmp_path / "indent.py"
     content = "def foo():\n    if True:\n        return 1\n"

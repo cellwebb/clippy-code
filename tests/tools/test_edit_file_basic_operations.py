@@ -82,7 +82,7 @@ def test_edit_file_delete_by_pattern_exact_line(executor: ActionExecutor, temp_d
 
     assert success is True
     assert "Successfully performed delete operation" in message
-    # Both "Test line" and "Another Test line" contain "Test line" (case-sensitive), so both are deleted
+    # Pattern matches twice, so both occurrences are removed.
     expected = "Line 1\nLine 3\n"
     assert test_file.read_text() == expected
 

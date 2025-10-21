@@ -106,9 +106,7 @@ def test_edit_file_replace_pattern_fails_with_ambiguous_match(
     assert "found 2 times, expected exactly one match" in message
 
 
-def test_edit_file_replace_pattern_case_sensitive(
-    executor: ActionExecutor, temp_dir: str
-) -> None:
+def test_edit_file_replace_pattern_case_sensitive(executor: ActionExecutor, temp_dir: str) -> None:
     """Test that pattern matching is case-sensitive (exact match)."""
     # Create a test file with mixed case
     test_file = Path(temp_dir) / "test.py"

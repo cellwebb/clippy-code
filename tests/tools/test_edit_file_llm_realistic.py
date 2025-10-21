@@ -165,17 +165,6 @@ def test_match_import_with_anchors_to_avoid_multiple_matches(
 # ============================================================================
 
 
-    def __init__(self) -> None:
-        self.current_error_panel: ErrorPanel | None = None""",
-            "content": "        self.current_error_panel: ErrorPanel | None = None  # Main panel",
-        },
-    )
-
-    assert success is True
-    content = sample_python_file.read_text()
-    assert "# Main panel" in content
-
-
 def test_match_type_annotation_fails_without_context(
     executor: ActionExecutor, sample_python_file: Path
 ) -> None:
@@ -194,11 +183,6 @@ def test_match_type_annotation_fails_without_context(
     assert success is False
     assert "found 4 times" in message
     assert "expected exactly one match" in message
-
-
-# ============================================================================
-# MULTI-LINE PATTERN TESTS
-# ============================================================================
 
 
 # ============================================================================
@@ -223,18 +207,6 @@ def test_match_brackets_in_string_literal(
     assert success is True
     content = sample_python_file.read_text()
     assert 'model_text = ", ".join([f"{m}" for m in models])' in content
-
-
-    def __init__(self) -> None:
-        self.current_error_panel: ErrorPanel | None = None''',
-            "content": "        self.current_error_panel: Optional[ErrorPanel] = None",
-        },
-    )
-
-    assert success is True
-    content = sample_python_file.read_text()
-    # Should only replace in ErrorPanel class
-    assert content.count("Optional[ErrorPanel]") == 1
 
 
 def test_match_query_selector_with_hash(executor: ActionExecutor, sample_python_file: Path) -> None:
