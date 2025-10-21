@@ -106,23 +106,22 @@ def test_edit_file_replace_pattern_fails_with_ambiguous_match(
     assert "found 2 times, expected exactly one match" in message
 
 
-def test_edit_file_replace_pattern_case_insensitive(
+def test_edit_file_replace_pattern_case_sensitive(
     executor: ActionExecutor, temp_dir: str
 ) -> None:
-    """Test that pattern matching is case insensitive."""
+    """Test that pattern matching is case-sensitive (exact match)."""
     # Create a test file with mixed case
     test_file = Path(temp_dir) / "test.py"
     test_file.write_text("try:\n    do_something()\nEXCEPT:\n    pass\n")
 
-    # Try to replace using lowercase - should work due to case insensitive matching
+    # Try to replace using exact case match
     success, message, content = executor.execute(
         "edit_file",
         {
             "path": str(test_file),
             "operation": "replace",
-            "pattern": "except:",
+            "pattern": "EXCEPT:",  # Must match exact case
             "content": "except OSError:",
-            "regex_flags": ["IGNORECASE"],
         },
     )
 

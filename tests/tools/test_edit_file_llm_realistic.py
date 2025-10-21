@@ -102,15 +102,14 @@ __all__ = [
 def test_match_import_with_parenthesis_literal(
     executor: ActionExecutor, sample_python_file: Path
 ) -> None:
-    """Test matching import statement with opening parenthesis (literal match)."""
-    # LLMs often try to match "from .widgets import (" literally
-    # The parenthesis should NOT be escaped in the pattern
+    """Test matching import statement with opening parenthesis (exact string match)."""
+    # With exact string matching, no escaping needed - just match the literal text
     success, message, _ = executor.execute(
         "edit_file",
         {
             "path": str(sample_python_file),
             "operation": "replace",
-            "pattern": r"from \.widgets import \(",
+            "pattern": "from .widgets import (",
             "content": "from .widgets import DocumentHeader,",
         },
     )
@@ -124,14 +123,14 @@ def test_match_import_with_parenthesis_literal(
 def test_match_import_line_without_over_escaping(
     executor: ActionExecutor, sample_python_file: Path
 ) -> None:
-    """Test matching import without unnecessary escaping."""
-    # Correct way: don't escape dots in import paths
+    """Test matching import with exact string (no escaping needed)."""
+    # Exact string matching - no escaping of dots or other characters
     success, message, _ = executor.execute(
         "edit_file",
         {
             "path": str(sample_python_file),
             "operation": "replace",
-            "pattern": r"from \.styles import DOCUMENT_APP_CSS",
+            "pattern": "from .styles import DOCUMENT_APP_CSS",
             "content": "from .styles import DOCUMENT_APP_CSS, MODAL_CSS",
         },
     )
@@ -144,14 +143,14 @@ def test_match_import_line_without_over_escaping(
 def test_match_import_with_anchors_to_avoid_multiple_matches(
     executor: ActionExecutor, sample_python_file: Path
 ) -> None:
-    """Test using anchors to ensure exact line match."""
-    # Use ^ and $ to match the exact line and avoid partial matches
+    """Test using exact string to match the exact line."""
+    # With exact string matching, no anchors needed - just match the exact text
     success, message, _ = executor.execute(
         "edit_file",
         {
             "path": str(sample_python_file),
             "operation": "replace",
-            "pattern": r"^from typing import Optional$",
+            "pattern": "from typing import Optional",
             "content": "from typing import Optional, List",
         },
     )
@@ -166,23 +165,9 @@ def test_match_import_with_anchors_to_avoid_multiple_matches(
 # ============================================================================
 
 
-def test_match_type_annotation_with_context(
-    executor: ActionExecutor, sample_python_file: Path
-) -> None:
-    """Test matching type annotation that appears multiple times by adding context."""
-    # The pattern "self.current_error_panel: ErrorPanel | None = None" appears 4 times
-    # Need to add more context to make it unique
-    success, message, _ = executor.execute(
-        "edit_file",
-        {
-            "path": str(sample_python_file),
-            "operation": "replace",
-            "pattern": (
-                r"class DocumentApp:.*\n.*\n.*\n.*"
-                + r"self\.current_error_panel: ErrorPanel \| None = None"
-            ),
+    def __init__(self) -> None:
+        self.current_error_panel: ErrorPanel | None = None""",
             "content": "        self.current_error_panel: ErrorPanel | None = None  # Main panel",
-            "regex_flags": ["DOTALL"],
         },
     )
 
@@ -201,7 +186,7 @@ def test_match_type_annotation_fails_without_context(
         {
             "path": str(sample_python_file),
             "operation": "replace",
-            "pattern": r"self\.current_error_panel: ErrorPanel \| None = None",
+            "pattern": "self.current_error_panel: ErrorPanel | None = None",
             "content": "self.current_error_panel: ErrorPanel | None = None  # Updated",
         },
     )
@@ -216,46 +201,6 @@ def test_match_type_annotation_fails_without_context(
 # ============================================================================
 
 
-def test_match_multiline_function_with_dotall(
-    executor: ActionExecutor, sample_python_file: Path
-) -> None:
-    """Test matching multi-line function definition with DOTALL flag."""
-    success, message, _ = executor.execute(
-        "edit_file",
-        {
-            "path": str(sample_python_file),
-            "operation": "replace",
-            "pattern": r"def show_models\(self\) -> None:.*?conv_log = self\.query_one",
-            "content": '''def show_models(self) -> None:
-        """Display available models with enhanced formatting."""
-        conv_log = self.query_one''',
-            "regex_flags": ["DOTALL"],
-        },
-    )
-
-    assert success is True
-    content = sample_python_file.read_text()
-    assert "enhanced formatting" in content
-
-
-def test_match_multiline_comment_block(executor: ActionExecutor, sample_python_file: Path) -> None:
-    """Test matching multi-line comment using proper regex."""
-    success, message, _ = executor.execute(
-        "edit_file",
-        {
-            "path": str(sample_python_file),
-            "operation": "replace",
-            "pattern": r"# Format model list\s+model_text =",
-            "content": "# Display models\n        model_text =",
-            "regex_flags": ["MULTILINE", "DOTALL"],
-        },
-    )
-
-    assert success is True
-    content = sample_python_file.read_text()
-    assert "# Display models" in content
-
-
 # ============================================================================
 # SPECIAL CHARACTER ESCAPING TESTS
 # ============================================================================
@@ -264,13 +209,13 @@ def test_match_multiline_comment_block(executor: ActionExecutor, sample_python_f
 def test_match_brackets_in_string_literal(
     executor: ActionExecutor, sample_python_file: Path
 ) -> None:
-    """Test matching string with square brackets (special in regex)."""
+    """Test matching string with special characters (no escaping needed)."""
     success, message, _ = executor.execute(
         "edit_file",
         {
             "path": str(sample_python_file),
             "operation": "replace",
-            "pattern": r'model_text = "\\n"\.join\(\[f"- \{m\}" for m in models\]\)',
+            "pattern": 'model_text = "\\n".join([f"- {m}" for m in models])',
             "content": 'model_text = ", ".join([f"{m}" for m in models])',
         },
     )
@@ -280,20 +225,9 @@ def test_match_brackets_in_string_literal(
     assert 'model_text = ", ".join([f"{m}" for m in models])' in content
 
 
-def test_match_pipe_in_type_annotation(executor: ActionExecutor, sample_python_file: Path) -> None:
-    """Test matching pipe character in type annotations (special in regex)."""
-    # Pipe | is regex OR operator, needs escaping or careful context
-    success, message, _ = executor.execute(
-        "edit_file",
-        {
-            "path": str(sample_python_file),
-            "operation": "replace",
-            "pattern": (
-                r"class ErrorPanel:.*\n.*\n.*"
-                + r"self\.current_error_panel: ErrorPanel \| None = None"
-            ),
+    def __init__(self) -> None:
+        self.current_error_panel: ErrorPanel | None = None''',
             "content": "        self.current_error_panel: Optional[ErrorPanel] = None",
-            "regex_flags": ["DOTALL"],
         },
     )
 
@@ -304,13 +238,13 @@ def test_match_pipe_in_type_annotation(executor: ActionExecutor, sample_python_f
 
 
 def test_match_query_selector_with_hash(executor: ActionExecutor, sample_python_file: Path) -> None:
-    """Test matching CSS selector with # (doesn't need escaping in quotes)."""
+    """Test matching CSS selector with # (no escaping needed)."""
     success, message, _ = executor.execute(
         "edit_file",
         {
             "path": str(sample_python_file),
             "operation": "replace",
-            "pattern": r'self\.query_one\("#conversation-log", RichLog\)',
+            "pattern": 'self.query_one("#conversation-log", RichLog)',
             "content": 'self.query_one("#conv-log", RichLog)',
         },
     )
@@ -350,14 +284,14 @@ def test_match_all_export_list(executor: ActionExecutor, sample_python_file: Pat
 def test_block_replace_with_indented_comments(
     executor: ActionExecutor, sample_python_file: Path
 ) -> None:
-    """Test block replace with indented comment markers."""
+    """Test block replace with indented comment markers (exact string matching)."""
     success, message, _ = executor.execute(
         "edit_file",
         {
             "path": str(sample_python_file),
             "operation": "block_replace",
             "start_pattern": "# Mount backdrop with dialog",
-            "end_pattern": r"self\.current_modal_backdrop\.mount\(self\.current_model_manager\)",
+            "end_pattern": "self.current_modal_backdrop.mount(self.current_model_manager)",
             "content": """self.backdrop = Backdrop()
         self.mount(self.backdrop)
         self.backdrop.mount(ModelDialog())""",
@@ -396,19 +330,22 @@ def test_pattern_not_found_gives_clear_error(
 def test_invalid_regex_gives_clear_error(
     executor: ActionExecutor, sample_python_file: Path
 ) -> None:
-    """Test that invalid regex gives a clear error message."""
+    """Test that pattern not found gives a clear error (no regex errors anymore)."""
+    # With exact string matching, there are no regex compilation errors
+    # This test now just checks pattern not found behavior
     success, message, _ = executor.execute(
         "edit_file",
         {
             "path": str(sample_python_file),
             "operation": "replace",
-            "pattern": r"unclosed[bracket",
+            "pattern": "unclosed[bracket",  # This is now just a literal string
             "content": "replacement",
         },
     )
 
     assert success is False
-    # The pattern should fail to compile
+    # Pattern should not be found (it's a valid string, just not in the file)
+    assert "not found" in message
 
 
 def test_delete_multiple_matching_lines(executor: ActionExecutor, sample_python_file: Path) -> None:
@@ -419,7 +356,7 @@ def test_delete_multiple_matching_lines(executor: ActionExecutor, sample_python_
         {
             "path": str(sample_python_file),
             "operation": "delete",
-            "pattern": r"self\.current_error_panel: ErrorPanel \| None = None",
+            "pattern": "self.current_error_panel: ErrorPanel | None = None",
         },
     )
 

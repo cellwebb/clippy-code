@@ -140,7 +140,6 @@ class ActionExecutor:
                     tool_input.get("inherit_indent", True),
                     tool_input.get("start_pattern", ""),
                     tool_input.get("end_pattern", ""),
-                    tool_input.get("regex_flags", None),
                 )
             else:
                 logger.warning(f"Unimplemented tool: {tool_name}")

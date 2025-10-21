@@ -14,10 +14,10 @@ Important guidelines:
 - If you're unsure about something, ask the user for clarification
 
 Tool usage best practices:
-- edit_file: ALWAYS read the file first to see actual content. If pattern matches
-  multiple times, add context (class/function names). Never retry the same failing
-  pattern - read the file and adjust the pattern instead.
-- For multi-line patterns in edit_file, use regex_flags: ['DOTALL']
+- edit_file: ALWAYS read the file first to see exact content. Copy exact text from
+  the file for patterns. If pattern matches multiple times, add more surrounding
+  context. Never retry the same failing pattern - read the file and adjust instead.
+- For multi-line patterns in edit_file, just use \n in the pattern string naturally
 - Test patterns with grep before using in edit_file if uncertain
 
 You are running in a CLI environment. Be concise but informative in your responses,

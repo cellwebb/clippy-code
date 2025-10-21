@@ -90,7 +90,6 @@ def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | N
                 inherit_indent = tool_input.get("inherit_indent", True)
                 start_pattern = tool_input.get("start_pattern", "")
                 end_pattern = tool_input.get("end_pattern", "")
-                regex_flags = tool_input.get("regex_flags")
 
                 # Apply the edit operation to get the new content
                 success, _, new_content = apply_edit_operation(
@@ -101,7 +100,6 @@ def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | N
                     inherit_indent,
                     start_pattern,
                     end_pattern,
-                    regex_flags,
                 )
                 if success and new_content:
                     # Generate diff between old and new content
