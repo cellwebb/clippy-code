@@ -50,6 +50,16 @@ class TestFormatMCPResult:
         formatted = format_mcp_result(result)
         assert formatted == "Plain string result"
 
+    def test_handles_embedded_resource(self):
+        """Embedded resources should include resource text."""
+        resource = types.TextResourceContents(uri="https://example.com", text="embedded")
+        result = types.CallToolResult(
+            content=[types.EmbeddedResource(type="resource", resource=resource)]
+        )
+
+        formatted = format_mcp_result(result)
+        assert "embedded" in formatted
+
     def test_avoids_ugly_representation(self):
         """Test that we don't get the ugly CallToolResult repr."""
         result = types.CallToolResult(
