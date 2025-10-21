@@ -330,11 +330,10 @@ def test_handle_mcp_command(monkeypatch: pytest.MonkeyPatch) -> None:
     console.messages.clear()
     commands.handle_mcp_command(agent, console, "tools")
     assert manager.list_tools_calls[-1] is None
-
     console.messages.clear()
-    monkeypatch.setattr("asyncio.run", lambda coro: None)
     commands.handle_mcp_command(agent, console, "refresh")
     assert any("Refreshing" in str(msg) for msg in console.messages)
+    assert manager.refreshed is True
 
     console.messages.clear()
     commands.handle_mcp_command(agent, console, "allow alpha")
