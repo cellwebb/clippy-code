@@ -19,11 +19,19 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install clippy-code from PyPI
 uv tool install clippy-code
+```
 
-# Or install from source
+#### Install from source
+
+```bash
 git clone https://github.com/yourusername/clippy.git
 cd clippy
-uv pip install -e .
+
+# Install with dev dependencies (recommended for contributors)
+make dev
+
+# Or install without dev extras
+make install
 ```
 
 ### Setup API Keys
@@ -70,23 +78,7 @@ To use MCP servers, create an `mcp.json` configuration file in your project root
 See [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md) for detailed information about MCP configuration and usage.
 
 MCP tools will automatically be available in interactive and document modes, with appropriate approval prompts to maintain safety.
-
-clippy-code supports multiple LLM providers through OpenAI-compatible APIs:
-
-```bash
-# OpenAI (default)
-echo "OPENAI_API_KEY=your_api_key_here" > .env
-
-# Cerebras
-echo "CEREBRAS_API_KEY=your_api_key_here" > .env
-
-# Groq
-echo "GROQ_API_KEY=your_api_key_here" > .env
-
-# For local models like Ollama, you typically don't need an API key
-# Just set the base URL:
-export OPENAI_BASE_URL=http://localhost:11434/v1
-```
+See [Setup API Keys](#setup-api-keys) for provider configuration details.
 
 ### Basic Usage
 
@@ -105,6 +97,17 @@ clippy --model gpt-5 "refactor main.py to use async/await"
 
 # Auto-approve all actions (use with caution!)
 clippy -y "write unit tests for utils.py"
+```
+
+### Development Workflow
+
+Use the provided `Makefile` for common development tasks:
+
+```bash
+make dev          # Install with development dependencies
+make check        # Format, lint, and type-check
+make test         # Run the test suite
+make run          # Launch clippy-code in interactive mode
 ```
 
 ## Features
@@ -212,34 +215,29 @@ clippy-code follows a layered architecture with clear separation of concerns:
 
 ```
 src/clippy/
-├── cli/
-│   ├── main.py             # Main entry point
-│   ├── parser.py           # Argument parsing
-│   ├── oneshot.py          # One-shot mode implementation
-│   └── repl.py             # Interactive REPL mode
 ├── agent/
-│   ├── core.py             # Core agent implementation
-│   ├── loop.py             # Agent loop logic
-│   ├── conversation.py     # Conversation utilities
-│   ├── tool_handler.py     # Tool calling handler
-│   ├── subagent.py         # Subagent implementation
-│   ├── subagent_manager.py # Subagent lifecycle management
-│   ├── subagent_types.py   # Subagent type configurations
-│   ├── subagent_cache.py   # Result caching system
-│   └── subagent_chainer.py # Hierarchical execution chaining
-├── mcp/                    # MCP (Model Context Protocol) integration
-│   ├── __init__.py
-│   ├── config.py           # MCP configuration loading
-│   ├── errors.py           # MCP error handling
-│   ├── manager.py          # MCP server connection manager
-│   ├── naming.py           # MCP tool naming utilities
-│   ├── schema.py           # MCP schema conversion
-│   ├── transports.py       # MCP transport layer
-│   ├── trust.py            # MCP trust system
-│   └── types.py            # MCP type definitions
+│   ├── core.py                 # Core agent implementation
+│   ├── loop.py                 # Agent loop logic
+│   ├── conversation.py         # Conversation utilities
+│   ├── tool_handler.py         # Tool calling handler
+│   ├── subagent.py             # Subagent implementation
+│   ├── subagent_manager.py     # Subagent lifecycle management
+│   ├── subagent_types.py       # Subagent type configurations
+│   ├── subagent_cache.py       # Result caching system
+│   ├── subagent_chainer.py     # Hierarchical execution chaining
+│   ├── subagent_config_manager.py # Subagent configuration management
+│   ├── utils.py                # Agent helper utilities
+│   └── errors.py               # Agent-specific exceptions
+├── cli/
+│   ├── main.py                 # Main entry point
+│   ├── parser.py               # Argument parsing
+│   ├── oneshot.py              # One-shot mode implementation
+│   ├── repl.py                 # Interactive REPL mode
+│   ├── commands.py             # High-level CLI commands
+│   └── setup.py                # Initial setup helpers
 ├── tools/
-│   ├── __init__.py         # Tool implementations and exports
-│   ├── catalog.py          # Tool catalog for merging built-in and MCP tools
+│   ├── __init__.py             # Tool registrations
+│   ├── catalog.py              # Tool catalog for built-in and MCP tools
 │   ├── create_directory.py
 │   ├── delete_file.py
 │   ├── delegate_to_subagent.py
@@ -253,18 +251,30 @@ src/clippy/
 │   ├── run_parallel_subagents.py
 │   ├── search_files.py
 │   └── write_file.py
+├── mcp/
+│   ├── config.py               # MCP configuration loading
+│   ├── errors.py               # MCP error handling
+│   ├── manager.py              # MCP server connection manager
+│   ├── naming.py               # MCP tool naming utilities
+│   ├── schema.py               # MCP schema conversion
+│   ├── transports.py           # MCP transport layer
+│   ├── trust.py                # MCP trust system
+│   └── types.py                # MCP type definitions
 ├── ui/
-|   ├── document_app.py     # Textual-based document mode interface
-|   ├── styles.py           # CSS styling for document mode
-|   ├── widgets.py          # Custom UI widgets
-|   └── utils.py            # UI utility functions
-├── providers.py            # OpenAI-compatible LLM provider
-├── executor.py             # Tool execution implementations
-├── permissions.py          # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
-├── models.py               # Model configuration loading and presets
-├── models.yaml             # Model presets for different providers
-├── prompts.py              # System prompts for the agent
-└── diff_utils.py           # Diff generation utilities
+│   ├── document_app.py         # Textual-based document mode interface
+│   ├── styles.py               # CSS styling for document mode
+│   ├── utils.py                # UI utility functions
+│   └── widgets.py              # Custom UI widgets
+├── diff_utils.py               # Diff generation utilities
+├── executor.py                 # Tool execution implementations
+├── models.py                   # Model configuration loading and presets
+├── models.yaml                 # Model presets for different providers
+├── permissions.py              # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
+├── prompts.py                  # System prompts for the agent
+├── providers.py                # OpenAI-compatible LLM provider
+├── providers.yaml              # Model/provider preset definitions
+├── __main__.py                 # Module entry point
+└── __version__.py              # Version helper
 ```
 
 ## Configuration & Models
@@ -405,22 +415,6 @@ To use MCP servers, create an `mcp.json` configuration file in your home directo
 ```
 
 MCP tools will automatically be available in interactive and document modes, with appropriate approval prompts to maintain safety.
-
-clippy-code has access to these tools:
-
-| Tool               | Description                                       | Auto-Approved |
-| ------------------ | ------------------------------------------------- | ------------- |
-| `read_file`        | Read file contents                                | ✅            |
-| `write_file`       | Write/modify entire files                         | ❌            |
-| `delete_file`      | Delete files                                      | ❌            |
-| `list_directory`   | List directory contents                           | ✅            |
-| `create_directory` | Create directories                                | ❌            |
-| `execute_command`  | Run shell commands                                | ❌            |
-| `search_files`     | Search with glob patterns                         | ✅            |
-| `get_file_info`    | Get file metadata                                 | ✅            |
-| `read_files`       | Read multiple files at once                       | ✅            |
-| `grep`             | Search patterns in files                          | ✅            |
-| `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            |
 
 ## Design Principles
 
