@@ -30,6 +30,18 @@ class StubPromptSession:
         return value
 
 
+class KeyBindingsStub:
+    def __init__(self) -> None:
+        self.handler: Any = None
+
+    def add(self, _key: str):
+        def decorator(func: Any) -> Any:
+            self.handler = func
+            return func
+
+        return decorator
+
+
 class StubAgent:
     def __init__(self) -> None:
         self.calls: list[tuple[str, bool]] = []
@@ -97,3 +109,32 @@ def test_run_interactive_handles_keyboard_interrupt(monkeypatch: pytest.MonkeyPa
     # First prompt raises KeyboardInterrupt, which should cause a notification and continue
     assert any("Use /exit" in msg for msg in console.messages)
     assert agent.calls == [("final", True)]
+
+
+def test_run_interactive_double_escape(monkeypatch: pytest.MonkeyPatch) -> None:
+    agent = StubAgent()
+    console = DummyConsole()
+    session = StubPromptSession(["/exit"])
+    kb_stub = KeyBindingsStub()
+
+    monkeypatch.setattr("clippy.cli.repl.KeyBindings", lambda: kb_stub)
+    monkeypatch.setattr("clippy.cli.repl.PromptSession", lambda *args, **kwargs: session)
+    monkeypatch.setattr("clippy.cli.repl.Console", lambda: console)
+    monkeypatch.setattr("clippy.cli.repl.handle_command", lambda *_args, **_kwargs: "break")
+
+    repl.run_interactive(agent, auto_approve=False)
+
+    assert kb_stub.handler is not None
+
+    exit_calls: list[Any] = []
+    time_values = iter([0.0, 0.4])
+    monkeypatch.setattr("clippy.cli.repl.time.time", lambda: next(time_values))
+
+    event = SimpleNamespace(
+        app=SimpleNamespace(exit=lambda exception=None: exit_calls.append(exception))
+    )
+
+    kb_stub.handler(event)  # first ESC
+    kb_stub.handler(event)  # second ESC within timeout triggers exit
+
+    assert isinstance(exit_calls[0], KeyboardInterrupt)
