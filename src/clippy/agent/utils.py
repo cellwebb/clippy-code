@@ -87,11 +87,9 @@ def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | N
                 # Extract all operation parameters from tool_input
                 content = tool_input.get("content", "")
                 pattern = tool_input.get("pattern", "")
-                match_pattern_line = tool_input.get("match_pattern_line", True)
                 inherit_indent = tool_input.get("inherit_indent", True)
                 start_pattern = tool_input.get("start_pattern", "")
                 end_pattern = tool_input.get("end_pattern", "")
-                regex_pattern = tool_input.get("regex_pattern", "")
                 regex_flags = tool_input.get("regex_flags")
 
                 # Apply the edit operation to get the new content
@@ -100,11 +98,9 @@ def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | N
                     operation,
                     content,
                     pattern,
-                    match_pattern_line,
                     inherit_indent,
                     start_pattern,
                     end_pattern,
-                    regex_pattern,
                     regex_flags,
                 )
                 if success and new_content:

@@ -54,7 +54,6 @@ def test_edit_file_insert_before_by_pattern(executor: ActionExecutor, temp_dir: 
             "operation": "insert_before",
             "content": "Inserted line",
             "pattern": "Line 2",
-            "match_pattern_line": True,
         },
     )
 
@@ -76,7 +75,6 @@ def test_edit_file_insert_before_at_beginning(executor: ActionExecutor, temp_dir
             "operation": "insert_before",
             "content": "First line",
             "pattern": "Line 1",
-            "match_pattern_line": True,
         },
     )
 
@@ -98,7 +96,6 @@ def test_edit_file_insert_before_pattern_not_found(executor: ActionExecutor, tem
             "operation": "insert_before",
             "content": "Test content",
             "pattern": "Non-existent line",
-            "match_pattern_line": True,
         },
     )
 
@@ -123,7 +120,6 @@ def test_edit_file_insert_after_by_pattern(executor: ActionExecutor, temp_dir: s
             "operation": "insert_after",
             "content": "Inserted line",
             "pattern": "Line 2",
-            "match_pattern_line": True,
         },
     )
 
@@ -145,7 +141,6 @@ def test_edit_file_insert_after_at_end(executor: ActionExecutor, temp_dir: str) 
             "operation": "insert_after",
             "content": "Last line",
             "pattern": "Line 3",
-            "match_pattern_line": True,
         },
     )
 
@@ -172,7 +167,7 @@ def test_edit_file_insert_with_substring_match(executor: ActionExecutor, temp_di
             "operation": "insert_before",
             "content": "Before test",
             "pattern": "test",
-            "match_pattern_line": False,
+            "regex_flags": ["IGNORECASE"],
         },
     )
 
@@ -192,7 +187,6 @@ def test_insert_operations_with_substring_match(executor_direct: ActionExecutor,
         "insert_before",
         content="def new_function():\n    pass\n",
         pattern="hello_world",
-        match_pattern_line=False,
     )
 
     assert success
@@ -219,8 +213,7 @@ def test_insert_before_with_inherit_indent(executor_direct: ActionExecutor, tmp_
         str(test_file),
         "insert_before",
         content="print('before hello')",
-        pattern="    print('hello')",
-        match_pattern_line=True,
+        pattern="    print\\('hello'\\)",
         inherit_indent=True,
     )
 
@@ -239,8 +232,7 @@ def test_insert_after_with_inherit_indent(executor_direct: ActionExecutor, tmp_p
         str(test_file),
         "insert_after",
         content="print('after hello')",
-        pattern="    print('hello')",
-        match_pattern_line=True,
+        pattern="    print\\('hello'\\)",
         inherit_indent=True,
     )
 
@@ -259,8 +251,7 @@ def test_insert_before_without_inherit_indent(executor_direct: ActionExecutor, t
         str(test_file),
         "insert_before",
         content="print('no indent')",
-        pattern="    print('hello')",
-        match_pattern_line=True,
+        pattern="    print\\('hello'\\)",
         inherit_indent=False,
     )
 
@@ -286,8 +277,7 @@ def test_insert_operations_with_multiline_content(
         str(test_file),
         "insert_before",
         content="def helper():\n    # This is a helper function\n    return True\n",
-        pattern="def world():",
-        match_pattern_line=True,
+        pattern="def world\\(\\):",
         inherit_indent=False,
     )
 
@@ -329,8 +319,7 @@ def test_insert_before_ambiguous_pattern_fails(executor_direct: ActionExecutor, 
         str(test_file),
         "insert_before",
         content="def new_function():\n    pass\n",
-        pattern="def hello():",
-        match_pattern_line=True,
+        pattern="def hello\\(\\):",
     )
 
     assert not success
@@ -348,8 +337,7 @@ def test_insert_after_ambiguous_pattern_fails(executor_direct: ActionExecutor, t
         str(test_file),
         "insert_after",
         content="def new_function():\n    pass\n",
-        pattern="def hello():",
-        match_pattern_line=True,
+        pattern="def hello\\(\\):",
     )
 
     assert not success
@@ -372,8 +360,7 @@ def test_insert_operations_consistent_eol_style(executor_direct: ActionExecutor,
         str(test_file),
         "insert_before",
         content="def new_function():\n    pass\n",
-        pattern="def world():",
-        match_pattern_line=True,
+        pattern="def world\\(\\):",
     )
 
     assert success

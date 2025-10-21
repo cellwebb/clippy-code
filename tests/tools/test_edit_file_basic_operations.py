@@ -67,7 +67,7 @@ def test_edit_file_append_to_file_without_trailing_newline(
 
 
 def test_edit_file_delete_by_pattern_exact_line(executor: ActionExecutor, temp_dir: str) -> None:
-    """Test deleting lines by exact pattern match."""
+    """Test deleting lines by exact pattern match (using anchored regex)."""
     test_file = Path(temp_dir) / "edit_test.txt"
     test_file.write_text("Line 1\nTest line\nLine 3\nAnother test line\n")
 
@@ -76,8 +76,7 @@ def test_edit_file_delete_by_pattern_exact_line(executor: ActionExecutor, temp_d
         {
             "path": str(test_file),
             "operation": "delete",
-            "pattern": "Test line",
-            "match_pattern_line": True,
+            "pattern": "^Test line$",  # Use anchors for exact line match
         },
     )
 
@@ -90,7 +89,7 @@ def test_edit_file_delete_by_pattern_exact_line(executor: ActionExecutor, temp_d
 def test_edit_file_delete_by_pattern_substring_match(
     executor: ActionExecutor, temp_dir: str
 ) -> None:
-    """Test deleting lines by pattern with substring matching."""
+    """Test deleting lines by pattern with case-insensitive regex matching."""
     test_file = Path(temp_dir) / "edit_test.txt"
     test_file.write_text("Line 1\nTest line\nLine 3\nAnother test line\nFull test line\n")
 
@@ -100,7 +99,7 @@ def test_edit_file_delete_by_pattern_substring_match(
             "path": str(test_file),
             "operation": "delete",
             "pattern": "test",
-            "match_pattern_line": False,
+            "regex_flags": ["IGNORECASE"],
         },
     )
 
@@ -116,7 +115,7 @@ def test_edit_file_delete_by_pattern_substring_match(
 
 
 def test_edit_file_replace_by_pattern_exact_line(executor: ActionExecutor, temp_dir: str) -> None:
-    """Test replacing a line by exact pattern match."""
+    """Test replacing a line by exact pattern match (using regex substitution)."""
     test_file = Path(temp_dir) / "edit_test.txt"
     test_file.write_text("Line 1\nLine 2\nLine 3\n")
 
@@ -127,7 +126,6 @@ def test_edit_file_replace_by_pattern_exact_line(executor: ActionExecutor, temp_
             "operation": "replace",
             "content": "Replaced line",
             "pattern": "Line 2",
-            "match_pattern_line": True,
         },
     )
 
@@ -140,7 +138,7 @@ def test_edit_file_replace_by_pattern_exact_line(executor: ActionExecutor, temp_
 def test_edit_file_replace_by_pattern_substring_match(
     executor: ActionExecutor, temp_dir: str
 ) -> None:
-    """Test replacing a substring within a line using pattern matching."""
+    """Test replacing a substring within a line using regex substitution."""
     test_file = Path(temp_dir) / "edit_test.txt"
     test_file.write_text("Line 1\nLine 2 with extra content\nLine 3\n")
 
@@ -151,7 +149,6 @@ def test_edit_file_replace_by_pattern_substring_match(
             "operation": "replace",
             "content": "Replaced",
             "pattern": "Line 2",
-            "match_pattern_line": False,
         },
     )
 
@@ -173,7 +170,6 @@ def test_edit_file_replace_single_match_succeeds(executor: ActionExecutor, temp_
             "operation": "replace",
             "content": "Replaced line",
             "pattern": "Test line",
-            "match_pattern_line": True,
         },
     )
 
@@ -186,7 +182,7 @@ def test_edit_file_replace_single_match_succeeds(executor: ActionExecutor, temp_
 def test_edit_file_replace_multiple_matches_fails(executor: ActionExecutor, temp_dir: str) -> None:
     """Test that replacing by pattern with multiple matches fails."""
     test_file = Path(temp_dir) / "edit_test.txt"
-    test_file.write_text("Test line\nAnother test line\nTest line again\n")
+    test_file.write_text("Test line\nAnother Test line\nTest line again\n")
 
     success, message, content = executor.execute(
         "edit_file",
@@ -195,7 +191,6 @@ def test_edit_file_replace_multiple_matches_fails(executor: ActionExecutor, temp
             "operation": "replace",
             "content": "Replaced line",
             "pattern": "Test",
-            "match_pattern_line": False,
         },
     )
 

@@ -18,7 +18,7 @@ Hello universe"""
 
     try:
         success, message, result = edit_file(
-            path=temp_path, operation="regex_replace", regex_pattern="Hello", content="Hi"
+            path=temp_path, operation="replace", pattern="Hello", content="Hi"
         )
 
         print("Success:", success)
@@ -46,8 +46,8 @@ Hello WORLD"""
     try:
         success, message, result = edit_file(
             path=temp_path,
-            operation="regex_replace",
-            regex_pattern="hello",
+            operation="replace",
+            pattern="hello",
             content="Hi",
             regex_flags=["IGNORECASE"],
         )
@@ -77,7 +77,7 @@ hotdog is not a dog"""
 
     try:
         success, message, result = edit_file(
-            path=temp_path, operation="regex_replace", regex_pattern=r"\bdog\b", content="cat"
+            path=temp_path, operation="replace", pattern=r"\bdog\b", content="cat"
         )
 
         print("\n=== Word Boundary Debug ===")

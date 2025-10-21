@@ -137,11 +137,9 @@ class ActionExecutor:
                     tool_input["operation"],
                     tool_input.get("content", ""),
                     tool_input.get("pattern", ""),
-                    tool_input.get("match_pattern_line", True),
                     tool_input.get("inherit_indent", True),
                     tool_input.get("start_pattern", ""),
                     tool_input.get("end_pattern", ""),
-                    tool_input.get("regex_pattern", ""),
                     tool_input.get("regex_flags", None),
                 )
             else:
