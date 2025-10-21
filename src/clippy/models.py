@@ -90,9 +90,10 @@ class UserModelManager:
         return models
 
     def get_model(self, name: str) -> UserModelConfig | None:
-        """Get a specific model by name."""
+        """Get a specific model by name (case-insensitive)."""
+        name_lower = name.lower()
         for model in self.list_models():
-            if model.name == name:
+            if model.name.lower() == name_lower:
                 return model
         return None
 
