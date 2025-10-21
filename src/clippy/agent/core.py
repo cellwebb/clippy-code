@@ -161,6 +161,10 @@ class ClippyAgent:
             # Update API key if provided
             new_api_key = api_key if api_key is not None else self.api_key
 
+            # Validate that we're not switching to an empty model
+            if not new_model:
+                return False, "Cannot switch to empty model"
+
             # Create new provider with updated settings
             self.provider = LLMProvider(api_key=new_api_key, base_url=new_base_url)
 

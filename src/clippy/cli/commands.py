@@ -12,7 +12,6 @@ from ..agent import ClippyAgent
 from ..agent.subagent_config_manager import get_subagent_config_manager
 from ..agent.subagent_types import list_subagent_types
 from ..models import (
-    get_model_config,
     get_provider,
     get_user_manager,
     list_available_models,
@@ -49,7 +48,7 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /compact - Summarize conversation to reduce context usage\n\n"
             "[bold]Model Management:[/bold]\n"
             "  /model list - Show your saved models\n"
-            "  /model <name> - Switch to saved model\n"
+            "  /model <name> - Switch to a saved model\n"
             "  /model add <provider> <model_id> [options] - Add a new model\n"
             "  /model remove <name> - Remove a saved model\n"
             "  /model default <name> - Set model as default\n"
@@ -289,7 +288,9 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
         return _handle_model_use(agent, console, args[1:])
     else:
         # Treat as model name to switch to
-        return _handle_model_switch(agent, console, command_args)
+        # This handles cases where the user tries to switch to a specific model
+        # by passing the model name directly as an argument
+        return _handle_model_switch(agent, console, subcommand)
 
 
 def _handle_model_add(console: Console, args: list[str]) -> CommandResult:
@@ -419,11 +420,33 @@ def _handle_model_use(agent: ClippyAgent, console: Console, args: list[str]) -> 
 
 def _handle_model_switch(agent: ClippyAgent, console: Console, model_name: str) -> CommandResult:
     """Handle switching to a saved model."""
-    model, provider = get_model_config(model_name)
+    # Explicit validation for empty or whitespace-only model names
+    if not model_name or not model_name.strip():
+        console.print("[red]✗ Model name cannot be empty[/red]")
+        return "continue"
+    
+    model_name = model_name.strip()
+    
+    # Check if model exists in user's saved models
+    user_manager = get_user_manager()
+    model = user_manager.get_model(model_name)
 
-    if not model or not provider:
-        console.print(f"[red]✗ Model '{model_name}' not found[/red]")
-        console.print("[dim]Use /model list to see your saved models[/dim]")
+    if not model:
+        console.print(f"[red]✗ Model '{model_name}' not found in your saved models[/red]")
+        available_models = user_manager.list_models()
+        if available_models:
+            model_names = [m.name for m in available_models]
+            console.print(f"[dim]Available models: {', '.join(model_names)}[/dim]")
+        else:
+            console.print("[dim]No models available. Use /model add to add a model.[/dim]")
+        console.print("[yellow]⚠ Model switch aborted - no changes made[/yellow]")
+        return "continue"
+
+    # Get the provider for this model
+    provider = get_provider(model.provider)
+
+    if not provider:
+        console.print(f"[red]✗ Provider '{model.provider}' not found[/red]")
         return "continue"
 
     # Get API key
@@ -812,7 +835,7 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
             return "continue"
 
     # Model commands
-    if command_lower.startswith("/model"):
+    if command_lower == "/model" or command_lower.startswith("/model "):
         parts = user_input.split(maxsplit=1)
         command_args = parts[1] if len(parts) > 1 else ""
         return handle_model_command(agent, console, command_args)
