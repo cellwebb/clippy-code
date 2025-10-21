@@ -254,6 +254,42 @@ def test_handle_tool_use_mcp_failure_messages(console: DummyConsole) -> None:
     assert success is False
     assert any("Suggestion" in msg for msg in console.messages)
 
+    console.messages.clear()
+    executor = RecordingExecutor(success=False, message="MCP server not configured")
+    success = handle_tool_use(
+        tool_name="mcp__alpha__tool",
+        tool_input={"arg": 1},
+        tool_use_id="tool-mcp-config",
+        auto_approve_all=True,
+        permission_manager=permission_manager,
+        executor=executor,
+        console=console,
+        conversation_history=history,
+        approval_callback=None,
+        mcp_manager=StubMCP(),
+    )
+
+    assert success is False
+    assert any("not configured" in msg.lower() for msg in console.messages)
+
+    console.messages.clear()
+    executor = RecordingExecutor(success=False, message="Permission denied")
+    success = handle_tool_use(
+        tool_name="mcp__alpha__tool",
+        tool_input={"arg": 1},
+        tool_use_id="tool-mcp-permission",
+        auto_approve_all=True,
+        permission_manager=permission_manager,
+        executor=executor,
+        console=console,
+        conversation_history=history,
+        approval_callback=None,
+        mcp_manager=StubMCP(),
+    )
+
+    assert success is False
+    assert any("permissions" in msg.lower() for msg in console.messages)
+
 
 def test_handle_tool_use_delegate_to_subagent(
     monkeypatch: pytest.MonkeyPatch, console: DummyConsole
@@ -343,6 +379,22 @@ def test_handle_tool_use_run_parallel_subagents(
 
     assert success is True
     assert history[-1]["content"].startswith("parallel ok")
+
+    success = handle_tool_use(
+        tool_name="run_parallel_subagents",
+        tool_input={"tasks": []},
+        tool_use_id="tool-run-parallel-fail",
+        auto_approve_all=True,
+        permission_manager=permission_manager,
+        executor=executor,
+        console=console,
+        conversation_history=history,
+        approval_callback=None,
+        parent_agent=None,
+    )
+
+    assert success is False
+    assert "requires parent agent" in history[-1]["content"]
 
 
 def test_handle_tool_use_shows_diff_preview(
@@ -467,6 +519,22 @@ def test_ask_approval_responses(monkeypatch: pytest.MonkeyPatch, console: DummyC
         is True
     )
     assert trusted == [("alpha", True)]
+
+    monkeypatch.setattr("builtins.input", lambda prompt="": "a")
+    console.messages.clear()
+    assert (
+        ask_approval(
+            "mcp__alpha__tool",
+            {},
+            None,
+            ActionType.MCP_TOOL_CALL,
+            perm_manager,
+            console,
+            mcp_manager=None,
+        )
+        is True
+    )
+    assert any("MCP manager not available" in msg for msg in console.messages)
 
     # Reject response raises
     monkeypatch.setattr("builtins.input", lambda prompt="": "n")

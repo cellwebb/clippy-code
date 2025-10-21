@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -142,3 +144,37 @@ def test_manager_execute_success_and_errors(manager_factory, monkeypatch):
     # server not configured
     success, message, _ = manager.execute("missing", "tool", {})
     assert success is False and "not configured" in message.lower()
+
+
+def test_manager_run_in_loop_requires_loop(manager_factory):
+    manager = manager_factory()
+    manager._loop = None
+
+    async def sample() -> None:
+        pass
+
+    coro = sample()
+    try:
+        with pytest.raises(RuntimeError):
+            manager._run_in_loop(coro)
+    finally:
+        coro.close()
+
+
+def test_manager_start_stderr_logger(manager_factory):
+    manager = manager_factory()
+    read_fd, write_fd = os.pipe()
+    try:
+        manager._start_stderr_logger("server", read_fd)
+        os.write(write_fd, b"line\n")
+        os.close(write_fd)
+        time.sleep(0.05)
+        manager._stderr_stop_events["server"].set()
+        manager._stderr_threads["server"].join(timeout=1.0)
+        assert "server" in manager._stderr_threads
+    finally:
+        if write_fd:
+            try:
+                os.close(write_fd)
+            except OSError:
+                pass
