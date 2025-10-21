@@ -8,42 +8,48 @@ This file provides guidance for AI coding agents working with the clippy-code co
 make dev              # Install with dev dependencies
 make test             # Run pytest
 make check            # Run format, lint, and type-check
+make run              # Launch interactive mode through the Makefile
+make format           # Autofix and format code with ruff
+make lint             # Static analysis with ruff
+make type-check       # Run mypy against src/clippy
 python -m clippy -i   # Run in interactive mode
 python -m clippy -d   # Run in document mode (Word-like TUI)
 ```
+
+## Development Workflow Tips
+
+- Prefer the `make` targets above for consistent formatting, linting, and type checks.
+- Run `make check` and `make test` before finishing a task to catch regressions early.
+- Use `make format` if a change requires ruff autofixes prior to committing or submitting.
+- Reference `README.md` for installation guidance and `CONTRIBUTING.md` for contributor workflow details.
 
 ## Project Structure
 
 ```
 src/clippy/
-├── cli/
-│   ├── main.py             # Main entry point
-│   ├── parser.py           # Argument parsing
-│   ├── oneshot.py          # One-shot mode implementation
-│   └── repl.py             # Interactive REPL mode
 ├── agent/
-│   ├── core.py             # Core agent implementation
-│   ├── loop.py             # Agent loop logic
-│   ├── conversation.py     # Conversation utilities
-│   ├── tool_handler.py     # Tool calling handler
-│   ├── subagent.py         # Subagent implementation
-│   ├── subagent_manager.py # Subagent lifecycle management
-│   ├── subagent_types.py   # Subagent type configurations
-│   ├── subagent_cache.py   # Result caching system
-│   └── subagent_chainer.py # Hierarchical execution chaining
-├── mcp/                    # MCP (Model Context Protocol) integration
-│   ├── __init__.py
-│   ├── config.py           # MCP configuration loading
-│   ├── errors.py           # MCP error handling
-│   ├── manager.py          # MCP server connection manager
-│   ├── naming.py           # MCP tool naming utilities
-│   ├── schema.py           # MCP schema conversion
-│   ├── transports.py       # MCP transport layer
-│   ├── trust.py            # MCP trust system
-│   └── types.py            # MCP type definitions
+│   ├── core.py                 # Core agent implementation
+│   ├── loop.py                 # Agent loop logic
+│   ├── conversation.py         # Conversation utilities
+│   ├── tool_handler.py         # Tool calling handler
+│   ├── subagent.py             # Subagent implementation
+│   ├── subagent_manager.py     # Subagent lifecycle management
+│   ├── subagent_types.py       # Subagent type configurations
+│   ├── subagent_cache.py       # Result caching system
+│   ├── subagent_chainer.py     # Hierarchical execution chaining
+│   ├── subagent_config_manager.py # Subagent configuration management
+│   ├── utils.py                # Agent helper utilities
+│   └── errors.py               # Agent-specific exceptions
+├── cli/
+│   ├── main.py                 # Main entry point
+│   ├── parser.py               # Argument parsing
+│   ├── oneshot.py              # One-shot mode implementation
+│   ├── repl.py                 # Interactive REPL mode
+│   ├── commands.py             # High-level CLI commands
+│   └── setup.py                # Initial setup helpers
 ├── tools/
-│   ├── __init__.py         # Tool implementations and exports
-│   ├── catalog.py          # Tool catalog for merging built-in and MCP tools
+│   ├── __init__.py             # Tool registrations
+│   ├── catalog.py              # Tool catalog for built-in and MCP tools
 │   ├── create_directory.py
 │   ├── delete_file.py
 │   ├── delegate_to_subagent.py
@@ -57,18 +63,30 @@ src/clippy/
 │   ├── run_parallel_subagents.py
 │   ├── search_files.py
 │   └── write_file.py
+├── mcp/
+│   ├── config.py               # MCP configuration loading
+│   ├── errors.py               # MCP error handling
+│   ├── manager.py              # MCP server connection manager
+│   ├── naming.py               # MCP tool naming utilities
+│   ├── schema.py               # MCP schema conversion
+│   ├── transports.py           # MCP transport layer
+│   ├── trust.py                # MCP trust system
+│   └── types.py                # MCP type definitions
 ├── ui/
-|   ├── document_app.py     # Textual-based document mode interface
-|   ├── styles.py           # CSS styling for document mode
-|   ├── widgets.py          # Custom UI widgets
-|   └── utils.py            # UI utility functions
-├── providers.py            # OpenAI-compatible LLM provider
-├── executor.py             # Tool execution implementations
-├── permissions.py          # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
-├── models.py               # Model configuration loading and presets
-├── models.yaml             # Model presets for different providers
-├── prompts.py              # System prompts for the agent
-└── diff_utils.py           # Diff generation utilities
+│   ├── document_app.py         # Textual-based document mode interface
+│   ├── styles.py               # CSS styling for document mode
+│   ├── utils.py                # UI utility functions
+│   └── widgets.py              # Custom UI widgets
+├── diff_utils.py               # Diff generation utilities
+├── executor.py                 # Tool execution implementations
+├── models.py                   # Model configuration loading and presets
+├── models.yaml                 # Model presets for different providers
+├── permissions.py              # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
+├── prompts.py                  # System prompts for the agent
+├── providers.py                # OpenAI-compatible LLM provider
+├── providers.yaml              # Model/provider preset definitions
+├── __main__.py                 # Module entry point
+└── __version__.py              # Version helper
 ```
 
 ## Core Architecture

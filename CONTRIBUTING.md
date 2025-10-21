@@ -30,7 +30,10 @@ source .venv/bin/activate  # Unix/macOS
 # or
 .venv\Scripts\activate     # Windows
 
-# Install in editable mode with dev dependencies
+# Install with development dependencies (recommended)
+make dev
+
+# Or install manually with uv
 uv pip install -e ".[dev]"
 ```
 
@@ -62,6 +65,9 @@ echo "DEEPSEEK_API_KEY=your_key_here" > .env
 
 ```bash
 # Run clippy-code in development mode
+make run
+
+# Or run the module directly
 python -m clippy "list files in the current directory"
 ```
 
@@ -74,6 +80,17 @@ We use modern Python tooling:
 - **ruff** for formatting and linting
 - **mypy** for type checking
 - **pytest** for testing
+
+The Makefile provides convenient wrappers:
+
+```bash
+make format       # Ruff autofix + format
+make lint         # Ruff linting
+make type-check   # Mypy type checking
+make check        # Run format, lint, and type-check together
+```
+
+Equivalent `uv` commands are available if you prefer them:
 
 ```bash
 # Format your code
@@ -93,9 +110,15 @@ uv run mypy src/clippy
 
 ```bash
 # Run all tests
+make test
+
+# Run with coverage report
+make cov
+
+# Run all tests with uv directly
 uv run pytest
 
-# Run with coverage
+# Run with coverage (uv)
 uv run pytest --cov=clippy --cov-report=html
 
 # Run specific test file
@@ -123,10 +146,18 @@ git checkout -b feature/your-feature-name
 3. **Test your changes**
 
 ```bash
+# Run quality checks
+make check
+
 # Run tests
+make test
+
+# Or execute tests directly
 uv run pytest
 
 # Test the CLI manually
+make run
+# or
 python -m clippy -i
 ```
 
@@ -159,34 +190,29 @@ Then open a pull request on GitHub.
 
 ```
 src/clippy/
-├── cli/
-│   ├── main.py             # Main entry point
-│   ├── parser.py           # Argument parsing
-│   ├── oneshot.py          # One-shot mode implementation
-│   └── repl.py             # Interactive REPL mode
 ├── agent/
-│   ├── core.py             # Core agent implementation
-│   ├── loop.py             # Agent loop logic
-│   ├── conversation.py     # Conversation utilities
-│   ├── tool_handler.py     # Tool calling handler
-│   ├── subagent.py         # Subagent implementation
-│   ├── subagent_manager.py # Subagent lifecycle management
-│   ├── subagent_types.py   # Subagent type configurations
-│   ├── subagent_cache.py   # Result caching system
-│   └── subagent_chainer.py # Hierarchical execution chaining
-├── mcp/                    # MCP (Model Context Protocol) integration
-│   ├── __init__.py
-│   ├── config.py           # MCP configuration loading
-│   ├── errors.py           # MCP error handling
-│   ├── manager.py          # MCP server connection manager
-│   ├── naming.py           # MCP tool naming utilities
-│   ├── schema.py           # MCP schema conversion
-│   ├── transports.py       # MCP transport layer
-│   ├── trust.py            # MCP trust system
-│   └── types.py            # MCP type definitions
+│   ├── core.py                 # Core agent implementation
+│   ├── loop.py                 # Agent loop logic
+│   ├── conversation.py         # Conversation utilities
+│   ├── tool_handler.py         # Tool calling handler
+│   ├── subagent.py             # Subagent implementation
+│   ├── subagent_manager.py     # Subagent lifecycle management
+│   ├── subagent_types.py       # Subagent type configurations
+│   ├── subagent_cache.py       # Result caching system
+│   ├── subagent_chainer.py     # Hierarchical execution chaining
+│   ├── subagent_config_manager.py # Subagent configuration management
+│   ├── utils.py                # Agent helper utilities
+│   └── errors.py               # Agent-specific exceptions
+├── cli/
+│   ├── main.py                 # Main entry point
+│   ├── parser.py               # Argument parsing
+│   ├── oneshot.py              # One-shot mode implementation
+│   ├── repl.py                 # Interactive REPL mode
+│   ├── commands.py             # High-level CLI commands
+│   └── setup.py                # Initial setup helpers
 ├── tools/
-│   ├── __init__.py         # Tool implementations and exports
-│   ├── catalog.py          # Tool catalog for merging built-in and MCP tools
+│   ├── __init__.py             # Tool registrations
+│   ├── catalog.py              # Tool catalog for built-in and MCP tools
 │   ├── create_directory.py
 │   ├── delete_file.py
 │   ├── delegate_to_subagent.py
@@ -200,18 +226,30 @@ src/clippy/
 │   ├── run_parallel_subagents.py
 │   ├── search_files.py
 │   └── write_file.py
+├── mcp/
+│   ├── config.py               # MCP configuration loading
+│   ├── errors.py               # MCP error handling
+│   ├── manager.py              # MCP server connection manager
+│   ├── naming.py               # MCP tool naming utilities
+│   ├── schema.py               # MCP schema conversion
+│   ├── transports.py           # MCP transport layer
+│   ├── trust.py                # MCP trust system
+│   └── types.py                # MCP type definitions
 ├── ui/
-|   ├── document_app.py     # Textual-based document mode interface
-|   ├── styles.py           # CSS styling for document mode
-|   ├── widgets.py          # Custom UI widgets
-|   └── utils.py            # UI utility functions
-├── providers.py            # OpenAI-compatible LLM provider
-├── executor.py             # Tool execution implementations
-├── permissions.py          # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
-├── models.py               # Model configuration loading and presets
-├── models.yaml             # Model presets for different providers
-├── prompts.py              # System prompts for the agent
-└── diff_utils.py           # Diff generation utilities
+│   ├── document_app.py         # Textual-based document mode interface
+│   ├── styles.py               # CSS styling for document mode
+│   ├── utils.py                # UI utility functions
+│   └── widgets.py              # Custom UI widgets
+├── diff_utils.py               # Diff generation utilities
+├── executor.py                 # Tool execution implementations
+├── models.py                   # Model configuration loading and presets
+├── models.yaml                 # Model presets for different providers
+├── permissions.py              # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
+├── prompts.py                  # System prompts for the agent
+├── providers.py                # OpenAI-compatible LLM provider
+├── providers.yaml              # Model/provider preset definitions
+├── __main__.py                 # Module entry point
+└── __version__.py              # Version helper
 ```
 
 ## Adding New Features
