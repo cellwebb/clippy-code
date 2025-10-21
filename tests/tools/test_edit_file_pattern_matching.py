@@ -30,7 +30,7 @@ def test_edit_file_replace_bare_except_pattern(executor: ActionExecutor, temp_di
     test_file = Path(temp_dir) / "test.py"
     test_file.write_text("try:\n    do_something()\nexcept:\n    pass\n")
 
-    # Try to replace the bare except with specific exception (substring match)
+    # Try to replace the bare except with specific exception
     success, message, content = executor.execute(
         "edit_file",
         {
@@ -38,7 +38,6 @@ def test_edit_file_replace_bare_except_pattern(executor: ActionExecutor, temp_di
             "operation": "replace",
             "pattern": "except:",
             "content": "except OSError:",
-            "match_pattern_line": False,  # Use substring matching
         },
     )
 
@@ -57,7 +56,7 @@ def test_edit_file_replace_pattern_with_exact_whitespace(
     test_file = Path(temp_dir) / "test.py"
     test_file.write_text("        except:\n            pass\n")
 
-    # Try to replace the indented except clause (exact line match)
+    # Try to replace the indented except clause
     success, message, content = executor.execute(
         "edit_file",
         {
@@ -65,7 +64,6 @@ def test_edit_file_replace_pattern_with_exact_whitespace(
             "operation": "replace",
             "pattern": "        except:",
             "content": "        except OSError:",
-            "match_pattern_line": True,  # Use exact line matching
         },
     )
 
@@ -93,7 +91,7 @@ def test_edit_file_replace_pattern_fails_with_ambiguous_match(
         "    pass\n"
     )
 
-    # Try to replace bare except - should fail because there are multiple matches (substring match)
+    # Try to replace bare except - should fail because there are multiple matches
     success, message, content = executor.execute(
         "edit_file",
         {
@@ -101,7 +99,6 @@ def test_edit_file_replace_pattern_fails_with_ambiguous_match(
             "operation": "replace",
             "pattern": "except:",
             "content": "except OSError:",
-            "match_pattern_line": False,  # Use substring matching
         },
     )
 
@@ -117,7 +114,7 @@ def test_edit_file_replace_pattern_case_insensitive(
     test_file = Path(temp_dir) / "test.py"
     test_file.write_text("try:\n    do_something()\nEXCEPT:\n    pass\n")
 
-    # Try to replace using lowercase - should work due to case insensitive matching (substring)
+    # Try to replace using lowercase - should work due to case insensitive matching
     success, message, content = executor.execute(
         "edit_file",
         {
@@ -125,7 +122,7 @@ def test_edit_file_replace_pattern_case_insensitive(
             "operation": "replace",
             "pattern": "except:",
             "content": "except OSError:",
-            "match_pattern_line": False,  # Use substring matching (case insensitive)
+            "regex_flags": ["IGNORECASE"],
         },
     )
 
@@ -142,7 +139,7 @@ def test_edit_file_replace_pattern_substring_match(executor: ActionExecutor, tem
     test_file = Path(temp_dir) / "test.py"
     test_file.write_text("    except Exception as e:\n        pass\n")
 
-    # Try to replace using just "except Exception" - should work as substring match
+    # Try to replace using just "except Exception" - should work
     success, message, content = executor.execute(
         "edit_file",
         {
@@ -150,7 +147,6 @@ def test_edit_file_replace_pattern_substring_match(executor: ActionExecutor, tem
             "operation": "replace",
             "pattern": "except Exception",
             "content": "except OSError",
-            "match_pattern_line": False,  # Use substring matching
         },
     )
 
@@ -169,7 +165,7 @@ def test_edit_file_replace_pattern_exact_match_disabled(
     test_file = Path(temp_dir) / "test.py"
     test_file.write_text("    except Exception as e:\n        pass\n")
 
-    # Try to replace using exact matching - should fail
+    # Try to replace using pattern matching
     success, message, content = executor.execute(
         "edit_file",
         {
@@ -177,7 +173,6 @@ def test_edit_file_replace_pattern_exact_match_disabled(
             "operation": "replace",
             "pattern": "except Exception as e:",
             "content": "except OSError as e:",
-            "match_pattern_line": False,
         },
     )
 
@@ -202,7 +197,6 @@ def test_edit_file_replace_pattern_not_found(executor: ActionExecutor, temp_dir:
             "operation": "replace",
             "pattern": "except TypeError:",
             "content": "except OSError:",
-            "match_pattern_line": False,  # Use substring matching
         },
     )
 
@@ -218,15 +212,14 @@ def test_edit_file_replace_pattern_with_special_characters(
     test_file = Path(temp_dir) / "test.py"
     test_file.write_text('print("Hello (world)!")\nprint("Another [test] here")\n')
 
-    # Try to replace pattern with parentheses
+    # Try to replace pattern with parentheses (need to escape them for regex)
     success, message, content = executor.execute(
         "edit_file",
         {
             "path": str(test_file),
             "operation": "replace",
-            "pattern": 'print("Hello (world)!")',
+            "pattern": 'print\\("Hello \\(world\\)!"\\)',
             "content": 'print("Hello [world]!")',
-            "match_pattern_line": True,  # Use exact line matching
         },
     )
 
@@ -254,7 +247,7 @@ def test_edit_file_replace_pattern_multiline_context(
         "    return 42\n"
     )
 
-    # Try to replace just the bare except in function1 (exact line match)
+    # Try to replace just the bare except in function1
     success, message, content = executor.execute(
         "edit_file",
         {
@@ -262,7 +255,6 @@ def test_edit_file_replace_pattern_multiline_context(
             "operation": "replace",
             "pattern": "    except:",
             "content": "    except OSError:",
-            "match_pattern_line": True,  # Use exact line matching
         },
     )
 

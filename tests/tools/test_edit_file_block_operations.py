@@ -197,21 +197,21 @@ Some content
             "Line 6\n",
         ]
 
-        bounds = _find_block_bounds(lines, "# START", "# END")
+        bounds = _find_block_bounds(lines, "# START", "# END", flags=0)
         assert bounds == (1, 4)
 
     def test_find_block_bounds_no_start(self):
         """Test _find_block_bounds when start pattern is missing."""
         lines = ["Line 1\n", "Content line 1\n", "# END\n", "Line 4\n"]
 
-        bounds = _find_block_bounds(lines, "# START", "# END")
+        bounds = _find_block_bounds(lines, "# START", "# END", flags=0)
         assert bounds is None
 
     def test_find_block_bounds_no_end(self):
         """Test _find_block_bounds when end pattern is missing."""
         lines = ["Line 1\n", "# START\n", "Content line 1\n", "Content line 2\n", "Line 5\n"]
 
-        bounds = _find_block_bounds(lines, "# START", "# END")
+        bounds = _find_block_bounds(lines, "# START", "# END", flags=0)
         assert bounds is None
 
     def test_find_block_bounds_multiple_matches(self):
@@ -227,7 +227,7 @@ Some content
             "Line 8\n",
         ]
 
-        bounds = _find_block_bounds(lines, "# START", "# END")
+        bounds = _find_block_bounds(lines, "# START", "# END", flags=0)
         # Should return the first matching block
         assert bounds == (1, 3)
 
@@ -235,7 +235,7 @@ Some content
         """Test _find_block_bounds when start pattern appears after end pattern."""
         lines = ["Line 1\n", "# END\n", "# START\n", "Content line 1\n", "# END\n", "Line 6\n"]
 
-        bounds = _find_block_bounds(lines, "# START", "# END")
+        bounds = _find_block_bounds(lines, "# START", "# END", flags=0)
         assert bounds == (2, 4)
 
     def test_block_replace_empty_content(self):

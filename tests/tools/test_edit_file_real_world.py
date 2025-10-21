@@ -91,7 +91,6 @@ def test_real_world_bare_except_with_substring_match(
             "operation": "replace",
             "pattern": "except:",
             "content": "except OSError:",
-            "match_pattern_line": False,
         },
     )
 
@@ -134,7 +133,6 @@ def test_real_world_bare_except_with_delete_and_insert(
             "path": str(test_file),
             "operation": "delete",
             "pattern": "        except:",
-            "match_pattern_line": True,
         },
     )
     assert success is True, f"Failed to delete bare except: {message}"
@@ -147,7 +145,6 @@ def test_real_world_bare_except_with_delete_and_insert(
             "operation": "insert_before",
             "pattern": "            pass",
             "content": "        except OSError:",
-            "match_pattern_line": True,
             "inherit_indent": False,
         },
     )
@@ -179,11 +176,10 @@ def test_real_world_whitespace_sensitivity_issue(executor: ActionExecutor, temp_
 
     # Multiple approaches should all work
     approaches = [
-        {"pattern": "except:", "content": "except OSError:", "match_pattern_line": False},
+        {"pattern": "except:", "content": "except OSError:"},
         {
             "pattern": "        except:",
             "content": "        except OSError:",
-            "match_pattern_line": True,
         },
     ]
 
@@ -215,7 +211,7 @@ def test_whitespace_preservation_in_replacement(executor: ActionExecutor, temp_d
         {
             "path": str(test_file),
             "operation": "replace",
-            "pattern": "        print('hello')",
+            "pattern": "        print\\('hello'\\)",
             "content": "        print('hello world')",
         },
     )
@@ -251,7 +247,6 @@ def test_edit_file_no_line_number_corruption(executor: ActionExecutor, temp_dir:
             "operation": "replace",
             "pattern": "    # Line 2",
             "content": "    # Modified line 2",
-            "match_pattern_line": True,
         },
     )
 
@@ -283,7 +278,6 @@ def test_edit_file_pattern_replacement_preserves_structure(
             "operation": "replace",
             "pattern": "except:",
             "content": "except Exception:",
-            "match_pattern_line": True,
         },
     )
 
@@ -327,7 +321,6 @@ def test_edit_file_consistent_pattern_matching(executor: ActionExecutor, temp_di
                 "operation": "replace",
                 "pattern": pattern,
                 "content": "except OSError:",
-                "match_pattern_line": match_full_line,
             },
         )
 
@@ -402,7 +395,6 @@ def test_edit_file_error_recovery_and_rollback(executor: ActionExecutor, temp_di
             "operation": "replace",
             "pattern": "Valid",
             "content": "Modified",
-            "match_pattern_line": False,
         },
     )
 

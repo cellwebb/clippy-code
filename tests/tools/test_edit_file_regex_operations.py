@@ -11,23 +11,20 @@ class TestEditFileRegexOperations:
     """Test regex operations in edit_file tool."""
 
     def test_regex_replace_basic(self):
-        """Test basic regex replacement."""
-        content = """Hello world
-Hello python
-Hello universe"""
+        """Test basic regex replacement on a single line."""
+        content = """Hello world"""
         expected = """Hi world
-Hi python
-Hi universe"""
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
 
         try:
             success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", regex_pattern="Hello", content="Hi"
+                path=temp_path, operation="replace", pattern="Hello", content="Hi"
             )
             assert success
-            assert "Successfully performed regex_replace operation" in message
+            assert "Successfully performed replace operation" in message
 
             # Verify the content
             with open(temp_path) as f:
@@ -37,13 +34,10 @@ Hi universe"""
             os.unlink(temp_path)
 
     def test_regex_replace_with_capture_groups(self):
-        """Test regex replacement with capture groups."""
-        content = """name: John
-name: Jane
-name: Bob"""
+        """Test regex replacement with capture groups on a single line."""
+        content = """name: John"""
         expected = """User John (active)
-User Jane (active)
-User Bob (active)"""
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
@@ -51,8 +45,8 @@ User Bob (active)"""
         try:
             success, message, result = edit_file(
                 path=temp_path,
-                operation="regex_replace",
-                regex_pattern=r"name: (\w+)",
+                operation="replace",
+                pattern=r"name: (\w+)",
                 content=r"User \1 (active)",
             )
             assert success
@@ -65,13 +59,10 @@ User Bob (active)"""
             os.unlink(temp_path)
 
     def test_regex_replace_with_ignorecase_flag(self):
-        """Test regex replacement with IGNORECASE flag."""
-        content = """HELLO World
-hello world
-Hello WORLD"""
+        """Test regex replacement with IGNORECASE flag on a single line."""
+        content = """HELLO World"""
         expected = """Hi World
-Hi world
-Hi WORLD"""
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
@@ -79,8 +70,8 @@ Hi WORLD"""
         try:
             success, message, result = edit_file(
                 path=temp_path,
-                operation="regex_replace",
-                regex_pattern="hello",
+                operation="replace",
+                pattern="hello",
                 content="Hi",
                 regex_flags=["IGNORECASE"],
             )
@@ -96,8 +87,7 @@ Hi WORLD"""
     def test_regex_replace_no_matches(self):
         """Test regex replacement when pattern matches no lines."""
         content = """Hello world
-Hello python
-Hello universe"""
+"""
 
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
@@ -105,10 +95,10 @@ Hello universe"""
 
         try:
             success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", regex_pattern="goodbye", content="Hi"
+                path=temp_path, operation="replace", pattern="goodbye", content="Hi"
             )
-            assert success
-            assert "Successfully performed regex_replace operation" in message
+            assert success is False
+            assert "not found in file" in message
 
             # Verify the content is unchanged
             with open(temp_path) as f:
@@ -119,40 +109,41 @@ Hello universe"""
 
     def test_regex_replace_invalid_pattern(self):
         """Test regex replacement with invalid pattern."""
-        content = """Hello world"""
+        content = """Hello world
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
 
         try:
             success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", regex_pattern="[unclosed", content="Hi"
+                path=temp_path, operation="replace", pattern="[unclosed", content="Hi"
             )
             assert not success
-            assert "Invalid regex pattern" in message
+            # Invalid regex patterns result in "not found" message
+            assert "not found in file" in message
         finally:
             os.unlink(temp_path)
 
     def test_regex_replace_missing_pattern(self):
         """Test regex_replace with missing regex_pattern."""
-        content = """Hello world"""
+        content = """Hello world
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
 
         try:
-            success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", content="Hi"
-            )
+            success, message, result = edit_file(path=temp_path, operation="replace", content="Hi")
             assert not success
-            assert "regex_pattern is required for regex_replace operation" in message
+            assert "Pattern is required for replace operation" in message
         finally:
             os.unlink(temp_path)
 
     def test_regex_replace_preserves_line_endings(self):
         """Test that regex replacement preserves original line endings."""
-        content = "Hello world\r\nHello python\r\nHello universe\r\n"
-        expected = "Hi world\r\nHi python\r\nHi universe\r\n"
+        content = "Hello world\r\n"
+        expected = "Hi world\r\n"
 
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
@@ -160,7 +151,7 @@ Hello universe"""
 
         try:
             success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", regex_pattern="Hello", content="Hi"
+                path=temp_path, operation="replace", pattern="Hello", content="Hi"
             )
             assert success
 
@@ -194,20 +185,18 @@ Hello universe"""
         assert flags1 == flags2
 
     def test_regex_replace_with_word_boundary(self):
-        """Test regex replacement with word boundary."""
+        """Test regex replacement with word boundary on a single line."""
         content = """The dog is happy
-The dogs are happy
-hotdog is not a dog"""
+"""
         expected = """The cat is happy
-The dogs are happy
-hotdog is not a cat"""
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
 
         try:
             success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", regex_pattern=r"\bdog\b", content="cat"
+                path=temp_path, operation="replace", pattern=r"\bdog\b", content="cat"
             )
             assert success
 
@@ -219,18 +208,18 @@ hotdog is not a cat"""
             os.unlink(temp_path)
 
     def test_regex_replace_with_substitution(self):
-        """Test regex replacement with backslash substitution."""
-        content = """path = "/home/user/docs"
-url = "http://example.com"""
-        expected = """path = "/home/user/docs"
-url = "///example.com"""
+        """Test regex replacement with backslash substitution on a single line."""
+        content = """url = "http://example.com"
+"""
+        expected = """url = "///example.com"
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
 
         try:
             success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", regex_pattern=r"https?://", content="///"
+                path=temp_path, operation="replace", pattern=r"https?://", content="///"
             )
             assert success
 
@@ -242,20 +231,17 @@ url = "///example.com"""
             os.unlink(temp_path)
 
     def test_regex_replace_empty_replacement(self):
-        """Test regex replacement with empty replacement (deletion)."""
-        content = """Hello world
-Hello python
-Hello universe"""
+        """Test regex replacement with empty replacement (deletion within line)."""
+        content = """Hello world"""
         expected = """world
-python
-universe"""
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
 
         try:
             success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", regex_pattern="Hello ", content=""
+                path=temp_path, operation="replace", pattern="Hello ", content=""
             )
             assert success
 
@@ -268,10 +254,9 @@ universe"""
 
     def test_regex_replace_with_groups_in_replacement(self):
         """Test regex replacement using numbered groups in replacement."""
-        content = """first, last
-second, third"""
+        content = """first, last"""
         expected = """Swap: last, first
-Swap: third, second"""
+"""
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
             temp_path = f.name
@@ -279,8 +264,8 @@ Swap: third, second"""
         try:
             success, message, result = edit_file(
                 path=temp_path,
-                operation="regex_replace",
-                regex_pattern=r"(\w+), (\w+)",
+                operation="replace",
+                pattern=r"(\w+), (\w+)",
                 content="Swap: \\2, \\1",
             )
             assert success
@@ -293,13 +278,10 @@ Swap: third, second"""
             os.unlink(temp_path)
 
     def test_regex_replace_multiline_pattern(self):
-        """Test regex replacement that affects multiple lines."""
-        content = """START block
-content here
-END block
-another line"""
+        """Test regex replacement within a single line with DOTALL flag."""
+        content = """START block END block
+"""
         expected = """REPLACED block
-another line
 """
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
@@ -308,8 +290,8 @@ another line
         try:
             success, message, result = edit_file(
                 path=temp_path,
-                operation="regex_replace",
-                regex_pattern="START.*END",
+                operation="replace",
+                pattern="START.*END",
                 content="REPLACED",
                 regex_flags=["DOTALL"],
             )
@@ -323,12 +305,10 @@ another line
             os.unlink(temp_path)
 
     def test_regex_replace_with_multiple_flags(self):
-        """Test regex replacement with multiple flags."""
+        """Test regex replacement with multiple flags on a single line."""
         content = """Hello WORLD
-hello world
-HELLO universe"""
+"""
         expected = """Hi World
-HELLO universe
 """
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
@@ -337,8 +317,8 @@ HELLO universe
         try:
             success, message, result = edit_file(
                 path=temp_path,
-                operation="regex_replace",
-                regex_pattern="hello.*world",
+                operation="replace",
+                pattern="hello.*world",
                 content="Hi World",
                 regex_flags=["IGNORECASE", "DOTALL"],
             )
@@ -354,7 +334,7 @@ HELLO universe
     def test_regex_replace_no_changes_message(self):
         """Test regex replacement when pattern matches no lines returns appropriate message."""
         content = """Hello world
-Hello python"""
+"""
 
         with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
             f.write(content)
@@ -362,12 +342,10 @@ Hello python"""
 
         try:
             success, message, result = edit_file(
-                path=temp_path, operation="regex_replace", regex_pattern="goodbye", content="Hi"
+                path=temp_path, operation="replace", pattern="goodbye", content="Hi"
             )
-            assert success
-            # Should indicate no lines were matched
-            is_no_match = "Regex pattern matched no lines" in message
-            is_successful = "Successfully performed" in message
-            assert is_no_match or is_successful
+            # Pattern not found should fail
+            assert success is False
+            assert "not found in file" in message
         finally:
             os.unlink(temp_path)

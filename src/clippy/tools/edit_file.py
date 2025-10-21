@@ -10,8 +10,7 @@ TOOL_SCHEMA = {
         "name": "edit_file",
         "description": (
             "Edit a file by inserting, replacing, deleting, or appending content. "
-            "Supports pattern-anchored operations, block operations, and regex patterns "
-            "for safer editing."
+            "All pattern matching uses regular expressions for maximum flexibility."
         ),
         "parameters": {
             "type": "object",
@@ -21,14 +20,19 @@ TOOL_SCHEMA = {
                     "type": "string",
                     "description": (
                         "The edit operation to perform:\n"
-                        "- 'replace': Replace content matching a pattern\n"
-                        "- 'delete': Delete lines matching a pattern\n"
+                        "- 'replace': Replace content matching a regex pattern "
+                        "(must match exactly once)\n"
+                        "- 'delete': Delete lines matching a regex pattern "
+                        "(can match multiple lines)\n"
                         "- 'append': Add content at the end of the file\n"
-                        "- 'insert_before': Insert before a line matching a pattern\n"
-                        "- 'insert_after': Insert after a line matching a pattern\n"
-                        "- 'block_replace': Replace a multi-line block between start/end markers\n"
-                        "- 'block_delete': Delete a multi-line block between start/end markers\n"
-                        "- 'regex_replace': Replace using regular expressions with capture groups"
+                        "- 'insert_before': Insert before a line matching a regex pattern "
+                        "(must match exactly once)\n"
+                        "- 'insert_after': Insert after a line matching a regex pattern "
+                        "(must match exactly once)\n"
+                        "- 'block_replace': Replace a multi-line block between start/end regex "
+                        "markers\n"
+                        "- 'block_delete': Delete a multi-line block between start/end regex "
+                        "markers"
                     ),
                     "enum": [
                         "replace",
@@ -38,34 +42,25 @@ TOOL_SCHEMA = {
                         "insert_after",
                         "block_replace",
                         "block_delete",
-                        "regex_replace",
                     ],
                 },
                 "content": {
                     "type": "string",
-                    "description": "Content to insert, replace with, or append",
+                    "description": (
+                        "Content to insert, replace with, or append. For replace operations, "
+                        "can use regex capture groups (\\1, \\2, etc.)"
+                    ),
                 },
                 "pattern": {
                     "type": "string",
                     "description": (
-                        "Pattern to match lines for all operations (required for replace, "
-                        "delete, insert_before, insert_after). This pattern must match "
-                        "exactly one line in the file for replace, delete, insert_before, "
-                        "and insert_after operations. For delete, insert_before, and "
-                        "insert_after operations, the pattern matches whole lines by "
-                        "default (match_pattern_line=true). For replace operations with "
-                        "match_pattern_line=false, the pattern can match substrings "
-                        "within lines (required for replace, delete, insert_before, "
-                        "insert_after)"
+                        "Regular expression pattern to match lines (required for replace, delete, "
+                        "insert_before, insert_after). The pattern is searched within each line "
+                        "using re.search(). Use anchors (^ for start, $ for end) to match full "
+                        "lines. For replace/insert_before/insert_after, the pattern must match "
+                        "exactly one line. For delete, can match multiple lines. Use regex_flags "
+                        "to control matching behavior (e.g., IGNORECASE, MULTILINE, DOTALL)."
                     ),
-                },
-                "match_pattern_line": {
-                    "type": "boolean",
-                    "description": (
-                        "Whether to match the pattern against entire lines (true) or "
-                        "just substrings (false)"
-                    ),
-                    "default": True,
                 },
                 "inherit_indent": {
                     "type": "boolean",
@@ -78,29 +73,27 @@ TOOL_SCHEMA = {
                 "start_pattern": {
                     "type": "string",
                     "description": (
-                        "Start pattern for block operations (block_replace, block_delete). "
-                        "Marks the beginning of the block to target."
+                        "Regular expression pattern for block operations (block_replace, "
+                        "block_delete). Marks the beginning of the block to target. Searched "
+                        "within each line using re.search()."
                     ),
                 },
                 "end_pattern": {
                     "type": "string",
                     "description": (
-                        "End pattern for block operations (block_replace, block_delete). "
-                        "Marks the end of the block to target."
-                    ),
-                },
-                "regex_pattern": {
-                    "type": "string",
-                    "description": (
-                        "Regular expression pattern for regex_replace operation. "
-                        "Can contain capture groups for use in replacement content."
+                        "Regular expression pattern for block operations (block_replace, "
+                        "block_delete). Marks the end of the block to target. Searched within each "
+                        "line using re.search()."
                     ),
                 },
                 "regex_flags": {
                     "type": "array",
                     "description": (
-                        "List of regex flags for regex_replace operation. "
-                        "Available flags: 'IGNORECASE', 'MULTILINE', 'DOTALL', 'VERBOSE'"
+                        "List of regex flags to apply to pattern matching. "
+                        "Available flags: 'IGNORECASE', 'MULTILINE', 'DOTALL', 'VERBOSE'. "
+                        "Default is [] (no flags). Common usage: ['IGNORECASE'] for "
+                        "case-insensitive matching, ['MULTILINE', 'DOTALL'] for multi-line pattern "
+                        "matching."
                     ),
                     "items": {"type": "string"},
                     "default": [],
@@ -127,51 +120,34 @@ def _normalize_content(content: str, eol: str) -> str:
     return normalized
 
 
-def _split_pattern_lines(pattern: str) -> list[str]:
-    """Split a multi-line pattern while preserving intentional blank lines."""
-    normalized_pattern = pattern.replace("\r\n", "\n")
-    lines = normalized_pattern.splitlines()
-    if normalized_pattern.endswith("\n") and not lines:
-        return [""]
-    return lines
+def _find_matching_lines(lines: list[str], pattern: str, flags: int) -> list[int]:
+    """
+    Find all lines matching the regex pattern.
 
+    Args:
+        lines: List of file lines (with EOL)
+        pattern: Regular expression pattern
+        flags: Compiled regex flags
 
-def _find_matching_lines(lines: list[str], pattern: str, match_pattern_line: bool) -> list[int]:
-    """Find all lines matching the pattern."""
+    Returns:
+        List of line indices that match the pattern
+    """
     matching_indices: list[int] = []
 
-    # Check if pattern contains newlines (multi-line pattern)
-    is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
+    try:
+        compiled_pattern = re.compile(pattern, flags)
 
-    if is_multiline_pattern and match_pattern_line:
-        # For multi-line patterns with exact matching, we need to match across multiple lines
-        pattern_lines = _split_pattern_lines(pattern)
-        if not pattern_lines:
-            return matching_indices
-
-        # Try to find the pattern starting at each line
-        for i in range(len(lines) - len(pattern_lines) + 1):
-            match = True
-            for j, pattern_line in enumerate(pattern_lines):
-                line_without_eol = lines[i + j].rstrip("\r\n")
-                # Normalize both pattern line and file line to LF for comparison
-                normalized_file_line = line_without_eol.replace("\r\n", "\n")
-                if normalized_file_line != pattern_line:
-                    match = False
-                    break
-            if match:
-                matching_indices.append(i)
-    else:
-        # Single-line pattern or substring matching
         for i, line in enumerate(lines):
-            if match_pattern_line:
-                # Full line equality match (remove EOL for comparison)
-                if line.rstrip("\r\n") == pattern:
-                    matching_indices.append(i)
-            else:
-                # Substring match (case insensitive)
-                if pattern.lower() in line.lower():
-                    matching_indices.append(i)
+            # Search within the line (without EOL for cleaner matching)
+            line_text = line.rstrip("\r\n")
+            if compiled_pattern.search(line_text):
+                matching_indices.append(i)
+
+    except re.error:
+        # If regex compilation fails, return empty list
+        # Error will be reported by the caller
+        return []
+
     return matching_indices
 
 
@@ -204,15 +180,16 @@ def _apply_indent(content: str, leading_whitespace: str, eol: str) -> str:
 
 
 def _find_block_bounds(
-    lines: list[str], start_pattern: str, end_pattern: str
+    lines: list[str], start_pattern: str, end_pattern: str, flags: int
 ) -> tuple[int, int] | None:
     """
-    Find the start and end indices of a block in the lines.
+    Find the start and end indices of a block in the lines using regex patterns.
 
     Args:
         lines: List of file lines (with EOL)
-        start_pattern: Pattern that marks the start of the block
-        end_pattern: Pattern that marks the end of the block
+        start_pattern: Regex pattern that marks the start of the block
+        end_pattern: Regex pattern that marks the end of the block
+        flags: Compiled regex flags
 
     Returns:
         Tuple of (start_idx, end_idx) or None if not found
@@ -220,26 +197,34 @@ def _find_block_bounds(
     start_idx = None
     end_idx = None
 
-    for i, line in enumerate(lines):
-        line_text = line.rstrip("\r\n")
+    try:
+        compiled_start = re.compile(start_pattern, flags)
+        compiled_end = re.compile(end_pattern, flags)
 
-        # Find start pattern
-        if start_idx is None and start_pattern in line_text:
-            start_idx = i
-            # Check if end pattern is also on the same line
-            if end_pattern in line_text:
+        for i, line in enumerate(lines):
+            line_text = line.rstrip("\r\n")
+
+            # Find start pattern
+            if start_idx is None and compiled_start.search(line_text):
+                start_idx = i
+                # Check if end pattern is also on the same line
+                if compiled_end.search(line_text):
+                    end_idx = i
+                    break
+                continue
+
+            # Find end pattern (must come after start)
+            if start_idx is not None and compiled_end.search(line_text):
                 end_idx = i
                 break
-            continue
 
-        # Find end pattern (must come after start)
-        if start_idx is not None and end_pattern in line_text:
-            end_idx = i
-            break
+        if start_idx is not None and end_idx is not None:
+            return (start_idx, end_idx)
+        return None
 
-    if start_idx is not None and end_idx is not None:
-        return (start_idx, end_idx)
-    return None
+    except re.error:
+        # If regex compilation fails, return None
+        return None
 
 
 def _parse_regex_flags(flags_list: list[str]) -> int:
@@ -267,109 +252,31 @@ def _parse_regex_flags(flags_list: list[str]) -> int:
     return flags
 
 
-def _apply_regex_replace(
-    lines: list[str], pattern: str, replacement: str, flags: int
-) -> tuple[bool, str, list[str]]:
-    """
-    Apply regex replacement to all lines.
-
-    Args:
-        lines: List of file lines (with EOL)
-        pattern: Regular expression pattern
-        replacement: Replacement string (can use capture groups)
-        flags: Regex flags
-
-    Returns:
-        Tuple of (success, message, new_lines)
-    """
-    try:
-        # If DOTALL flag is used, process the entire content as one piece
-        # to allow multi-line matches
-        if flags & re.DOTALL:
-            full_content = "".join(lines)
-            compiled_pattern = re.compile(pattern, flags)
-            new_content = compiled_pattern.sub(replacement, full_content)
-
-            if new_content != full_content:
-                # Split back into lines preserving original structure as much as possible
-                # Try to preserve original line endings by analyzing the original content
-                if "\r\n" in full_content:
-                    eol = "\r\n"
-                else:
-                    eol = "\n"
-
-                new_lines = new_content.splitlines(keepends=True)
-                # Ensure lines end with proper EOL
-                for i, line in enumerate(new_lines):
-                    if not line.endswith("\r\n") and not line.endswith("\n"):
-                        new_lines[i] = line + eol
-
-                return True, "Regex replacement completed successfully", new_lines
-            else:
-                return True, "Regex pattern matched no lines", lines
-        else:
-            # Process line by line for non-DOTALL operations
-            compiled_pattern = re.compile(pattern, flags)
-            new_lines = []
-            made_changes = False
-
-            for line in lines:
-                line_text = line.rstrip("\r\n")
-                new_line_text = compiled_pattern.sub(replacement, line_text)
-
-                # Preserve the original line ending exactly as it was
-                if line.endswith("\r\n"):
-                    new_line = new_line_text + "\r\n"
-                elif line.endswith("\n"):
-                    new_line = new_line_text + "\n"
-                else:
-                    # Line had no ending, preserve that
-                    new_line = new_line_text
-
-                new_lines.append(new_line)
-
-                if new_line_text != line_text:
-                    made_changes = True
-
-            if made_changes:
-                return True, "Regex replacement completed successfully", new_lines
-            else:
-                return True, "Regex pattern matched no lines", lines
-
-    except re.error as e:
-        return False, f"Invalid regex pattern: {str(e)}", lines
-    except Exception as e:
-        return False, f"Regex error: {str(e)}", lines
-
-
 def apply_edit_operation(
     original_content: str,
     operation: str,
     content: str = "",
     pattern: str = "",
-    match_pattern_line: bool = True,
     inherit_indent: bool = True,
     start_pattern: str = "",
     end_pattern: str = "",
-    regex_pattern: str = "",
     regex_flags: list[str] | None = None,
 ) -> tuple[bool, str, str | None]:
     """
     Apply an edit operation to content and return the result.
 
     This function is used both for executing edits and generating previews.
+    All pattern matching uses regular expressions.
 
     Args:
         original_content: The original file content
         operation: The edit operation to perform
-        content: Content to insert, replace with, or append
-        pattern: Pattern to match lines for operations (for basic operations)
-        match_pattern_line: Whether to match the pattern against entire lines
+        content: Content to insert, replace with, or append. Can use capture groups (\\1, \\2, etc.)
+        pattern: Regular expression pattern to match lines
         inherit_indent: For insert operations, whether to copy leading whitespace
-        start_pattern: Start pattern for block operations (block_replace, block_delete)
-        end_pattern: End pattern for block operations (block_replace, block_delete)
-        regex_pattern: Regular expression pattern for regex_replace operation
-        regex_flags: List of regex flags for regex_replace operation
+        start_pattern: Regex pattern for block operations start marker
+        end_pattern: Regex pattern for block operations end marker
+        regex_flags: List of regex flags (IGNORECASE, MULTILINE, DOTALL, VERBOSE)
 
     Returns:
         Tuple of (success: bool, message: str, new_content: str | None)
@@ -377,13 +284,14 @@ def apply_edit_operation(
     try:
         eol = _detect_eol(original_content)
         lines = original_content.splitlines(keepends=True)
+        flags = _parse_regex_flags(regex_flags or [])
 
         # Handle different operations
         if operation == "replace":
             if not pattern:
                 return False, "Pattern is required for replace operation", None
 
-            matching_indices = _find_matching_lines(lines, pattern, match_pattern_line)
+            matching_indices = _find_matching_lines(lines, pattern, flags)
             if len(matching_indices) == 0:
                 return False, f"Pattern '{pattern}' not found in file", None
             elif len(matching_indices) > 1:
@@ -396,64 +304,26 @@ def apply_edit_operation(
 
             idx = matching_indices[0]
 
-            if match_pattern_line:
-                # For multi-line patterns, we need to replace multiple lines
-                is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
-                if is_multiline_pattern:
-                    pattern_lines = _split_pattern_lines(pattern)
-                    if not pattern_lines:
-                        return False, "Pattern is empty for multi-line replace", None
-
-                    # Remove the old lines
-                    for _ in range(len(pattern_lines)):
-                        lines.pop(idx)
-
-                    # Insert the new content (normalized)
-                    new_content_normalized = _normalize_content(content, eol)
-                    new_lines = new_content_normalized.rstrip(eol).split(eol)
-
-                    # Insert new lines at the same position
-                    for new_line in reversed(new_lines):
-                        lines.insert(idx, new_line + eol)
-                else:
-                    # Single line replacement
-                    lines[idx] = _normalize_content(content, eol)
-            else:
-                # Substring replacement
+            # Use regex substitution to replace within the matched line
+            try:
                 line_without_eol = lines[idx].rstrip("\r\n")
-                lower_line = line_without_eol.lower()
-                start_pos = lower_line.find(pattern.lower())
-                if start_pos == -1:
-                    return False, f"Pattern '{pattern}' not found in line during replacement", None
-
-                end_pos = start_pos + len(pattern)
-                new_line = line_without_eol[:start_pos] + content + line_without_eol[end_pos:]
-                lines[idx] = new_line + eol
+                compiled_pattern = re.compile(pattern, flags)
+                new_line_text = compiled_pattern.sub(content, line_without_eol)
+                lines[idx] = new_line_text + eol
+            except re.error as e:
+                return False, f"Invalid regex pattern: {str(e)}", None
 
         elif operation == "delete":
             if not pattern:
                 return False, "Pattern is required for delete operation", None
 
-            matching_indices = _find_matching_lines(lines, pattern, match_pattern_line)
+            matching_indices = _find_matching_lines(lines, pattern, flags)
             if not matching_indices:
                 return False, f"Pattern '{pattern}' not found in file", None
 
-            # For multi-line patterns, we need to handle multiple lines
-            is_multiline_pattern = "\n" in pattern or "\r\n" in pattern
-            if is_multiline_pattern and match_pattern_line:
-                # Delete in reverse order, but account for multi-line patterns
-                pattern_lines = _split_pattern_lines(pattern)
-                if not pattern_lines:
-                    return False, "Pattern is empty for multi-line delete", None
-
-                for start_idx in reversed(matching_indices):
-                    for _ in range(len(pattern_lines)):
-                        if start_idx < len(lines):
-                            lines.pop(start_idx)
-            else:
-                # Single-line deletion - delete in reverse order to avoid index shifting
-                for i in reversed(matching_indices):
-                    lines.pop(i)
+            # Delete in reverse order to avoid index shifting
+            for i in reversed(matching_indices):
+                lines.pop(i)
 
         elif operation == "append":
             normalized_content = _normalize_content(content, eol)
@@ -474,7 +344,7 @@ def apply_edit_operation(
             if not pattern:
                 return False, f"Pattern is required for {operation} operation", None
 
-            matching_indices = _find_matching_lines(lines, pattern, match_pattern_line)
+            matching_indices = _find_matching_lines(lines, pattern, flags)
             if len(matching_indices) == 0:
                 return False, f"Pattern '{pattern}' not found in file", None
             elif len(matching_indices) > 1:
@@ -505,7 +375,7 @@ def apply_edit_operation(
                     None,
                 )
 
-            block_bounds = _find_block_bounds(lines, start_pattern, end_pattern)
+            block_bounds = _find_block_bounds(lines, start_pattern, end_pattern, flags)
             if not block_bounds:
                 return (
                     False,
@@ -556,7 +426,7 @@ def apply_edit_operation(
                     None,
                 )
 
-            block_bounds = _find_block_bounds(lines, start_pattern, end_pattern)
+            block_bounds = _find_block_bounds(lines, start_pattern, end_pattern, flags)
             if not block_bounds:
                 return (
                     False,
@@ -577,17 +447,6 @@ def apply_edit_operation(
                 for _ in range(end_idx - start_idx - 1):
                     lines.pop(start_idx + 1)
 
-        elif operation == "regex_replace":
-            if not regex_pattern:
-                return False, "regex_pattern is required for regex_replace operation", None
-
-            flags = _parse_regex_flags(regex_flags or [])
-            success, message, new_lines = _apply_regex_replace(lines, regex_pattern, content, flags)
-            if not success:
-                return False, message, None
-
-            lines = new_lines
-
         else:
             return False, f"Unknown operation: {operation}", None
 
@@ -604,14 +463,12 @@ def edit_file(
     operation: str,
     content: str = "",
     pattern: str = "",
-    match_pattern_line: bool = True,
     inherit_indent: bool = True,
     start_pattern: str = "",
     end_pattern: str = "",
-    regex_pattern: str = "",
     regex_flags: list[str] | None = None,
 ) -> tuple[bool, str, Any]:
-    """Edit a file with enhanced block and regex operations."""
+    """Edit a file using regex-based pattern matching for all operations."""
     try:
         # Read current file content
         # Use newline='' to preserve original line endings (CRLF vs LF)
@@ -627,11 +484,9 @@ def edit_file(
             operation,
             content,
             pattern,
-            match_pattern_line,
             inherit_indent,
             start_pattern,
             end_pattern,
-            regex_pattern,
             regex_flags,
         )
 
