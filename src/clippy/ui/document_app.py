@@ -914,26 +914,40 @@ class DocumentApp(App[None]):
         current_model = self.agent.model
         current_provider = self.agent.base_url or "OpenAI"
 
-        conv_log.write("\n📎 [bold]Available Model Presets[/bold]\n")
+        conv_log.write("\n📎 [bold]Model Management[/bold]\n")
 
-        for name, desc, is_default in models:
-            default_indicator = " [green](default)[/green]" if is_default else ""
-            if name == current_model:
-                conv_log.write(
-                    f"• [green]★ {name:20}[/green] - {desc}{default_indicator} [dim](current)[/dim]"
-                )
-            else:
-                conv_log.write(f"• [cyan]{name:20}[/cyan] - {desc}{default_indicator}")
+        if models:
+            conv_log.write("[bold]Your Saved Models:[/bold]")
+            for name, desc, is_default in models:
+                default_indicator = " [green](default)[/green]" if is_default else ""
+                if name == current_model:
+                    conv_log.write(
+                        f"• [green]★ {name:20}[/green] - {desc}{default_indicator} [dim](current)[/dim]"
+                    )
+                else:
+                    conv_log.write(f"• [cyan]{name:20}[/cyan] - {desc}{default_indicator}")
+            conv_log.write("")
+        else:
+            conv_log.write("[yellow]No saved models yet[/yellow]\n")
 
-        conv_log.write("")
         conv_log.write("[bold]Current Configuration:[/bold]")
         conv_log.write(f"• Model: [cyan]{current_model}[/cyan]")
         conv_log.write(f"• Provider: [cyan]{current_provider}[/cyan]")
         conv_log.write("")
-        conv_log.write("[bold]Usage:[/bold]")
-        conv_log.write("• /[bold]model list[/bold] - Show this model list")
-        conv_log.write("• /[bold]model <name>[/bold] - Switch to specific model")
-        conv_log.write("• /[bold]model <provider>/<model>[/bold] - Custom provider")
+        conv_log.write("[bold]Available Commands:[/bold]")
+        conv_log.write("• /[bold]model list[/bold] - Show your saved models")
+        conv_log.write("• /[bold]model <name>[/bold] - Switch to a saved model")
+        conv_log.write("• /[bold]model add <provider> <model_id> [options][/bold] - Add a new model")
+        conv_log.write("  Options: --name <name>, --default")
+        conv_log.write("• /[bold]model remove <name>[/bold] - Remove a saved model")
+        conv_log.write("• /[bold]model default <name>[/bold] - Set model as default")
+        conv_log.write("• /[bold]model use <provider> <model_id>[/bold] - Try a model without saving")
+        conv_log.write("")
+        conv_log.write("[bold]Examples:[/bold]")
+        conv_log.write('• /model add openai gpt-5 --name "gpt-5" --default')
+        conv_log.write('• /model add cerebras qwen-3-coder-480b --name "q3c"')
+        conv_log.write("• /model use ollama llama3.2:latest")
+        conv_log.write("• /model gpt-5")
         conv_log.write("")
         conv_log.write(
             "[dim]💡 Some models may require specific API keys in your environment[/dim]\n"

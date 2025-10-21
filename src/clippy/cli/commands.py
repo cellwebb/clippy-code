@@ -238,8 +238,21 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
                     "[bold]No saved models yet[/bold]\n\n"
                     "[dim]Add a model to get started:\n"
                     '  /model add openai gpt-5 --name "gpt-5" --default\n'
-                    '  /model add cerebras qwen-3-coder-480b --name "q3c"[/dim]',
-                    title="Models",
+                    '  /model add cerebras qwen-3-coder-480b --name "q3c"[/dim]\n\n'
+                    "[bold]Available Commands:[/bold]\n"
+                    "  /model list - Show your saved models\n"
+                    "  /model <name> - Switch to a saved model\n"
+                    "  /model add <provider> <model_id> [options] - Add a new model\n"
+                    "    Options: --name <name>, --default\n"
+                    "  /model remove <name> - Remove a saved model\n"
+                    "  /model default <name> - Set model as default\n"
+                    "  /model use <provider> <model_id> - Try a model without saving\n\n"
+                    "[dim]Examples:\n"
+                    '  /model add openai gpt-5 --name "gpt-5" --default\n'
+                    '  /model add cerebras qwen-3-coder-480b --name "q3c"\n'
+                    "  /model use ollama llama3.2:latest\n"
+                    "  /model gpt-5[/dim]",
+                    title="Model Management",
                     border_style="yellow",
                 )
             )
@@ -257,8 +270,20 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
             Panel.fit(
                 "[bold]Your Saved Models:[/bold]\n\n" + "\n".join(model_lines) + f"\n\n"
                 f"[bold]Current:[/bold] {current_model} ({current_provider})\n\n"
-                f"[dim]Usage: /model <name> to switch[/dim]",
-                title="Models",
+                "[bold]Available Commands:[/bold]\n"
+                "  /model list - Show your saved models\n"
+                "  /model <name> - Switch to a saved model\n"
+                "  /model add <provider> <model_id> [options] - Add a new model\n"
+                "    Options: --name <name>, --default\n"
+                "  /model remove <name> - Remove a saved model\n"
+                "  /model default <name> - Set model as default\n"
+                "  /model use <provider> <model_id> - Try a model without saving\n\n"
+                "[dim]Examples:\n"
+                '  /model add openai gpt-5 --name "gpt-5" --default\n'
+                '  /model add cerebras qwen-3-coder-480b --name "q3c"\n'
+                "  /model use ollama llama3.2:latest\n"
+                "  /model gpt-5[/dim]",
+                title="Model Management",
                 border_style="cyan",
             )
         )
