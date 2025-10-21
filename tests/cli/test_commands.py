@@ -182,6 +182,7 @@ def test_handle_model_add_remove_and_switch(monkeypatch: pytest.MonkeyPatch) -> 
 
     commands.handle_model_command(agent, console, "add cerebras qwen --default")
     assert any("added" in str(msg) for msg in console.messages)
+    assert any("Set as default" in str(msg) for msg in console.messages)
 
     console.messages.clear()
     commands.handle_model_command(agent, console, "add cerebras qwen --unknown")
@@ -213,6 +214,15 @@ def test_handle_model_add_remove_and_switch(monkeypatch: pytest.MonkeyPatch) -> 
     console.messages.clear()
     commands.handle_model_command(agent, console, "alias")
     assert any("Switched" in str(msg) for msg in console.messages)
+
+    console.messages.clear()
+    monkeypatch.setattr(commands, "get_model_config", lambda name: (None, None))
+    commands.handle_model_command(agent, console, "nonexistent")
+    assert any("not found" in msg for msg in console.messages)
+
+    console.messages.clear()
+    commands.handle_model_command(agent, console, "   ")
+    assert any("Usage: /model" in msg for msg in console.messages)
 
 
 def test_handle_auto_command(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -253,6 +263,14 @@ def test_handle_auto_command(monkeypatch: pytest.MonkeyPatch) -> None:
     commands.handle_auto_command(agent, console, "clear")
     assert len(manager.config.auto_approve) == 0
     assert any("Cleared auto-approvals" in str(msg) for msg in console.messages)
+
+    console.messages.clear()
+    commands.handle_auto_command(agent, console, "clear")
+    assert any("No auto-approvals" in msg for msg in console.messages)
+
+    console.messages.clear()
+    commands.handle_auto_command(agent, console, "unknown")
+    assert any("Unknown /auto command" in msg for msg in console.messages)
 
 
 def test_handle_mcp_command(monkeypatch: pytest.MonkeyPatch) -> None:

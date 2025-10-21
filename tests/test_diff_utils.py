@@ -1,6 +1,6 @@
 """Tests for diff utilities."""
 
-from clippy.diff_utils import generate_diff
+from clippy.diff_utils import format_diff_for_display, generate_diff
 
 
 def test_generate_diff() -> None:
@@ -83,3 +83,19 @@ Line 5 changed
     assert "+New line inserted" in diff
     assert "-Line 5" in diff
     assert "+Line 5 changed" in diff
+
+
+def test_format_diff_for_display_no_truncation() -> None:
+    diff = """--- a/file\n+++ b/file\n@@\n-Line\n+Line changed\n"""
+    formatted, truncated = format_diff_for_display(diff, max_lines=10)
+    assert formatted == diff
+    assert truncated is False
+
+
+def test_format_diff_for_display_truncates_long_diff() -> None:
+    diff_lines = [f"line {i}" for i in range(120)]
+    diff = "\n".join(diff_lines)
+    formatted, truncated = format_diff_for_display(diff, max_lines=50)
+    assert truncated is True
+    assert "70 more lines not shown" in formatted
+    assert formatted.endswith("Use --show-full-diff to see the complete diff.")
