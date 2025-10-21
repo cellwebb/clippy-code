@@ -10,7 +10,21 @@ TOOL_SCHEMA = {
         "name": "edit_file",
         "description": (
             "Edit a file by inserting, replacing, deleting, or appending content. "
-            "All pattern matching uses regular expressions for maximum flexibility."
+            "All pattern matching uses regular expressions for maximum flexibility.\n\n"
+            "CRITICAL BEST PRACTICES:\n"
+            "1. ALWAYS use read_file BEFORE edit_file to see exact content\n"
+            "2. If 'pattern found N times' error: Add class/function context\n"
+            "   to make pattern unique\n"
+            "3. For multi-line patterns: MUST use regex_flags: ['DOTALL']\n"
+            "   - Use .* to span lines (. matches newlines with DOTALL)\n"
+            "   - WARNING: \\s+ and \\n do NOT work across lines without DOTALL\n"
+            "   - Example: pattern='class Foo:.*def bar', regex_flags=['DOTALL']\n"
+            "4. Test pattern with grep tool first if unsure\n"
+            "5. Escape regex special chars: . ^ $ * + ? { } [ ] \\ | ( )\n"
+            "6. Use anchors ^$ only for exact line matching\n"
+            "7. NEVER retry the same failing pattern twice - read file and\n"
+            "   adjust instead\n"
+            "8. Avoid patterns matching only whitespace like '^\\s+$' (too generic)"
         ),
         "parameters": {
             "type": "object",
@@ -137,11 +151,29 @@ def _find_matching_lines(lines: list[str], pattern: str, flags: int) -> list[int
     try:
         compiled_pattern = re.compile(pattern, flags)
 
-        for i, line in enumerate(lines):
-            # Search within the line (without EOL for cleaner matching)
-            line_text = line.rstrip("\r\n")
-            if compiled_pattern.search(line_text):
-                matching_indices.append(i)
+        # If DOTALL flag is set, pattern may span multiple lines
+        # Search across the entire content and map back to line numbers
+        if flags & re.DOTALL:
+            full_content = "".join(lines)
+
+            for match in compiled_pattern.finditer(full_content):
+                # Find which line this match starts on
+                match_start = match.start()
+                chars_seen = 0
+                for i, line in enumerate(lines):
+                    if chars_seen <= match_start < chars_seen + len(line):
+                        # Only add if not already in list (avoid duplicates)
+                        if i not in matching_indices:
+                            matching_indices.append(i)
+                        break
+                    chars_seen += len(line)
+        else:
+            # Standard line-by-line matching
+            for i, line in enumerate(lines):
+                # Search within the line (without EOL for cleaner matching)
+                line_text = line.rstrip("\r\n")
+                if compiled_pattern.search(line_text):
+                    matching_indices.append(i)
 
     except re.error:
         # If regex compilation fails, return empty list
@@ -304,12 +336,34 @@ def apply_edit_operation(
 
             idx = matching_indices[0]
 
-            # Use regex substitution to replace within the matched line
+            # Use regex substitution to replace the matched content
             try:
-                line_without_eol = lines[idx].rstrip("\r\n")
                 compiled_pattern = re.compile(pattern, flags)
-                new_line_text = compiled_pattern.sub(content, line_without_eol)
-                lines[idx] = new_line_text + eol
+
+                # If DOTALL flag is set, pattern may span multiple lines
+                # Need to operate on full content and re-split
+                if flags & re.DOTALL:
+                    full_content = "".join(lines)
+                    new_content = compiled_pattern.sub(content, full_content, count=1)
+
+                    # Re-split into lines, preserving the EOL style
+                    # Re-split into lines, preserving the EOL style
+                    new_lines = (
+                        new_content.split(eol) if eol else new_content.splitlines(keepends=True)
+                    )
+
+                    # If original had EOL at end, ensure new content does too
+                    if lines and lines[-1].endswith(eol):
+                        if new_lines and not new_lines[-1].endswith(eol):
+                            new_lines[-1] += eol
+
+                    lines.clear()
+                    lines.extend(new_lines)
+                else:
+                    # Single-line replacement
+                    line_without_eol = lines[idx].rstrip("\r\n")
+                    new_line_text = compiled_pattern.sub(content, line_without_eol)
+                    lines[idx] = new_line_text + eol
             except re.error as e:
                 return False, f"Invalid regex pattern: {str(e)}", None
 
