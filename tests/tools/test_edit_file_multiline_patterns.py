@@ -88,7 +88,11 @@ def test_edit_file_replace_multiline_pattern_three_lines(
         {
             "path": str(test_file),
             "operation": "delete",
-            "pattern": "    # TODO: This is a temporary\n    # implementation that needs\n    # to be replaced",
+            "pattern": (
+                "    # TODO: This is a temporary\n"
+                "    # implementation that needs\n"
+                "    # to be replaced"
+            ),
         },
     )
 
