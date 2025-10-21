@@ -72,6 +72,10 @@ def test_generate_preview_diff_edit_file(tmp_file: Path, monkeypatch: pytest.Mon
         pattern: str,
         match_pattern_line: bool,
         inherit_indent: bool,
+        start_pattern: str,
+        end_pattern: str,
+        regex_pattern: str,
+        regex_flags: list[str] | None,
     ) -> tuple[bool, str, str]:
         return True, "", old_content.replace("second line", "edited")
 
