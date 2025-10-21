@@ -131,7 +131,7 @@ wheels = [
 
 [[package]]
 name = "clippy-code"
-version = "1.8.2"
+version = "1.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
