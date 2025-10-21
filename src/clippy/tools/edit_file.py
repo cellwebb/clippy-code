@@ -1,7 +1,8 @@
 """Edit file tool implementation."""
 
-import re
 from typing import Any
+
+from rapidfuzz.distance import JaroWinkler
 
 # Tool schema for OpenAI-compatible APIs
 TOOL_SCHEMA = {
@@ -10,21 +11,23 @@ TOOL_SCHEMA = {
         "name": "edit_file",
         "description": (
             "Edit a file by inserting, replacing, deleting, or appending content. "
-            "All pattern matching uses regular expressions for maximum flexibility.\n\n"
+            "All pattern matching uses EXACT STRING MATCHING with FUZZY MATCHING FALLBACK.\n\n"
+            "PATTERN MATCHING:\n"
+            "1. EXACT MATCH: Pattern must appear exactly in file (copy text from file)\n"
+            "2. FUZZY FALLBACK: If no exact match, tries fuzzy matching (Jaro-Winkler ≥ 0.95)\n"
+            "   - Handles minor whitespace differences automatically\n"
+            "   - No need to escape special characters!\n\n"
             "CRITICAL BEST PRACTICES:\n"
             "1. ALWAYS use read_file BEFORE edit_file to see exact content\n"
-            "2. If 'pattern found N times' error: Add class/function context\n"
+            "2. COPY exact text you want to match (including whitespace)\n"
+            "3. If 'pattern found N times' error: Include more surrounding context\n"
             "   to make pattern unique\n"
-            "3. For multi-line patterns: MUST use regex_flags: ['DOTALL']\n"
-            "   - Use .* to span lines (. matches newlines with DOTALL)\n"
-            "   - WARNING: \\s+ and \\n do NOT work across lines without DOTALL\n"
-            "   - Example: pattern='class Foo:.*def bar', regex_flags=['DOTALL']\n"
-            "4. Test pattern with grep tool first if unsure\n"
-            "5. Escape regex special chars: . ^ $ * + ? { } [ ] \\ | ( )\n"
-            "6. Use anchors ^$ only for exact line matching\n"
-            "7. NEVER retry the same failing pattern twice - read file and\n"
-            "   adjust instead\n"
-            "8. Avoid patterns matching only whitespace like '^\\s+$' (too generic)"
+            "4. Multi-line patterns work naturally - just use \\n in pattern string\n"
+            "   Example: pattern='class Foo:\\n    def bar'\n"
+            "5. NO special character escaping needed (. * + ? etc. are literal)\n"
+            "6. NEVER retry the same failing pattern twice - read file and adjust\n"
+            "7. Fuzzy matching handles minor typos/spacing automatically (≥95% similar)\n"
+            "8. Pattern can be a substring - doesn't need to match entire line"
         ),
         "parameters": {
             "type": "object",
@@ -34,19 +37,19 @@ TOOL_SCHEMA = {
                     "type": "string",
                     "description": (
                         "The edit operation to perform:\n"
-                        "- 'replace': Replace content matching a regex pattern "
+                        "- 'replace': Replace content matching exact pattern "
                         "(must match exactly once)\n"
-                        "- 'delete': Delete lines matching a regex pattern "
+                        "- 'delete': Delete lines matching exact pattern "
                         "(can match multiple lines)\n"
                         "- 'append': Add content at the end of the file\n"
-                        "- 'insert_before': Insert before a line matching a regex pattern "
+                        "- 'insert_before': Insert before a line matching exact pattern "
                         "(must match exactly once)\n"
-                        "- 'insert_after': Insert after a line matching a regex pattern "
+                        "- 'insert_after': Insert after a line matching exact pattern "
                         "(must match exactly once)\n"
-                        "- 'block_replace': Replace a multi-line block between start/end regex "
-                        "markers\n"
-                        "- 'block_delete': Delete a multi-line block between start/end regex "
-                        "markers"
+                        "- 'block_replace': Replace a multi-line block between start/end "
+                        "markers (exact string match)\n"
+                        "- 'block_delete': Delete a multi-line block between start/end "
+                        "markers (exact string match)"
                     ),
                     "enum": [
                         "replace",
@@ -60,20 +63,17 @@ TOOL_SCHEMA = {
                 },
                 "content": {
                     "type": "string",
-                    "description": (
-                        "Content to insert, replace with, or append. For replace operations, "
-                        "can use regex capture groups (\\1, \\2, etc.)"
-                    ),
+                    "description": "Content to insert, replace with, or append.",
                 },
                 "pattern": {
                     "type": "string",
                     "description": (
-                        "Regular expression pattern to match lines (required for replace, delete, "
-                        "insert_before, insert_after). The pattern is searched within each line "
-                        "using re.search(). Use anchors (^ for start, $ for end) to match full "
-                        "lines. For replace/insert_before/insert_after, the pattern must match "
-                        "exactly one line. For delete, can match multiple lines. Use regex_flags "
-                        "to control matching behavior (e.g., IGNORECASE, MULTILINE, DOTALL)."
+                        "Exact text to match (required for replace, delete, insert_before, "
+                        "insert_after). Copy the exact text from the file you want to match. "
+                        "Can include newlines (\\n) for multi-line patterns. For "
+                        "replace/insert_before/insert_after, pattern must match exactly once. "
+                        "For delete, can match multiple lines. If exact match fails, fuzzy "
+                        "matching (≥95% similarity) is tried automatically."
                     ),
                 },
                 "inherit_indent": {
@@ -87,36 +87,68 @@ TOOL_SCHEMA = {
                 "start_pattern": {
                     "type": "string",
                     "description": (
-                        "Regular expression pattern for block operations (block_replace, "
-                        "block_delete). Marks the beginning of the block to target. Searched "
-                        "within each line using re.search()."
+                        "Exact text for block operations (block_replace, block_delete). "
+                        "Marks the beginning of the block to target. Uses exact substring "
+                        "matching."
                     ),
                 },
                 "end_pattern": {
                     "type": "string",
                     "description": (
-                        "Regular expression pattern for block operations (block_replace, "
-                        "block_delete). Marks the end of the block to target. Searched within each "
-                        "line using re.search()."
+                        "Exact text for block operations (block_replace, block_delete). "
+                        "Marks the end of the block to target. Uses exact substring matching."
                     ),
-                },
-                "regex_flags": {
-                    "type": "array",
-                    "description": (
-                        "List of regex flags to apply to pattern matching. "
-                        "Available flags: 'IGNORECASE', 'MULTILINE', 'DOTALL', 'VERBOSE'. "
-                        "Default is [] (no flags). Common usage: ['IGNORECASE'] for "
-                        "case-insensitive matching, ['MULTILINE', 'DOTALL'] for multi-line pattern "
-                        "matching."
-                    ),
-                    "items": {"type": "string"},
-                    "default": [],
                 },
             },
             "required": ["path", "operation"],
         },
     },
 }
+
+
+def _find_best_window(
+    haystack_lines: list[str], needle: str
+) -> tuple[tuple[int, int] | None, float]:
+    """
+    Find the window in haystack_lines with highest Jaro-Winkler similarity to needle.
+
+    Uses a sliding window approach to find the best matching sequence of lines
+    that most closely resembles the needle text. This is used as a fuzzy fallback
+    when exact pattern matching fails.
+
+    Args:
+        haystack_lines: List of lines to search through (with EOL characters)
+        needle: The text to find (will be split into lines for comparison)
+
+    Returns:
+        A tuple of ((start_line, end_line), score) where:
+        - (start_line, end_line) is the best matching window, or None if no good match
+        - score is the Jaro-Winkler similarity score (0.0 to 1.0)
+    """
+    needle = needle.rstrip("\n")
+    needle_lines = needle.splitlines()
+    win_size = len(needle_lines)
+
+    if win_size == 0:
+        return (None, 0.0)
+
+    best_score = 0.0
+    best_span: tuple[int, int] | None = None
+
+    # Slide a window of size win_size over the haystack
+    for i in range(len(haystack_lines) - win_size + 1):
+        # Extract window and join lines
+        window_lines = [haystack_lines[j].rstrip("\r\n") for j in range(i, i + win_size)]
+        window = "\n".join(window_lines)
+
+        # Calculate similarity score
+        score = JaroWinkler.normalized_similarity(window, needle)
+
+        if score > best_score:
+            best_score = score
+            best_span = (i, i + win_size)
+
+    return (best_span, best_score)
 
 
 def _detect_eol(content: str) -> str:
@@ -134,53 +166,91 @@ def _normalize_content(content: str, eol: str) -> str:
     return normalized
 
 
-def _find_matching_lines(lines: list[str], pattern: str, flags: int) -> list[int]:
+def _find_matching_lines(lines: list[str], pattern: str) -> tuple[list[int], bool, float]:
     """
-    Find all lines matching the regex pattern.
+    Find all lines matching the pattern using exact string matching with fuzzy fallback.
+
+    First attempts exact substring matching. If no matches are found, attempts fuzzy
+    matching using Jaro-Winkler similarity with a threshold of 0.95.
 
     Args:
         lines: List of file lines (with EOL)
-        pattern: Regular expression pattern
-        flags: Compiled regex flags
+        pattern: Exact text to find (can include newlines for multi-line patterns)
 
     Returns:
-        List of line indices that match the pattern
+        A tuple of (matching_indices, fuzzy_used, similarity_score) where:
+        - matching_indices: List of line indices that match
+        - fuzzy_used: True if fuzzy matching was used to find matches
+        - similarity_score: Jaro-Winkler score if fuzzy matching was used, else 1.0
     """
     matching_indices: list[int] = []
+    fuzzy_used = False
+    similarity_score = 1.0
 
-    try:
-        compiled_pattern = re.compile(pattern, flags)
+    # Check if pattern contains newlines (multi-line pattern)
+    if "\n" in pattern:
+        # Multi-line pattern - search across full content
+        full_content = "".join(lines)
+        pattern_normalized = pattern.replace("\r\n", "\n")
 
-        # If DOTALL flag is set, pattern may span multiple lines
-        # Search across the entire content and map back to line numbers
-        if flags & re.DOTALL:
-            full_content = "".join(lines)
+        # Find all occurrences of the pattern
+        start = 0
+        while True:
+            idx = full_content.find(pattern_normalized, start)
+            if idx == -1:
+                break
 
-            for match in compiled_pattern.finditer(full_content):
-                # Find which line this match starts on
-                match_start = match.start()
-                chars_seen = 0
-                for i, line in enumerate(lines):
-                    if chars_seen <= match_start < chars_seen + len(line):
-                        # Only add if not already in list (avoid duplicates)
-                        if i not in matching_indices:
-                            matching_indices.append(i)
-                        break
-                    chars_seen += len(line)
-        else:
-            # Standard line-by-line matching
+            # Map character indices (start and end of pattern) to line numbers
+            pattern_start_idx = idx
+            pattern_end_idx = idx + len(pattern_normalized)
+
+            # Find which lines the pattern spans
+            chars_seen = 0
+            start_line = None
+            end_line = None
+
             for i, line in enumerate(lines):
-                # Search within the line (without EOL for cleaner matching)
-                line_text = line.rstrip("\r\n")
-                if compiled_pattern.search(line_text):
-                    matching_indices.append(i)
+                line_start = chars_seen
+                line_end = chars_seen + len(line)
 
-    except re.error:
-        # If regex compilation fails, return empty list
-        # Error will be reported by the caller
-        return []
+                # Check if pattern starts in this line
+                if start_line is None and line_start <= pattern_start_idx < line_end:
+                    start_line = i
 
-    return matching_indices
+                # Check if pattern ends in or before this line
+                if pattern_end_idx <= line_end:
+                    end_line = i
+                    break
+
+                chars_seen += len(line)
+
+            # Add all spanned lines to matching_indices
+            if start_line is not None and end_line is not None:
+                for line_idx in range(start_line, end_line + 1):
+                    if line_idx not in matching_indices:
+                        matching_indices.append(line_idx)
+
+            # Skip past the entire pattern to avoid overlapping matches
+            start = idx + len(pattern_normalized)
+    else:
+        # Single-line pattern - search line by line
+        for i, line in enumerate(lines):
+            line_text = line.rstrip("\r\n")
+            if pattern in line_text:
+                matching_indices.append(i)
+
+    # If no exact matches found, try fuzzy matching
+    if not matching_indices:
+        best_span, best_score = _find_best_window(lines, pattern)
+
+        # Use fuzzy match if similarity score is >= 0.95
+        if best_score >= 0.95 and best_span is not None:
+            fuzzy_used = True
+            similarity_score = best_score
+            # Add all lines in the matched window
+            matching_indices = list(range(best_span[0], best_span[1]))
+
+    return (matching_indices, fuzzy_used, similarity_score)
 
 
 def _get_leading_whitespace(line: str) -> str:
@@ -212,16 +282,15 @@ def _apply_indent(content: str, leading_whitespace: str, eol: str) -> str:
 
 
 def _find_block_bounds(
-    lines: list[str], start_pattern: str, end_pattern: str, flags: int
+    lines: list[str], start_pattern: str, end_pattern: str
 ) -> tuple[int, int] | None:
     """
-    Find the start and end indices of a block in the lines using regex patterns.
+    Find the start and end indices of a block in the lines using exact string matching.
 
     Args:
         lines: List of file lines (with EOL)
-        start_pattern: Regex pattern that marks the start of the block
-        end_pattern: Regex pattern that marks the end of the block
-        flags: Compiled regex flags
+        start_pattern: Exact text that marks the start of the block
+        end_pattern: Exact text that marks the end of the block
 
     Returns:
         Tuple of (start_idx, end_idx) or None if not found
@@ -229,59 +298,26 @@ def _find_block_bounds(
     start_idx = None
     end_idx = None
 
-    try:
-        compiled_start = re.compile(start_pattern, flags)
-        compiled_end = re.compile(end_pattern, flags)
+    for i, line in enumerate(lines):
+        line_text = line.rstrip("\r\n")
 
-        for i, line in enumerate(lines):
-            line_text = line.rstrip("\r\n")
-
-            # Find start pattern
-            if start_idx is None and compiled_start.search(line_text):
-                start_idx = i
-                # Check if end pattern is also on the same line
-                if compiled_end.search(line_text):
-                    end_idx = i
-                    break
-                continue
-
-            # Find end pattern (must come after start)
-            if start_idx is not None and compiled_end.search(line_text):
+        # Find start pattern (exact substring match)
+        if start_idx is None and start_pattern in line_text:
+            start_idx = i
+            # Check if end pattern is also on the same line
+            if end_pattern in line_text:
                 end_idx = i
                 break
+            continue
 
-        if start_idx is not None and end_idx is not None:
-            return (start_idx, end_idx)
-        return None
+        # Find end pattern (must come after start)
+        if start_idx is not None and end_pattern in line_text:
+            end_idx = i
+            break
 
-    except re.error:
-        # If regex compilation fails, return None
-        return None
-
-
-def _parse_regex_flags(flags_list: list[str]) -> int:
-    """
-    Parse a list of regex flag strings into re module flags.
-
-    Args:
-        flags_list: List of flag strings like ['IGNORECASE', 'MULTILINE']
-
-    Returns:
-        Combined regex flags integer
-    """
-    flags = 0
-    flag_map = {
-        "IGNORECASE": re.IGNORECASE,
-        "MULTILINE": re.MULTILINE,
-        "DOTALL": re.DOTALL,
-        "VERBOSE": re.VERBOSE,
-    }
-
-    for flag_str in flags_list:
-        if flag_str.upper() in flag_map:
-            flags |= flag_map[flag_str.upper()]
-
-    return flags
+    if start_idx is not None and end_idx is not None:
+        return (start_idx, end_idx)
+    return None
 
 
 def apply_edit_operation(
@@ -292,23 +328,21 @@ def apply_edit_operation(
     inherit_indent: bool = True,
     start_pattern: str = "",
     end_pattern: str = "",
-    regex_flags: list[str] | None = None,
 ) -> tuple[bool, str, str | None]:
     """
     Apply an edit operation to content and return the result.
 
     This function is used both for executing edits and generating previews.
-    All pattern matching uses regular expressions.
+    All pattern matching uses exact string matching with fuzzy fallback.
 
     Args:
         original_content: The original file content
         operation: The edit operation to perform
-        content: Content to insert, replace with, or append. Can use capture groups (\\1, \\2, etc.)
-        pattern: Regular expression pattern to match lines
+        content: Content to insert, replace with, or append
+        pattern: Exact text to match (can include newlines for multi-line patterns)
         inherit_indent: For insert operations, whether to copy leading whitespace
-        start_pattern: Regex pattern for block operations start marker
-        end_pattern: Regex pattern for block operations end marker
-        regex_flags: List of regex flags (IGNORECASE, MULTILINE, DOTALL, VERBOSE)
+        start_pattern: Exact text for block operations start marker
+        end_pattern: Exact text for block operations end marker
 
     Returns:
         Tuple of (success: bool, message: str, new_content: str | None)
@@ -316,43 +350,54 @@ def apply_edit_operation(
     try:
         eol = _detect_eol(original_content)
         lines = original_content.splitlines(keepends=True)
-        flags = _parse_regex_flags(regex_flags or [])
 
         # Handle different operations
         if operation == "replace":
             if not pattern:
                 return False, "Pattern is required for replace operation", None
 
-            matching_indices = _find_matching_lines(lines, pattern, flags)
+            matching_indices, fuzzy_used, similarity_score = _find_matching_lines(lines, pattern)
             if len(matching_indices) == 0:
                 return False, f"Pattern '{pattern}' not found in file", None
             elif len(matching_indices) > 1:
+                fuzzy_note = (
+                    f" (fuzzy match, similarity={similarity_score:.3f})" if fuzzy_used else ""
+                )
                 return (
                     False,
-                    f"Pattern '{pattern}' found {len(matching_indices)} times, "
+                    f"Pattern '{pattern}' found {len(matching_indices)} times{fuzzy_note}, "
                     "expected exactly one match",
                     None,
                 )
 
-            idx = matching_indices[0]
+            # If fuzzy matching was used, replace the entire matched window
+            if fuzzy_used:
+                # Fuzzy match returns a window of lines to replace
+                start_idx = matching_indices[0]
+                end_idx = matching_indices[-1] + 1
 
-            # Use regex substitution to replace the matched content
-            try:
-                compiled_pattern = re.compile(pattern, flags)
+                # Replace all lines in the window with the new content
+                normalized_content = _normalize_content(content, eol)
+                new_content_lines = normalized_content.splitlines(keepends=True)
 
-                # If DOTALL flag is set, pattern may span multiple lines
-                # Need to operate on full content and re-split
-                if flags & re.DOTALL:
+                # Remove old lines and insert new ones
+                for _ in range(start_idx, end_idx):
+                    lines.pop(start_idx)
+
+                for i, new_line in enumerate(new_content_lines):
+                    lines.insert(start_idx + i, new_line)
+            else:
+                # Use simple string replacement for exact matches
+                if "\n" in pattern:
+                    # Multi-line pattern - replace in full content
                     full_content = "".join(lines)
-                    new_content = compiled_pattern.sub(content, full_content, count=1)
+                    pattern_normalized = pattern.replace("\r\n", "\n")
+                    new_full_content = full_content.replace(pattern_normalized, content, 1)
 
-                    # Re-split into lines, preserving the EOL style
-                    # Re-split into lines, preserving the EOL style
-                    new_lines = (
-                        new_content.split(eol) if eol else new_content.splitlines(keepends=True)
-                    )
+                    # Re-split into lines, preserving EOL style
+                    new_lines = new_full_content.splitlines(keepends=True)
 
-                    # If original had EOL at end, ensure new content does too
+                    # Ensure trailing EOL is preserved if original had one
                     if lines and lines[-1].endswith(eol):
                         if new_lines and not new_lines[-1].endswith(eol):
                             new_lines[-1] += eol
@@ -360,18 +405,17 @@ def apply_edit_operation(
                     lines.clear()
                     lines.extend(new_lines)
                 else:
-                    # Single-line replacement
+                    # Single-line pattern - replace within the matched line
+                    idx = matching_indices[0]
                     line_without_eol = lines[idx].rstrip("\r\n")
-                    new_line_text = compiled_pattern.sub(content, line_without_eol)
+                    new_line_text = line_without_eol.replace(pattern, content, 1)
                     lines[idx] = new_line_text + eol
-            except re.error as e:
-                return False, f"Invalid regex pattern: {str(e)}", None
 
         elif operation == "delete":
             if not pattern:
                 return False, "Pattern is required for delete operation", None
 
-            matching_indices = _find_matching_lines(lines, pattern, flags)
+            matching_indices, fuzzy_used, similarity_score = _find_matching_lines(lines, pattern)
             if not matching_indices:
                 return False, f"Pattern '{pattern}' not found in file", None
 
@@ -398,13 +442,16 @@ def apply_edit_operation(
             if not pattern:
                 return False, f"Pattern is required for {operation} operation", None
 
-            matching_indices = _find_matching_lines(lines, pattern, flags)
+            matching_indices, fuzzy_used, similarity_score = _find_matching_lines(lines, pattern)
             if len(matching_indices) == 0:
                 return False, f"Pattern '{pattern}' not found in file", None
             elif len(matching_indices) > 1:
+                fuzzy_note = (
+                    f" (fuzzy match, similarity={similarity_score:.3f})" if fuzzy_used else ""
+                )
                 return (
                     False,
-                    f"Pattern '{pattern}' found {len(matching_indices)} times, "
+                    f"Pattern '{pattern}' found {len(matching_indices)} times{fuzzy_note}, "
                     "expected exactly one match",
                     None,
                 )
@@ -429,7 +476,7 @@ def apply_edit_operation(
                     None,
                 )
 
-            block_bounds = _find_block_bounds(lines, start_pattern, end_pattern, flags)
+            block_bounds = _find_block_bounds(lines, start_pattern, end_pattern)
             if not block_bounds:
                 return (
                     False,
@@ -480,7 +527,7 @@ def apply_edit_operation(
                     None,
                 )
 
-            block_bounds = _find_block_bounds(lines, start_pattern, end_pattern, flags)
+            block_bounds = _find_block_bounds(lines, start_pattern, end_pattern)
             if not block_bounds:
                 return (
                     False,
@@ -520,9 +567,8 @@ def edit_file(
     inherit_indent: bool = True,
     start_pattern: str = "",
     end_pattern: str = "",
-    regex_flags: list[str] | None = None,
 ) -> tuple[bool, str, Any]:
-    """Edit a file using regex-based pattern matching for all operations."""
+    """Edit a file using exact string matching with fuzzy fallback for all operations."""
     try:
         # Read current file content
         # Use newline='' to preserve original line endings (CRLF vs LF)
@@ -541,7 +587,6 @@ def edit_file(
             inherit_indent,
             start_pattern,
             end_pattern,
-            regex_flags,
         )
 
         if not success or new_content is None:

@@ -156,7 +156,7 @@ def test_edit_file_insert_after_at_end(executor: ActionExecutor, temp_dir: str) 
 
 
 def test_edit_file_insert_with_substring_match(executor: ActionExecutor, temp_dir: str) -> None:
-    """Test inserting using substring pattern matching."""
+    """Test inserting using substring pattern matching (case-sensitive)."""
     test_file = Path(temp_dir) / "edit_test.txt"
     test_file.write_text("Line 1\nTest line content\nLine 3\n")
 
@@ -166,8 +166,7 @@ def test_edit_file_insert_with_substring_match(executor: ActionExecutor, temp_di
             "path": str(test_file),
             "operation": "insert_before",
             "content": "Before test",
-            "pattern": "test",
-            "regex_flags": ["IGNORECASE"],
+            "pattern": "Test line",  # Exact substring match (case-sensitive)
         },
     )
 
@@ -311,7 +310,7 @@ def test_edit_file_insert_requires_pattern(executor: ActionExecutor, temp_dir: s
 
 
 def test_insert_before_ambiguous_pattern_fails(executor_direct: ActionExecutor, tmp_path) -> None:
-    """Test insert_before fails when pattern is ambiguous."""
+    """Test insert_before fails when pattern is ambiguous (matches multiple times)."""
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    pass\n\ndef hello():\n    pass\n")
 
@@ -319,7 +318,7 @@ def test_insert_before_ambiguous_pattern_fails(executor_direct: ActionExecutor, 
         str(test_file),
         "insert_before",
         content="def new_function():\n    pass\n",
-        pattern="def hello\\(\\):",
+        pattern="def hello():",  # Exact string match (will match twice)
     )
 
     assert not success
@@ -329,7 +328,7 @@ def test_insert_before_ambiguous_pattern_fails(executor_direct: ActionExecutor, 
 
 
 def test_insert_after_ambiguous_pattern_fails(executor_direct: ActionExecutor, tmp_path) -> None:
-    """Test insert_after fails when pattern is ambiguous."""
+    """Test insert_after fails when pattern is ambiguous (matches multiple times)."""
     test_file = tmp_path / "test.py"
     test_file.write_text("def hello():\n    pass\n\ndef hello():\n    pass\n")
 
@@ -337,7 +336,7 @@ def test_insert_after_ambiguous_pattern_fails(executor_direct: ActionExecutor, t
         str(test_file),
         "insert_after",
         content="def new_function():\n    pass\n",
-        pattern="def hello\\(\\):",
+        pattern="def hello():",  # Exact string match (will match twice)
     )
 
     assert not success

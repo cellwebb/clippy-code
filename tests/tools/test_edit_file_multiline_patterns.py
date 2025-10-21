@@ -47,9 +47,8 @@ def test_edit_file_replace_multiline_pattern_exact_match(
         {
             "path": str(test_file),
             "operation": "replace",
-            "pattern": "^\\s+except:$",
+            "pattern": "    except:",
             "content": "    except OSError:",
-            "regex_flags": ["MULTILINE"],
         },
     )
 
@@ -83,13 +82,13 @@ def test_edit_file_replace_multiline_pattern_three_lines(
         "    return None\n"
     )
 
-    # Delete all three TODO comment lines
+    # Delete all three TODO comment lines (using multi-line pattern)
     success, message, content = executor.execute(
         "edit_file",
         {
             "path": str(test_file),
             "operation": "delete",
-            "pattern": "^\\s+# TODO:|^\\s+# implementation|^\\s+# to be replaced",
+            "pattern": "    # TODO: This is a temporary\n    # implementation that needs\n    # to be replaced",
         },
     )
 
@@ -119,17 +118,26 @@ def test_edit_file_replace_multiline_pattern_trailing_newline(
     test_file = Path(temp_dir) / "test.py"
     test_file.write_text("alpha\nbeta\nomega\n")
 
-    # Delete alpha and beta lines
+    # Delete alpha line
     success, message, content = executor.execute(
         "edit_file",
         {
             "path": str(test_file),
             "operation": "delete",
-            "pattern": "^(alpha|beta)$",
-            "regex_flags": ["MULTILINE"],
+            "pattern": "alpha",
         },
     )
+    assert success is True
 
+    # Delete beta line
+    success, message, content = executor.execute(
+        "edit_file",
+        {
+            "path": str(test_file),
+            "operation": "delete",
+            "pattern": "beta",
+        },
+    )
     assert success is True
 
     # Insert gamma before omega
@@ -161,14 +169,13 @@ def test_edit_file_delete_multiline_pattern(executor: ActionExecutor, temp_dir: 
         "    return True\n"
     )
 
-    # Delete the except and pass lines
+    # Delete the except and pass lines (multi-line pattern)
     success, message, content = executor.execute(
         "edit_file",
         {
             "path": str(test_file),
             "operation": "delete",
-            "pattern": "^\\s+(except:|pass)$",
-            "regex_flags": ["MULTILINE"],
+            "pattern": "    except:\n        pass",
         },
     )
 
@@ -211,9 +218,8 @@ def test_edit_file_replace_multiline_pattern_fails_with_ambiguous_match(
         {
             "path": str(test_file),
             "operation": "replace",
-            "pattern": "^\\s+except:$",
+            "pattern": "    except:",
             "content": "    except OSError:",
-            "regex_flags": ["MULTILINE"],
         },
     )
 
@@ -267,9 +273,8 @@ def test_edit_file_replace_multiline_pattern_empty_lines(
         {
             "path": str(test_file),
             "operation": "replace",
-            "pattern": "^\\s+except:$",
+            "pattern": "    except:",
             "content": "    except OSError:",
-            "regex_flags": ["MULTILINE"],
         },
     )
 

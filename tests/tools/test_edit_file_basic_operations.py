@@ -67,29 +67,30 @@ def test_edit_file_append_to_file_without_trailing_newline(
 
 
 def test_edit_file_delete_by_pattern_exact_line(executor: ActionExecutor, temp_dir: str) -> None:
-    """Test deleting lines by exact pattern match (using anchored regex)."""
+    """Test deleting a line by exact string match (must match full line content exactly)."""
     test_file = Path(temp_dir) / "edit_test.txt"
-    test_file.write_text("Line 1\nTest line\nLine 3\nAnother test line\n")
+    test_file.write_text("Line 1\nTest line\nLine 3\nAnother Test line\n")
 
     success, message, content = executor.execute(
         "edit_file",
         {
             "path": str(test_file),
             "operation": "delete",
-            "pattern": "^Test line$",  # Use anchors for exact line match
+            "pattern": "Test line",  # Exact string match (substring)
         },
     )
 
     assert success is True
     assert "Successfully performed delete operation" in message
-    expected = "Line 1\nLine 3\nAnother test line\n"
+    # Both "Test line" and "Another Test line" contain "Test line" (case-sensitive), so both are deleted
+    expected = "Line 1\nLine 3\n"
     assert test_file.read_text() == expected
 
 
 def test_edit_file_delete_by_pattern_substring_match(
     executor: ActionExecutor, temp_dir: str
 ) -> None:
-    """Test deleting lines by pattern with case-insensitive regex matching."""
+    """Test deleting lines by exact substring match (case-sensitive)."""
     test_file = Path(temp_dir) / "edit_test.txt"
     test_file.write_text("Line 1\nTest line\nLine 3\nAnother test line\nFull test line\n")
 
@@ -98,14 +99,14 @@ def test_edit_file_delete_by_pattern_substring_match(
         {
             "path": str(test_file),
             "operation": "delete",
-            "pattern": "test",
-            "regex_flags": ["IGNORECASE"],
+            "pattern": "test line",  # Exact substring (case-sensitive)
         },
     )
 
     assert success is True
     assert "Successfully performed delete operation" in message
-    expected = "Line 1\nLine 3\n"
+    # Matches "Another test line" and "Full test line" (lowercase "test")
+    expected = "Line 1\nTest line\nLine 3\n"
     assert test_file.read_text() == expected
 
 
