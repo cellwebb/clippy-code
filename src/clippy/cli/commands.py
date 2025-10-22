@@ -399,6 +399,13 @@ def _handle_model_default(console: Console, args: list[str]) -> CommandResult:
         console.print(f"[green]✓ {message}[/green]")
     else:
         console.print(f"[red]✗ {message}[/red]")
+        # Show available models if the model doesn't exist
+        available_models = user_manager.list_models()
+        if available_models:
+            model_names = [m.name for m in available_models]
+            console.print(f"[dim]Available models: {', '.join(model_names)}[/dim]")
+        else:
+            console.print("[dim]No models available. Use /model add to add a model.[/dim]")
 
     return "continue"
 

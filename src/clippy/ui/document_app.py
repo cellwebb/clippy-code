@@ -954,31 +954,209 @@ class DocumentApp(App[None]):
         )
 
     def handle_model_command(self, user_input: str) -> None:
+        import shlex
+
+        from ..models import get_provider, get_user_manager
+
         conv_log = self.query_one("#conversation-log", RichLog)
         parts = user_input.split(maxsplit=1)
+
+        # Handle bare /model or /model list
         if len(parts) == 1 or parts[1].lower() == "list":
             self.show_models()
-        else:
-            model_name = parts[1].strip()
-            model_config, provider_config = get_model_config(model_name)
-            if model_config and provider_config:
-                api_key = os.getenv(provider_config.api_key_env) or "not-set"
-                success, message = self.agent.switch_model(
-                    model=model_config.model_id,
-                    base_url=provider_config.base_url,
-                    api_key=api_key,
-                )
-            else:
-                success, message = self.agent.switch_model(model=model_name)
+            return
 
-            status_msg = (
-                f"[green]✓ {escape(message)}[/green]"
-                if success
-                else f"[red]✗ {escape(message)}[/red]"
-            )
-            conv_log.write(status_msg)
-            conv_log.write("")
+        # Parse command arguments
+        try:
+            args = shlex.split(parts[1])
+        except ValueError as e:
+            conv_log.write(f"[red]✗ Error parsing arguments: {escape(str(e))}[/red]")
+            return
+
+        if not args:
+            conv_log.write("[red]Usage: /model <command> [args][/red]")
+            conv_log.write("[dim]Commands: list, add, remove, default, use, <name>[/dim]")
+            return
+
+        subcommand = args[0].lower()
+
+        # Handle subcommands
+        if subcommand == "add":
+            self._handle_model_add_doc(conv_log, args[1:])
+        elif subcommand == "remove":
+            self._handle_model_remove_doc(conv_log, args[1:])
+        elif subcommand == "default":
+            self._handle_model_default_doc(conv_log, args[1:])
+        elif subcommand == "use":
+            self._handle_model_use_doc(conv_log, args[1:])
+        else:
+            # Treat as model name to switch to
+            self._handle_model_switch_doc(conv_log, subcommand)
+
         self.update_status_bar()
+
+    def _handle_model_add_doc(self, conv_log: RichLog, args: list[str]) -> None:
+        """Handle /model add in document mode."""
+        from ..models import get_user_manager
+
+        if len(args) < 2:
+            conv_log.write(
+                "[red]Usage: /model add <provider> <model_id> [options][/red]\n"
+                "[dim]Options: --name <name>, --default[/dim]"
+            )
+            return
+
+        provider = args[0]
+        model_id = args[1]
+        name = None
+        is_default = False
+
+        i = 2
+        while i < len(args):
+            if args[i] == "--name" and i + 1 < len(args):
+                name = args[i + 1]
+                i += 2
+            elif args[i] == "--default":
+                is_default = True
+                i += 1
+            else:
+                conv_log.write(f"[red]✗ Unknown argument: {escape(args[i])}[/red]")
+                return
+
+        if not name:
+            name = model_id.replace(":", "-").replace("/", "-")
+
+        user_manager = get_user_manager()
+        success, message = user_manager.add_model(name, provider, model_id, is_default)
+
+        if success:
+            conv_log.write(f"[green]✓ {escape(message)}[/green]")
+            if is_default:
+                conv_log.write("[dim]Set as default model[/dim]")
+        else:
+            conv_log.write(f"[red]✗ {escape(message)}[/red]")
+
+    def _handle_model_remove_doc(self, conv_log: RichLog, args: list[str]) -> None:
+        """Handle /model remove in document mode."""
+        from ..models import get_user_manager
+
+        if not args:
+            conv_log.write("[red]Usage: /model remove <name>[/red]")
+            return
+
+        name = args[0]
+        user_manager = get_user_manager()
+        success, message = user_manager.remove_model(name)
+
+        if success:
+            conv_log.write(f"[green]✓ {escape(message)}[/green]")
+        else:
+            conv_log.write(f"[red]✗ {escape(message)}[/red]")
+
+    def _handle_model_default_doc(self, conv_log: RichLog, args: list[str]) -> None:
+        """Handle /model default in document mode."""
+        from ..models import get_user_manager
+
+        if not args:
+            conv_log.write("[red]Usage: /model default <name>[/red]")
+            return
+
+        name = args[0]
+        user_manager = get_user_manager()
+        success, message = user_manager.set_default(name)
+
+        if success:
+            conv_log.write(f"[green]✓ {escape(message)}[/green]")
+        else:
+            conv_log.write(f"[red]✗ {escape(message)}[/red]")
+            # Show available models if the model doesn't exist
+            available_models = user_manager.list_models()
+            if available_models:
+                model_names = [m.name for m in available_models]
+                conv_log.write(f"[dim]Available models: {', '.join(model_names)}[/dim]")
+            else:
+                conv_log.write("[dim]No models available. Use /model add to add a model.[/dim]")
+
+    def _handle_model_use_doc(self, conv_log: RichLog, args: list[str]) -> None:
+        """Handle /model use in document mode."""
+        from ..models import get_provider
+
+        if len(args) < 2:
+            conv_log.write("[red]Usage: /model use <provider> <model_id>[/red]")
+            return
+
+        provider_name = args[0]
+        model_id = args[1]
+
+        provider = get_provider(provider_name)
+        if not provider:
+            conv_log.write(f"[red]✗ Unknown provider: {escape(provider_name)}[/red]")
+            conv_log.write("[dim]Use /providers to see available providers[/dim]")
+            return
+
+        api_key = os.getenv(provider.api_key_env)
+        if not api_key and provider.name != "ollama":
+            conv_log.write(
+                f"[yellow]⚠ Warning: {provider.api_key_env} not set in environment[/yellow]\n"
+                f"[dim]The model may fail if it requires authentication.[/dim]"
+            )
+            api_key = "not-set"
+
+        success, message = self.agent.switch_model(
+            model=model_id, base_url=provider.base_url, api_key=api_key
+        )
+
+        if success:
+            conv_log.write(f"[green]✓ Using {escape(provider_name)}/{escape(model_id)} (temporary)[/green]")
+            conv_log.write("[dim]Use /model add to save this configuration[/dim]")
+        else:
+            conv_log.write(f"[red]✗ {escape(message)}[/red]")
+
+    def _handle_model_switch_doc(self, conv_log: RichLog, model_name: str) -> None:
+        """Handle switching to a saved model in document mode."""
+        from ..models import get_provider, get_user_manager
+
+        if not model_name or not model_name.strip():
+            conv_log.write("[red]✗ Model name cannot be empty[/red]")
+            return
+
+        model_name = model_name.strip()
+
+        user_manager = get_user_manager()
+        model = user_manager.get_model(model_name)
+
+        if not model:
+            conv_log.write(f"[red]✗ Model '{escape(model_name)}' not found in your saved models[/red]")
+            available_models = user_manager.list_models()
+            if available_models:
+                model_names = [m.name for m in available_models]
+                conv_log.write(f"[dim]Available models: {', '.join(model_names)}[/dim]")
+            else:
+                conv_log.write("[dim]No models available. Use /model add to add a model.[/dim]")
+            return
+
+        provider = get_provider(model.provider)
+        if not provider:
+            conv_log.write(f"[red]✗ Provider '{escape(model.provider)}' not found[/red]")
+            return
+
+        api_key = os.getenv(provider.api_key_env)
+        if not api_key and provider.name != "ollama":
+            conv_log.write(
+                f"[yellow]⚠ Warning: {provider.api_key_env} not set in environment[/yellow]\n"
+                f"[dim]The model may fail if it requires authentication.[/dim]"
+            )
+            api_key = "not-set"
+
+        success, message = self.agent.switch_model(
+            model=model.model_id, base_url=provider.base_url, api_key=api_key
+        )
+
+        if success:
+            conv_log.write(f"[green]✓ Switched to {escape(model.name)}[/green]")
+            conv_log.write(f"[dim]Using {escape(provider.name)}/{escape(model.model_id)}[/dim]")
+        else:
+            conv_log.write(f"[red]✗ {escape(message)}[/red]")
 
 
 def run_document_mode(agent: Any, auto_approve: bool = False) -> None:
