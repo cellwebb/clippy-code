@@ -106,7 +106,8 @@ class TestSubAgent:
         """Test conversation history is properly initialized."""
         assert len(subagent.conversation_history) == 1  # System prompt only
         assert subagent.conversation_history[0]["role"] == "system"
-        assert "You are a helpful AI assistant" in subagent.conversation_history[0]["content"]
+        assert "clippy" in subagent.conversation_history[0]["content"].lower()
+        assert "helpful" in subagent.conversation_history[0]["content"].lower()
 
     def test_custom_system_prompt(self, mock_parent_agent, mock_permission_manager, mock_executor):
         """Test subagent with custom system prompt."""

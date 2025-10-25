@@ -38,7 +38,8 @@ class TestSubagentTypes:
     def test_general_subagent_config(self):
         """Test general subagent configuration."""
         config = SUBAGENT_TYPES["general"]
-        assert "helpful ai assistant" in config["system_prompt"].lower()
+        assert "clippy" in config["system_prompt"].lower()
+        assert "helpful" in config["system_prompt"].lower()
         assert config["allowed_tools"] == "all"
         assert config["model"] is None
         assert config["max_iterations"] == 25
@@ -46,6 +47,7 @@ class TestSubagentTypes:
     def test_code_review_subagent_config(self):
         """Test code review subagent configuration."""
         config = SUBAGENT_TYPES["code_review"]
+        assert "clippy" in config["system_prompt"].lower()
         assert "code review specialist" in config["system_prompt"].lower()
         assert isinstance(config["allowed_tools"], list)
         assert "read_file" in config["allowed_tools"]
@@ -55,6 +57,7 @@ class TestSubagentTypes:
     def test_testing_subagent_config(self):
         """Test testing subagent configuration."""
         config = SUBAGENT_TYPES["testing"]
+        assert "clippy" in config["system_prompt"].lower()
         assert "testing specialist" in config["system_prompt"].lower()
         assert isinstance(config["allowed_tools"], list)
         assert "write_file" in config["allowed_tools"]
@@ -64,6 +67,7 @@ class TestSubagentTypes:
     def test_refactor_subagent_config(self):
         """Test refactor subagent configuration."""
         config = SUBAGENT_TYPES["refactor"]
+        assert "clippy" in config["system_prompt"].lower()
         assert "refactoring specialist" in config["system_prompt"].lower()
         assert isinstance(config["allowed_tools"], list)
         assert "edit_file" in config["allowed_tools"]
@@ -73,6 +77,7 @@ class TestSubagentTypes:
     def test_documentation_subagent_config(self):
         """Test documentation subagent configuration."""
         config = SUBAGENT_TYPES["documentation"]
+        assert "clippy" in config["system_prompt"].lower()
         assert "documentation specialist" in config["system_prompt"].lower()
         assert isinstance(config["allowed_tools"], list)
         assert "write_file" in config["allowed_tools"]
@@ -81,7 +86,8 @@ class TestSubagentTypes:
     def test_fast_general_subagent_config(self):
         """Test fast general subagent configuration."""
         config = SUBAGENT_TYPES["fast_general"]
-        assert "quickly and efficiently" in config["system_prompt"].lower()
+        assert "clippy" in config["system_prompt"].lower()
+        assert "speed" in config["system_prompt"].lower()
         assert isinstance(config["allowed_tools"], list)
         assert "write_file" not in config["allowed_tools"]  # Read-only for speed
         assert config["model"] is None  # Inherits from parent agent
@@ -90,7 +96,8 @@ class TestSubagentTypes:
     def test_power_analysis_subagent_config(self):
         """Test power analysis subagent configuration."""
         config = SUBAGENT_TYPES["power_analysis"]
-        assert "code analysis specialist" in config["system_prompt"].lower()
+        assert "clippy" in config["system_prompt"].lower()
+        assert "deep analysis specialist" in config["system_prompt"].lower()
         assert config["allowed_tools"] == "all"
         assert config["model"] is None  # Inherits from parent agent
         assert config["max_iterations"] == 40
