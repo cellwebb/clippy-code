@@ -301,19 +301,25 @@ def test_get_model_config() -> None:
 
 def test_get_default_model_config() -> None:
     """Test getting the default model configuration."""
-    # Reset global manager to ensure clean state
-    import clippy.models
+    # Use a temporary directory to ensure test isolation
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_config_dir = Path(tmpdir)
+        manager = UserModelManager(config_dir=temp_config_dir)
 
-    clippy.models._user_manager = None
+        # Manually set the global manager for this test
+        import clippy.models
 
-    model, provider = get_default_model_config()
+        clippy.models._user_manager = manager
 
-    assert model is not None
-    assert provider is not None
-    assert model.is_default is True
-    assert model.name == "gpt-5"
-    assert model.provider == "openai"
-    assert provider.name == "openai"
+        model, provider = get_default_model_config()
+
+        assert model is not None
+        assert provider is not None
+        assert model.is_default is True
+        # Should default to "gpt-5" in a clean environment
+        assert model.name == "gpt-5"
+        assert model.provider == "openai"
+        assert provider.name == "openai"
 
 
 def test_list_available_models() -> None:
