@@ -127,10 +127,18 @@ def get_token_count(
                 tool_tokens += role_tokens + content_tokens + tool_call_tokens + message_overhead
                 tool_messages += 1
 
-        # Estimate context window (most models have 128k, some have 8k-32k)
-        # This is a rough estimate
-        estimated_context_window = 128000  # Conservative estimate
-        usage_percent = (total_tokens / estimated_context_window) * 100
+        # Determine context limit for usage percent:
+        # - If user configured a compaction threshold for this model, use it
+        # - Otherwise, fall back to a conservative ~128k estimate
+        threshold = get_model_compaction_threshold(model)
+        if isinstance(threshold, int) and threshold > 0:
+            context_limit = threshold
+            context_source = "threshold"
+        else:
+            context_limit = 128000
+            context_source = "default"
+
+        usage_percent = (total_tokens / context_limit) * 100 if context_limit > 0 else 0.0
 
         return {
             "total_tokens": total_tokens,
@@ -138,6 +146,8 @@ def get_token_count(
             "message_count": len(conversation_history),
             "model": model,
             "base_url": base_url,
+            "context_limit": context_limit,
+            "context_source": context_source,
             "system_tokens": system_tokens,
             "system_messages": system_messages,
             "user_tokens": user_tokens,

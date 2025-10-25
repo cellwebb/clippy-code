@@ -321,20 +321,29 @@ def list_available_providers() -> list[tuple[str, str]]:
     return [(provider.name, provider.description) for provider in providers.values()]
 
 
-def get_model_compaction_threshold(name: str) -> int | None:
+def get_model_compaction_threshold(name_or_id: str) -> int | None:
     """Get the compaction threshold for a specific model.
 
+    Looks up by saved model name first (case-insensitive), then by model_id.
+
     Args:
-        name: Model name to look up
+        name_or_id: Saved model name or underlying provider model_id
 
     Returns:
         Compaction threshold in tokens, or None if not set
     """
     user_manager = get_user_manager()
-    model = user_manager.get_model(name)
 
+    # Try by saved model name (case-insensitive)
+    model = user_manager.get_model(name_or_id)
     if model:
         return model.compaction_threshold
+
+    # Fallback: try to find by model_id (case-insensitive)
+    lookup = name_or_id.lower()
+    for m in user_manager.list_models():
+        if m.model_id.lower() == lookup:
+            return m.compaction_threshold
 
     return None
 

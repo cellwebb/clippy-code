@@ -125,6 +125,16 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
 
         message_breakdown = "\n    ".join(message_info) if message_info else "No messages yet"
 
+        # Build dynamic note for context limit source
+        note: str
+        if status.get("context_source") == "threshold":
+            note = (
+                f"[dim]Note: Usage % based on compaction threshold of "
+                f"{status.get('context_limit'):,} tokens[/dim]"
+            )
+        else:
+            note = "[dim]Note: Usage % is estimated for ~128k context window[/dim]"
+
         console.print(
             Panel.fit(
                 f"[bold]Current Session:[/bold]\n"
@@ -136,7 +146,7 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
                 f"  Usage: [{usage_bar}] [cyan]{usage_pct}[/cyan]\n\n"
                 f"[bold]Message Breakdown:[/bold]\n"
                 f"    {message_breakdown}\n\n"
-                f"[dim]Note: Usage % is estimated for ~128k context window[/dim]",
+                f"{note}",
                 title="Session Status",
                 border_style="cyan",
             )
