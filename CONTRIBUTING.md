@@ -15,8 +15,8 @@ Thank you for your interest in contributing to clippy-code! This guide will help
 1. **Fork and clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/clippy.git
-cd clippy
+git clone https://github.com/cellwebb/clippy-code.git
+cd clippy-code
 ```
 
 2. **Set up the development environment**

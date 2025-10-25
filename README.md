@@ -24,8 +24,8 @@ uv tool install clippy-code
 #### Install from source
 
 ```bash
-git clone https://github.com/yourusername/clippy.git
-cd clippy
+git clone https://github.com/cellwebb/clippy-code.git
+cd clippy-code
 
 # Install with dev dependencies (recommended for contributors)
 make dev

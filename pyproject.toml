@@ -53,10 +53,10 @@ dev = [
 clippy = "clippy.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/clippy"
-Repository = "https://github.com/yourusername/clippy"
-Issues = "https://github.com/yourusername/clippy/issues"
-Documentation = "https://github.com/yourusername/clippy#readme"
+Homepage = "https://github.com/cellwebb/clippy-code"
+Repository = "https://github.com/cellwebb/clippy-code"
+Issues = "https://github.com/cellwebb/clippy-code/issues"
+Documentation = "https://github.com/cellwebb/clippy-code#readme"
 
 [build-system]
 requires = ["hatchling"]
