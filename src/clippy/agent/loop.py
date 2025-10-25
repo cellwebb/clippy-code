@@ -13,6 +13,7 @@ from ..executor import ActionExecutor
 from ..permissions import PermissionManager
 from ..providers import LLMProvider, Spinner
 from ..tools import catalog as tool_catalog
+from .conversation import check_and_auto_compact
 from .errors import format_api_error
 from .tool_handler import handle_tool_use
 
@@ -77,6 +78,14 @@ def run_agent_loop(
         if check_interrupted():
             logger.info("Agent loop interrupted by user")
             raise InterruptedExceptionError()
+
+        # Check for auto-compaction based on model threshold
+        compacted, compact_message, compact_stats = check_and_auto_compact(
+            conversation_history, model, provider, getattr(provider, "base_url", None)
+        )
+        if compacted:
+            logger.info(f"Auto-compaction triggered: {compact_message}")
+            console.print(f"[cyan]Auto-compacted conversation: {compact_message}[/cyan]")
 
         # Get current tools (built-in + MCP)
         tools = tool_catalog.get_all_tools(mcp_manager)

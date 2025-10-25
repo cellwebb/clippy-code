@@ -13,7 +13,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Input, RichLog, Static
 
-from ..models import get_model_config, list_available_models
+from ..models import list_available_models
 from ..permissions import ActionType
 from .styles import DOCUMENT_APP_CSS
 from .utils import strip_ansi_codes
@@ -797,6 +797,7 @@ class DocumentApp(App[None]):
         conv_log.write("• /[bold]model add <provider> <model_id>[/bold] - Add a new model")
         conv_log.write("• /[bold]model remove <name>[/bold] - Remove a saved model")
         conv_log.write("• /[bold]model default <name>[/bold] - Set model as default")
+        conv_log.write("• /[bold]model threshold <name> <tokens>[/bold] - Set compaction threshold")
         conv_log.write("")
         conv_log.write("[bold]🔧 Subagent Configuration[/bold]")
         conv_log.write("• /[bold]subagent list[/bold] - Show subagent type configurations")
@@ -918,14 +919,24 @@ class DocumentApp(App[None]):
 
         if models:
             conv_log.write("[bold]Your Saved Models:[/bold]")
-            for name, desc, is_default in models:
-                default_indicator = " [green](default)[/green]" if is_default else ""
+            for model_config in models:
+                name, desc, is_default = model_config[:3]  # Extract first three values
+                # Try to get threshold if it exists (newer models might have it)
+                threshold = model_config[3] if len(model_config) > 3 else None
+
+                threshold_info = (
+                    f" [dim](threshold: {threshold:,} tokens)[/dim]" if threshold else ""
+                )
                 if name == current_model:
                     conv_log.write(
-                        f"• [green]★ {name:20}[/green] - {desc}{default_indicator} [dim](current)[/dim]"
+                        f"• [green]★ {name:20}[/green] - {desc}{threshold_info} "
+                        f"[dim](current)[/dim]"
                     )
                 else:
-                    conv_log.write(f"• [cyan]{name:20}[/cyan] - {desc}{default_indicator}")
+                    default_indicator = " [green](default)[/green]" if is_default else ""
+                    conv_log.write(
+                        f"• [cyan]{name:20}[/cyan] - {desc}{default_indicator}{threshold_info}"
+                    )
             conv_log.write("")
         else:
             conv_log.write("[yellow]No saved models yet[/yellow]\n")
@@ -937,11 +948,16 @@ class DocumentApp(App[None]):
         conv_log.write("[bold]Available Commands:[/bold]")
         conv_log.write("• /[bold]model list[/bold] - Show your saved models")
         conv_log.write("• /[bold]model <name>[/bold] - Switch to a saved model")
-        conv_log.write("• /[bold]model add <provider> <model_id> [options][/bold] - Add a new model")
-        conv_log.write("  Options: --name <name>, --default")
+        conv_log.write(
+            "• /[bold]model add <provider> <model_id> [options][/bold] - Add a new model"
+        )
+        conv_log.write("  Options: --name <name>, --default, --threshold <tokens>")
         conv_log.write("• /[bold]model remove <name>[/bold] - Remove a saved model")
         conv_log.write("• /[bold]model default <name>[/bold] - Set model as default")
-        conv_log.write("• /[bold]model use <provider> <model_id>[/bold] - Try a model without saving")
+        conv_log.write("• /[bold]model threshold <name> <tokens>[/bold] - Set compaction threshold")
+        conv_log.write(
+            "• /[bold]model use <provider> <model_id>[/bold] - Try a model without saving"
+        )
         conv_log.write("")
         conv_log.write("[bold]Examples:[/bold]")
         conv_log.write('• /model add openai gpt-5 --name "gpt-5" --default')
@@ -955,8 +971,6 @@ class DocumentApp(App[None]):
 
     def handle_model_command(self, user_input: str) -> None:
         import shlex
-
-        from ..models import get_provider, get_user_manager
 
         conv_log = self.query_one("#conversation-log", RichLog)
         parts = user_input.split(maxsplit=1)
@@ -1107,7 +1121,9 @@ class DocumentApp(App[None]):
         )
 
         if success:
-            conv_log.write(f"[green]✓ Using {escape(provider_name)}/{escape(model_id)} (temporary)[/green]")
+            conv_log.write(
+                f"[green]✓ Using {escape(provider_name)}/{escape(model_id)} (temporary)[/green]"
+            )
             conv_log.write("[dim]Use /model add to save this configuration[/dim]")
         else:
             conv_log.write(f"[red]✗ {escape(message)}[/red]")
@@ -1126,7 +1142,9 @@ class DocumentApp(App[None]):
         model = user_manager.get_model(model_name)
 
         if not model:
-            conv_log.write(f"[red]✗ Model '{escape(model_name)}' not found in your saved models[/red]")
+            conv_log.write(
+                f"[red]✗ Model '{escape(model_name)}' not found in your saved models[/red]"
+            )
             available_models = user_manager.list_models()
             if available_models:
                 model_names = [m.name for m in available_models]

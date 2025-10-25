@@ -50,8 +50,10 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /model list - Show your saved models\n"
             "  /model <name> - Switch to a saved model\n"
             "  /model add <provider> <model_id> [options] - Add a new model\n"
+            "    Options: --name <name>, --default, --threshold <tokens>\n"
             "  /model remove <name> - Remove a saved model\n"
             "  /model default <name> - Set model as default\n"
+            "  /model threshold <name> <tokens> - Set compaction threshold\n"
             "  /model use <provider> <model_id> - Try a model without saving\n\n"
             "[bold]Subagent Configuration:[/bold]\n"
             "  /subagent list - Show subagent type configurations\n"
@@ -259,9 +261,16 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
             return "continue"
 
         model_lines = []
-        for name, desc, is_default in models:
+        for model_config in models:
+            name, desc, is_default = model_config[:3]  # Extract first three values
+            # Try to get threshold if it exists (newer models might have it)
+            threshold = model_config[3] if len(model_config) > 3 else None
+
             default_indicator = " [green](default)[/green]" if is_default else ""
-            model_lines.append(f"  [cyan]{name:20}[/cyan] - {desc}{default_indicator}")
+            threshold_info = f" [dim](threshold: {threshold:,} tokens)[/dim]" if threshold else ""
+            model_lines.append(
+                f"  [cyan]{name:20}[/cyan] - {desc}{default_indicator}{threshold_info}"
+            )
 
         current_model = agent.model
         current_provider = agent.base_url or "OpenAI"
@@ -274,13 +283,14 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
                 "  /model list - Show your saved models\n"
                 "  /model <name> - Switch to a saved model\n"
                 "  /model add <provider> <model_id> [options] - Add a new model\n"
-                "    Options: --name <name>, --default\n"
+                "    Options: --name <name>, --default, --threshold <tokens>\n"
                 "  /model remove <name> - Remove a saved model\n"
                 "  /model default <name> - Set model as default\n"
+                "  /model threshold <name> <tokens> - Set compaction threshold\n"
                 "  /model use <provider> <model_id> - Try a model without saving\n\n"
                 "[dim]Examples:\n"
-                '  /model add openai gpt-5 --name "gpt-5" --default\n'
-                '  /model add cerebras qwen-3-coder-480b --name "q3c"\n'
+                '  /model add openai gpt-5 --name "gpt-5" --default --threshold 80000\n'
+                '  /model add cerebras qwen-3-coder-480b --name "q3c" --threshold 100000\n'
                 "  /model use ollama llama3.2:latest\n"
                 "  /model gpt-5[/dim]",
                 title="Model Management",
@@ -311,6 +321,8 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
         return _handle_model_default(console, args[1:])
     elif subcommand == "use":
         return _handle_model_use(agent, console, args[1:])
+    elif subcommand == "threshold":
+        return _handle_model_threshold(agent, console, args[1:])
     else:
         # Treat as model name to switch to
         # This handles cases where the user tries to switch to a specific model
@@ -323,10 +335,11 @@ def _handle_model_add(console: Console, args: list[str]) -> CommandResult:
     if len(args) < 2:
         console.print(
             "[red]Usage: /model add <provider> <model_id> [options][/red]\n"
-            "[dim]Options: --name <name>, --default[/dim]"
+            "[dim]Options: --name <name>, --default, --threshold <tokens>[/dim]"
         )
         console.print(
-            '[dim]Example: /model add cerebras qwen-3-coder-480b --name "q3c" --default[/dim]'
+            '[dim]Example: /model add cerebras qwen-3-coder-480b --name "q3c" \n'
+            "          --default --threshold 80000[/dim]"
         )
         return "continue"
 
@@ -336,6 +349,7 @@ def _handle_model_add(console: Console, args: list[str]) -> CommandResult:
     # Parse optional arguments
     name = None
     is_default = False
+    compaction_threshold = None
 
     i = 2
     while i < len(args):
@@ -345,6 +359,13 @@ def _handle_model_add(console: Console, args: list[str]) -> CommandResult:
         elif args[i] == "--default":
             is_default = True
             i += 1
+        elif args[i] == "--threshold" and i + 1 < len(args):
+            try:
+                compaction_threshold = int(args[i + 1])
+                i += 2
+            except ValueError:
+                console.print(f"[red]✗ Invalid threshold value: {args[i + 1]}[/red]")
+                return "continue"
         else:
             console.print(f"[red]✗ Unknown argument: {args[i]}[/red]")
             return "continue"
@@ -355,7 +376,9 @@ def _handle_model_add(console: Console, args: list[str]) -> CommandResult:
 
     # Add the model
     user_manager = get_user_manager()
-    success, message = user_manager.add_model(name, provider, model_id, is_default)
+    success, message = user_manager.add_model(
+        name, provider, model_id, is_default, compaction_threshold
+    )
 
     if success:
         console.print(f"[green]✓ {message}[/green]")
@@ -450,15 +473,40 @@ def _handle_model_use(agent: ClippyAgent, console: Console, args: list[str]) -> 
     return "continue"
 
 
+def _handle_model_threshold(agent: ClippyAgent, console: Console, args: list[str]) -> CommandResult:
+    """Handle /model threshold command."""
+    if len(args) < 2:
+        console.print("[red]Usage: /model threshold <name> <tokens>[/red]")
+        console.print("[dim]Example: /model threshold gpt-4o 80000[/dim]")
+        return "continue"
+
+    name = args[0]
+    try:
+        threshold = int(args[1])
+    except ValueError:
+        console.print(f"[red]✗ Invalid threshold value: {args[1]}[/red]")
+        return "continue"
+
+    user_manager = get_user_manager()
+    success, message = user_manager.set_compaction_threshold(name, threshold)
+
+    if success:
+        console.print(f"[green]✓ {message}[/green]")
+    else:
+        console.print(f"[red]✗ {message}[/red]")
+
+    return "continue"
+
+
 def _handle_model_switch(agent: ClippyAgent, console: Console, model_name: str) -> CommandResult:
     """Handle switching to a saved model."""
     # Explicit validation for empty or whitespace-only model names
     if not model_name or not model_name.strip():
         console.print("[red]✗ Model name cannot be empty[/red]")
         return "continue"
-    
+
     model_name = model_name.strip()
-    
+
     # Check if model exists in user's saved models
     user_manager = get_user_manager()
     model = user_manager.get_model(model_name)

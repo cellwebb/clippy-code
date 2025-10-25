@@ -173,9 +173,13 @@ def test_handle_model_add_remove_and_switch(monkeypatch: pytest.MonkeyPatch) -> 
     )
 
     user_manager = SimpleNamespace(
-        add_model=lambda name, provider, model_id, is_default: (True, "added"),
+        add_model=lambda name, provider, model_id, is_default, compaction_threshold=None: (
+            True,
+            "added",
+        ),
         remove_model=lambda name: (True, "removed"),
         set_default=lambda name: (False, "missing"),
+        list_models=lambda: [],
     )
     monkeypatch.setattr(commands, "get_user_manager", lambda: user_manager)
     monkeypatch.setattr(commands, "list_available_models", lambda: [])
@@ -208,15 +212,24 @@ def test_handle_model_add_remove_and_switch(monkeypatch: pytest.MonkeyPatch) -> 
     commands.handle_model_command(agent, console, "use cerebras qwen")
     assert any("Warning" in str(msg) for msg in console.messages)
 
-    model = SimpleNamespace(name="alias", model_id="qwen")
-    monkeypatch.setattr(commands, "get_model_config", lambda name: (model, provider))
+    user_manager = SimpleNamespace(
+        get_model=lambda name: SimpleNamespace(name="alias", model_id="qwen", provider="cerebras")
+        if name == "alias"
+        else None,
+        list_models=lambda: [],
+    )
+    monkeypatch.setattr(commands, "get_user_manager", lambda: user_manager)
     monkeypatch.setenv("CEREBRAS_API_KEY", "set")
     console.messages.clear()
     commands.handle_model_command(agent, console, "alias")
     assert any("Switched" in str(msg) for msg in console.messages)
 
     console.messages.clear()
-    monkeypatch.setattr(commands, "get_model_config", lambda name: (None, None))
+    user_manager = SimpleNamespace(
+        get_model=lambda name: None,
+        list_models=lambda: [],
+    )
+    monkeypatch.setattr(commands, "get_user_manager", lambda: user_manager)
     commands.handle_model_command(agent, console, "nonexistent")
     assert any("not found" in msg for msg in console.messages)
 

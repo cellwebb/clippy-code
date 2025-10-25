@@ -337,7 +337,11 @@ def test_list_available_models() -> None:
         assert len(models) >= 2
 
         # Check structure
-        for name, description, is_default in models:
+        for model_config in models:
+            name, description, is_default = model_config[:3]  # Extract first three values
+            # Try to get threshold if it exists (newer models might have it)
+            _threshold = model_config[3] if len(model_config) > 3 else None
+
             assert isinstance(name, str)
             assert isinstance(description, str)
             assert isinstance(is_default, bool)

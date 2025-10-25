@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from clippy.agent.conversation import (
+    check_and_auto_compact,
     compact_conversation,
     create_system_prompt,
     get_token_count,
@@ -495,3 +496,134 @@ class TestCompactConversation:
 
         # Recent messages should be identical to originals
         assert new_history[-2:] == sample_conversation[-2:]
+
+
+class TestCheckAndAutoCompact:
+    """Tests for check_and_auto_compact function."""
+
+    def test_no_threshold_set(self, mock_provider: MagicMock) -> None:
+        """Test that no compaction occurs when no threshold is set."""
+        conversation = [
+            {"role": "system", "content": "system prompt"},
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi"},
+        ]
+
+        # No threshold set for this model
+        compacted, message, stats = check_and_auto_compact(
+            conversation, "test-model", mock_provider
+        )
+
+        assert compacted is False
+        assert "threshold" in message.lower()
+        assert stats == {}
+
+    @patch("clippy.agent.conversation.get_token_count")
+    @patch("clippy.agent.conversation.get_model_compaction_threshold")
+    def test_below_threshold(
+        self,
+        mock_get_model_threshold: MagicMock,
+        mock_get_token_count: MagicMock,
+        mock_provider: MagicMock,
+    ) -> None:
+        """Test that no compaction occurs when below threshold."""
+        conversation = [
+            {"role": "system", "content": "system prompt"},
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi"},
+        ]
+
+        # Set up mocks
+        mock_get_model_threshold.return_value = 10000  # High threshold
+        mock_get_token_count.return_value = {
+            "total_tokens": 500,
+            "message_count": 3,
+            "model": "test-model",
+        }  # Well below threshold
+
+        compacted, message, stats = check_and_auto_compact(
+            conversation, "test-model", mock_provider
+        )
+
+        assert compacted is False
+        assert "below threshold" in message.lower()
+
+    @patch("clippy.agent.conversation.compact_conversation")
+    @patch("clippy.agent.conversation.get_token_count")
+    @patch("clippy.agent.conversation.get_model_compaction_threshold")
+    def test_compact_triggered(
+        self,
+        mock_get_model_threshold: MagicMock,
+        mock_get_token_count: MagicMock,
+        mock_compact_conversation: MagicMock,
+        mock_provider: MagicMock,
+    ) -> None:
+        """Test that compaction is triggered when above threshold."""
+        conversation = [
+            {"role": "system", "content": "system prompt"},
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi"},
+        ]
+
+        # Set up mocks
+        mock_get_model_threshold.return_value = 10  # Low threshold
+        mock_get_token_count.return_value = {
+            "total_tokens": 500,
+            "message_count": 3,
+            "model": "test-model",
+        }  # Above threshold
+        mock_compact_conversation.return_value = (
+            True,
+            "Conversation compacted: 500 → 200 tokens (60.0% reduction)",
+            {"before_tokens": 500, "after_tokens": 200, "reduction_percent": 60.0},
+            [
+                {"role": "system", "content": "system prompt"},
+                {"role": "assistant", "content": "summary"},
+            ],
+        )
+
+        compacted, message, stats = check_and_auto_compact(
+            conversation, "test-model", mock_provider
+        )
+
+        # Should have been compacted
+        assert compacted is True
+        assert "compacted" in message.lower()
+
+    @patch("clippy.agent.conversation.compact_conversation")
+    @patch("clippy.agent.conversation.get_token_count")
+    @patch("clippy.agent.conversation.get_model_compaction_threshold")
+    def test_compact_failure(
+        self,
+        mock_get_model_threshold: MagicMock,
+        mock_get_token_count: MagicMock,
+        mock_compact_conversation: MagicMock,
+        mock_provider: MagicMock,
+    ) -> None:
+        """Test handling of compaction failure."""
+        conversation = [
+            {"role": "system", "content": "system prompt"},
+            {"role": "user", "content": "hello"},
+        ]
+
+        # Set up mocks
+        mock_get_model_threshold.return_value = 1  # Very low threshold to trigger compaction
+        mock_get_token_count.return_value = {
+            "total_tokens": 500,
+            "message_count": 2,
+            "model": "test-model",
+        }  # Above threshold
+        mock_compact_conversation.return_value = (
+            False,
+            "Conversation too short to compact (need >7 messages)",
+            {},
+            [],
+        )
+
+        compacted, message, stats = check_and_auto_compact(
+            conversation, "test-model", mock_provider
+        )
+
+        # Should not compact due to conversation being too short
+        assert compacted is False
+        assert "too short" in message.lower()

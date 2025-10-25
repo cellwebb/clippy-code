@@ -27,6 +27,7 @@ class UserModelConfig:
     model_id: str
     description: str
     is_default: bool = False
+    compaction_threshold: int | None = None  # Token threshold for auto compaction
 
 
 class UserModelManager:
@@ -59,6 +60,7 @@ class UserModelManager:
                         "model_id": "gpt-5",
                         "description": "openai/gpt-5",
                         "is_default": True,
+                        "compaction_threshold": None,
                     }
                 ]
             }
@@ -113,6 +115,7 @@ class UserModelManager:
         provider: str,
         model_id: str,
         is_default: bool = False,
+        compaction_threshold: int | None = None,
     ) -> tuple[bool, str]:
         """Add a new user model.
 
@@ -121,6 +124,7 @@ class UserModelManager:
             provider: Provider name (must exist in providers.yaml)
             model_id: Actual model ID for the API
             is_default: Whether to set as default model
+            compaction_threshold: Token threshold for auto compaction (optional)
 
         Returns:
             Tuple of (success, message)
@@ -151,6 +155,7 @@ class UserModelManager:
             "model_id": model_id,
             "description": description,
             "is_default": is_default,
+            "compaction_threshold": compaction_threshold,
         }
         data["models"].append(new_model)
 
@@ -190,6 +195,27 @@ class UserModelManager:
 
         self._save_models(data)
         return True, f"Set '{name}' as default model"
+
+    def set_compaction_threshold(self, name: str, threshold: int | None) -> tuple[bool, str]:
+        """Set the compaction threshold for a model."""
+        data = self._load_models()
+        model_found = False
+
+        # Find and update the model
+        for model_data in data.get("models", []):
+            if model_data["name"].lower() == name.lower():
+                model_data["compaction_threshold"] = threshold
+                model_found = True
+                break
+
+        if not model_found:
+            return False, f"Model '{name}' not found"
+
+        self._save_models(data)
+        if threshold is None:
+            return True, f"Removed compaction threshold from model '{name}'"
+        else:
+            return True, f"Set compaction threshold for model '{name}' to {threshold:,} tokens"
 
 
 # Global instances
@@ -270,15 +296,19 @@ def get_default_model_config() -> tuple[UserModelConfig | None, ProviderConfig |
     return None, None
 
 
-def list_available_models() -> list[tuple[str, str, bool]]:
-    """Get list of available user models with descriptions and default status.
+def list_available_models() -> list[tuple[str, str, bool, int | None]]:
+    """Get list of available user models with descriptions, default status,
+    and compaction thresholds.
 
     Returns:
-        List of tuples (name, description, is_default)
+        List of tuples (name, description, is_default, compaction_threshold)
     """
     user_manager = get_user_manager()
     models = user_manager.list_models()
-    return [(model.name, model.description, model.is_default) for model in models]
+    return [
+        (model.name, model.description, model.is_default, model.compaction_threshold)
+        for model in models
+    ]
 
 
 def list_available_providers() -> list[tuple[str, str]]:
@@ -289,3 +319,35 @@ def list_available_providers() -> list[tuple[str, str]]:
     """
     providers = get_providers()
     return [(provider.name, provider.description) for provider in providers.values()]
+
+
+def get_model_compaction_threshold(name: str) -> int | None:
+    """Get the compaction threshold for a specific model.
+
+    Args:
+        name: Model name to look up
+
+    Returns:
+        Compaction threshold in tokens, or None if not set
+    """
+    user_manager = get_user_manager()
+    model = user_manager.get_model(name)
+
+    if model:
+        return model.compaction_threshold
+
+    return None
+
+
+def set_model_compaction_threshold(name: str, threshold: int | None) -> tuple[bool, str]:
+    """Set the compaction threshold for a specific model.
+
+    Args:
+        name: Model name to update
+        threshold: New threshold value (int) or None to remove
+
+    Returns:
+        Tuple of (success, message)
+    """
+    user_manager = get_user_manager()
+    return user_manager.set_compaction_threshold(name, threshold)

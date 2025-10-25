@@ -7,6 +7,7 @@ from typing import Any
 
 import tiktoken
 
+from ..models import get_model_compaction_threshold
 from ..prompts import SYSTEM_PROMPT
 from ..providers import LLMProvider
 
@@ -272,3 +273,56 @@ Keep the summary brief but informative (aim for 200-400 words).""",
     except Exception as e:
         logger.error(f"Error during conversation compaction: {e}", exc_info=True)
         return False, f"Error compacting conversation: {e}", {}, []
+
+
+def check_and_auto_compact(
+    conversation_history: list[dict[str, Any]],
+    model: str,
+    provider: LLMProvider,
+    base_url: str | None = None,
+) -> tuple[bool, str, dict[str, Any]]:
+    """
+    Check if conversation needs auto-compaction based on model threshold and compact if needed.
+
+    Args:
+        conversation_history: Current conversation history (modified in place if compacted)
+        model: Model identifier
+        provider: LLM provider instance for generating summary
+        base_url: Base URL for the provider (optional)
+
+    Returns:
+        Tuple of (compacted: bool, message: str, stats: dict)
+        If compacted is True, the conversation_history was modified in place
+    """
+    # Get the compaction threshold for this model
+    threshold = get_model_compaction_threshold(model)
+
+    # If no threshold is set, no auto-compaction is needed
+    if threshold is None:
+        return False, "No compaction threshold set for this model", {}
+
+    # Get current token count
+    stats = get_token_count(conversation_history, model, base_url)
+
+    # If there was an error counting tokens, return it
+    if "error" in stats:
+        return False, f"Error counting tokens: {stats['error']}", {}
+
+    current_tokens = stats["total_tokens"]
+
+    # If we're below the threshold, no compaction needed
+    if current_tokens < threshold:
+        return False, f"Current tokens ({current_tokens:,}) below threshold ({threshold:,})", {}
+
+    # We're at or above the threshold, compact the conversation
+    success, message, compact_stats, new_history = compact_conversation(
+        conversation_history, provider, model
+    )
+
+    # If compaction was successful, update the conversation history in place
+    if success and new_history:
+        conversation_history.clear()
+        conversation_history.extend(new_history)
+        return True, message, compact_stats
+    else:
+        return False, message, compact_stats
