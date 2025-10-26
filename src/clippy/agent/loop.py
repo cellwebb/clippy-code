@@ -31,7 +31,7 @@ def run_agent_loop(
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None,
     check_interrupted: Callable[[], bool],
     mcp_manager: Any = None,
-    max_iterations: int = 50,
+    max_iterations: int = 100,
     allowed_tools: list[str] | None = None,
     parent_agent: Any = None,
 ) -> str:
@@ -49,7 +49,7 @@ def run_agent_loop(
         approval_callback: Optional callback for approval requests
         check_interrupted: Callback to check if execution was interrupted
         mcp_manager: Optional MCP manager instance
-        max_iterations: Maximum number of iterations (default: 50)
+        max_iterations: Maximum number of iterations (default: 100)
         allowed_tools: List of allowed tool names (default: all tools)
         parent_agent: Parent agent instance for subagent delegation
 
@@ -220,7 +220,7 @@ def run_agent_loop(
     console.print(
         Panel(
             "[bold yellow]⚠ Maximum Iterations Reached[/bold yellow]\n\n"
-            "The agent has reached the maximum number of iterations (50) and has stopped.\n"
+            "The agent has reached the maximum number of iterations (100) and has stopped.\n"
             "The task may be incomplete.\n\n"
             "[dim]This limit prevents infinite loops. You can:\n"
             '• Say "continue" to continue with the current request\n'

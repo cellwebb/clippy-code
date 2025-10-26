@@ -232,8 +232,8 @@ class TestRunAgentLoop:
         )
 
         assert "maximum iterations" in result.lower()
-        # Should stop at 50 iterations
-        assert mock_provider.create_message.call_count == 50
+        # Should stop at 100 iterations
+        assert mock_provider.create_message.call_count == 100
 
     def test_handles_api_error(
         self,

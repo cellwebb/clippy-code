@@ -105,7 +105,7 @@ All LLM interactions go through a single `LLMProvider` class (~100 lines total).
 ### Agent Flow
 
 1. User input → `ClippyAgent`
-2. Loop (max 50 iterations): Call LLM → Process response → Execute tools → Add results → Repeat
+2. Loop (max 100 iterations): Call LLM → Process response → Execute tools → Add results → Repeat
 3. Tool execution: Check permissions → Get approval if needed → Execute → Return `(success, message, result)`
 4. **Subagent Delegation** (optional): Agent can spawn specialized subagents for complex subtasks
    - Sequential or parallel execution
@@ -296,7 +296,7 @@ For detailed MCP configuration and usage, see [MCP_DOCUMENTATION.md](MCP_DOCUMEN
 
 ## Key Implementation Details
 
-- **Agent loop**: 50 iteration max (prevents infinite loops)
+- **Agent loop**: 100 iteration max (prevents infinite loops)
 - **Command timeout**: 30 seconds
 - **File ops**: Auto-create parent dirs, UTF-8 encoding, use `pathlib.Path`
 - **Executor returns**: `tuple[bool, str, Any]` (success, message, result)
@@ -315,7 +315,7 @@ Keep `pyproject.toml` and `src/clippy/__version__.py` in sync. Use: `make bump-p
 - **OpenAI format natively**: Single standard format, works with any OpenAI-compatible provider
 - **No provider abstraction**: Simpler codebase (~100 lines vs 370+), easier to maintain
 - **3 permission levels**: AUTO_APPROVE (safe ops), REQUIRE_APPROVAL (risky), DENY (blocked)
-- **50 iteration max**: Prevents infinite loops, sufficient for most tasks
+- **100 iteration max**: Prevents infinite loops, allows for more complex tasks
 - **Retry logic**: Exponential backoff with 3 attempts for resilience against transient failures
 - **Separate tools/executor/permissions**: Interface vs execution vs policy (separation of concerns)
 - **Document mode**: Provides a more intuitive interface for longer coding tasks
