@@ -6,12 +6,12 @@ providers:
   openai:
     base_url: null  # null = use default OpenAI endpoint
     api_key_env: OPENAI_API_KEY
-    description: "OpenAI API"
+    description: "OpenAI"
 
   cerebras:
     base_url: https://api.cerebras.ai/v1
     api_key_env: CEREBRAS_API_KEY
-    description: "Cerebras AI"
+    description: "Cerebras"
 
   groq:
     base_url: https://api.groq.com/openai/v1
@@ -36,7 +36,7 @@ providers:
   synthetic:
     base_url: https://api.synthetic.new/openai/v1
     api_key_env: SYNTHETIC_API_KEY
-    description: "Synthetic AI"
+    description: "Synthetic.new"
 
   together:
     base_url: https://api.together.xyz/v1
@@ -46,4 +46,4 @@ providers:
   zai:
     base_url: https://api.z.ai/api/coding/paas/v4/
     api_key_env: ZAI_API_KEY
-    description: "ZAI coding plan"
+    description: "Z.AI coding plan"
