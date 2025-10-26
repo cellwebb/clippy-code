@@ -15,6 +15,7 @@ from rich.panel import Panel
 
 from ..agent import ClippyAgent, InterruptedExceptionError
 from .commands import handle_command
+from .completion import create_completer
 
 
 def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
@@ -45,6 +46,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
         history=FileHistory(str(history_file)),
         auto_suggest=AutoSuggestFromHistory(),
         key_bindings=kb,
+        completer=create_completer(agent),
     )
 
     console.print(

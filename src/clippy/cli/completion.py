@@ -1,0 +1,388 @@
+"""Tab completion system for clippy-code commands."""
+
+from collections.abc import Callable
+from typing import Any
+
+from prompt_toolkit.completion import (
+    Completer,
+    Completion,
+    WordCompleter,
+)
+from prompt_toolkit.document import Document
+
+from ..agent.subagent_types import list_subagent_types
+from ..models import list_available_models, list_available_providers
+from ..permissions import ActionType
+
+
+class ClippyCommandCompleter(Completer):
+    """Advanced command completer for clippy-code slash commands."""
+
+    def __init__(self, agent: Any = None) -> None:
+        self.agent = agent
+        self._setup_base_commands()
+        self._setup_dynamic_completers()
+
+    def _setup_base_commands(self) -> None:
+        """Setup basic command definitions."""
+        self.base_commands: dict[str, dict[str, Any]] = {
+            "help": {
+                "description": "Show help message",
+                "completer": None,
+            },
+            "exit": {
+                "description": "Exit clippy-code",
+                "alias": ["quit"],
+                "completer": None,
+            },
+            "reset": {
+                "description": "Reset conversation history",
+                "alias": ["clear", "new"],
+                "completer": None,
+            },
+            "status": {
+                "description": "Show token usage and session info",
+                "completer": None,
+            },
+            "compact": {
+                "description": "Summarize conversation to reduce context usage",
+                "completer": None,
+            },
+            "providers": {
+                "description": "List available providers",
+                "completer": None,
+            },
+            "provider": {
+                "description": "Show provider details",
+                "completer": self._create_provider_completer(),
+                "takes_arg": True,
+            },
+            "model": {
+                "description": "Model management",
+                "completer": self._create_model_completer(),
+                "subcommands": ["list", "add", "remove", "default", "use", "threshold"],
+            },
+            "auto": {
+                "description": "Auto-approval management",
+                "completer": self._create_auto_completer(),
+                "subcommands": ["list", "revoke", "clear"],
+            },
+            "mcp": {
+                "description": "MCP server management",
+                "completer": self._create_mcp_completer(),
+                "subcommands": ["list", "tools", "refresh", "allow", "revoke"],
+            },
+            "subagent": {
+                "description": "Subagent configuration",
+                "completer": self._create_subagent_completer(),
+                "subcommands": ["list", "set", "clear", "reset"],
+            },
+        }
+
+    def _create_provider_completer(self) -> WordCompleter:
+        """Create completer for provider names."""
+        providers = [provider[0] for provider in list_available_providers()]
+        return WordCompleter(providers, ignore_case=True)
+
+    def _create_model_completer(self) -> Callable[[], "ModelCommandCompleter"]:
+        """Create model command completer."""
+
+        def get_completer() -> "ModelCommandCompleter":
+            return ModelCommandCompleter(self.agent)
+
+        return get_completer
+
+    def _create_auto_completer(self) -> Callable[[], "AutoCommandCompleter"]:
+        """Create auto command completer."""
+
+        def get_completer() -> "AutoCommandCompleter":
+            return AutoCommandCompleter()
+
+        return get_completer
+
+    def _create_mcp_completer(self) -> Callable[[], "MCPCommandCompleter"]:
+        """Create MCP command completer."""
+
+        def get_completer() -> "MCPCommandCompleter":
+            return MCPCommandCompleter(self.agent)
+
+        return get_completer
+
+    def _create_subagent_completer(self) -> Callable[[], "SubagentCommandCompleter"]:
+        """Create subagent command completer."""
+
+        def get_completer() -> "SubagentCommandCompleter":
+            return SubagentCommandCompleter()
+
+        return get_completer
+
+    def _setup_dynamic_completers(self) -> None:
+        """Setup completers that need dynamic data."""
+        pass  # Will be updated as needed
+
+    def get_completions(self, document: Document, complete_event: Any) -> list[Completion]:
+        """Get completions for the current document."""
+        text = document.text_before_cursor
+        words = text.split()
+
+        # If we're at the beginning and text starts with "/", show base commands
+        at_beginning = len(words) == 0 or (len(words) == 1 and not text.endswith(" "))
+        if at_beginning and text.startswith("/"):
+            return self._get_base_command_completions(text)
+        # If we're at the beginning but text doesn't start with "/", don't show slash commands
+        elif at_beginning:
+            return []
+
+        # If we have a command that starts with "/", get command-specific completions
+        if text.startswith("/") and len(words) > 0:
+            command = words[0].lstrip("/")
+            if command in self.base_commands:
+                return self._get_command_specific_completions(command, words, text, complete_event)
+
+        return []
+
+    def _get_base_command_completions(self, text: str) -> list[Completion]:
+        """Get completions for base commands."""
+        completions = []
+
+        # Only show slash command completions if text starts with "/"
+        if text.startswith("/"):
+            text_without_slash = text.lstrip("/")
+            for command, info in self.base_commands.items():
+                # Include the command itself
+                if command.startswith(text_without_slash):
+                    # Calculate start position for completion
+                    # We need to replace only the part after the slash
+                    start_pos = -len(text_without_slash)
+                    completions.append(
+                        Completion(
+                            text=command,  # Just the command without slash
+                            display=f"/{command}",
+                            display_meta=info["description"],
+                            start_position=start_pos,
+                        )
+                    )
+
+                # Include aliases
+                aliases_list = info.get("alias")
+                if isinstance(aliases_list, list):
+                    for alias in aliases_list:
+                        if alias.startswith(text_without_slash):
+                            # Calculate start position for completion
+                            start_pos = -len(text_without_slash)
+                            completions.append(
+                                Completion(
+                                    text=alias,  # Just the alias without slash
+                                    display=f"/{alias}",
+                                    display_meta=f"Alias for /{command}",
+                                    start_position=start_pos,
+                                )
+                            )
+
+        return sorted(completions, key=lambda c: c.text)
+
+    def _get_command_specific_completions(
+        self, command: str, words: list[str], text: str, complete_event: Any
+    ) -> list[Completion]:
+        """Get completions for command-specific arguments."""
+        command_info = self.base_commands.get(command)
+
+        if not command_info:
+            return []
+
+        # Handle subcommands
+        subcommands_list = command_info.get("subcommands")
+        if isinstance(subcommands_list, list):
+            if len(words) <= 2:
+                # Complete subcommand names
+                subcommand_prefix = words[1] if len(words) > 1 else ""
+                completions: list[Completion] = []
+                for subcommand in command_info["subcommands"]:
+                    if subcommand.startswith(subcommand_prefix):
+                        completions.append(
+                            Completion(
+                                text=subcommand,
+                                display=subcommand,
+                                display_meta=self._get_subcommand_description(command, subcommand),
+                                start_position=-len(subcommand_prefix),
+                            )
+                        )
+                return completions
+
+        # Use command-specific completer
+        completer_factory = command_info.get("completer")
+        if completer_factory:
+            if callable(completer_factory):
+                completer = completer_factory()
+            else:
+                completer = completer_factory
+
+            if completer:
+                # Create a new document with the relevant part for the sub-completer
+                if len(words) > 1:
+                    current_word = words[-1] if not text.endswith(" ") else ""
+                    sub_doc = Document(current_word)
+                    return list(completer.get_completions(sub_doc, complete_event))
+
+        return []
+
+    def _get_subcommand_description(self, command: str, subcommand: str) -> str:
+        """Get description for a subcommand."""
+        descriptions = {
+            ("model", "list"): "Show your saved models",
+            ("model", "add"): "Add a new model configuration",
+            ("model", "remove"): "Remove a saved model",
+            ("model", "default"): "Set model as default",
+            ("model", "use"): "Try a model without saving",
+            ("model", "threshold"): "Set compaction threshold",
+            ("auto", "list"): "List auto-approved actions",
+            ("auto", "revoke"): "Revoke auto-approval for action",
+            ("auto", "clear"): "Clear all auto-approvals",
+            ("mcp", "list"): "List configured MCP servers",
+            ("mcp", "tools"): "List MCP tools",
+            ("mcp", "refresh"): "Refresh MCP connections",
+            ("mcp", "allow"): "Trust MCP server",
+            ("mcp", "revoke"): "Revoke trust for MCP server",
+            ("subagent", "list"): "Show subagent configurations",
+            ("subagent", "set"): "Set model for subagent type",
+            ("subagent", "clear"): "Clear model override",
+            ("subagent", "reset"): "Clear all overrides",
+        }
+        return descriptions.get((command, subcommand), subcommand)
+
+
+class ModelCommandCompleter(Completer):
+    """Completer for model command arguments."""
+
+    def __init__(self, agent: Any = None) -> None:
+        self.agent = agent
+
+    def get_completions(self, document: Document, complete_event: Any) -> list[Completion]:
+        """Get model command completions."""
+        text = document.text_before_cursor
+
+        # Try to get the full command context
+        # This is a simplified approach - in practice, we'd need more context
+        # about which subcommand we're completing for
+
+        # Complete model names (saved models)
+        models = list_available_models()
+        completions: list[Completion] = []
+
+        for model_config in models:
+            model_name = model_config[0]
+            if model_name.startswith(text):
+                completions.append(
+                    Completion(
+                        text=model_name,
+                        display=model_name,
+                        display_meta=model_config[1],  # Description
+                        start_position=-len(text),
+                    )
+                )
+
+        # Complete provider names if this looks like an "add" or "use" command
+        if text == "" or len(text) < 3:  # Short prefix, might be provider
+            providers = list_available_providers()
+            for provider_name, _ in providers:
+                if provider_name.startswith(text):
+                    completions.append(
+                        Completion(
+                            text=provider_name,
+                            display=provider_name,
+                            display_meta="Provider",
+                            start_position=-len(text),
+                        )
+                    )
+
+        return completions
+
+
+class AutoCommandCompleter(Completer):
+    """Completer for auto command arguments."""
+
+    def get_completions(self, document: Document, complete_event: Any) -> list[Completion]:
+        """Get auto command completions."""
+        text = document.text_before_cursor
+
+        # Complete action types for "revoke" subcommand
+        action_types = [action.value for action in ActionType]
+        completions: list[Completion] = []
+
+        for action in action_types:
+            if action.startswith(text):
+                completions.append(
+                    Completion(
+                        text=action,
+                        display=action,
+                        display_meta="Action type",
+                        start_position=-len(text),
+                    )
+                )
+
+        return completions
+
+
+class MCPCommandCompleter(Completer):
+    """Completer for MCP command arguments."""
+
+    def __init__(self, agent: Any = None) -> None:
+        self.agent = agent
+
+    def get_completions(self, document: Document, complete_event: Any) -> list[Completion]:
+        """Get MCP command completions."""
+        text = document.text_before_cursor
+        completions: list[Completion] = []
+
+        # Complete server names if available
+        if self.agent and hasattr(self.agent, "mcp_manager") and self.agent.mcp_manager:
+            try:
+                servers = self.agent.mcp_manager.list_servers()
+                for server in servers:
+                    server_id = server["server_id"]
+                    if server_id.startswith(text):
+                        completions.append(
+                            Completion(
+                                text=server_id,
+                                display=server_id,
+                                display_meta=f"MCP Server ({server['tools_count']} tools)",
+                                start_position=-len(text),
+                            )
+                        )
+            except Exception:
+                # If there's an error accessing MCP manager, return empty completions
+                pass
+
+        return completions
+
+
+class SubagentCommandCompleter(Completer):
+    """Completer for subagent command arguments."""
+
+    def get_completions(self, document: Document, complete_event: Any) -> list[Completion]:
+        """Get subagent command completions."""
+        text = document.text_before_cursor
+        completions: list[Completion] = []
+
+        # Complete subagent types
+        subagent_types = list_subagent_types()
+        for subagent_type in subagent_types:
+            if subagent_type.startswith(text):
+                completions.append(
+                    Completion(
+                        text=subagent_type,
+                        display=subagent_type,
+                        display_meta="Subagent type",
+                        start_position=-len(text),
+                    )
+                )
+
+        # Could also complete model names here for "set" subcommand
+        # This would require more context about which subcommand we're in
+
+        return completions
+
+
+def create_completer(agent: Any = None) -> ClippyCommandCompleter:
+    """Create and return a clippy command completer."""
+    return ClippyCommandCompleter(agent)
