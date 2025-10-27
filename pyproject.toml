@@ -51,6 +51,7 @@ dev = [
 
 [project.scripts]
 clippy = "clippy.cli:main"
+clippy-code = "clippy.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/cellwebb/clippy-code"
