@@ -24,9 +24,9 @@ The core question: **How do we analyze commits in B as they might affect:**
 
 ## 📎 Solution: Two New Tools
 
-### 1. `git_analyzer` - Advanced Git Analysis
+### 1. `git_analyzer` - LLM-Enhanced Git Analysis
 
-Deep analysis of git changes across multiple branches with semantic understanding.
+Intelligent analysis of git changes across multiple branches with semantic understanding and LLM-powered insights.
 
 #### Key Features:
 - **Cross-branch impact analysis**: See how changes in one branch affect others
@@ -85,9 +85,9 @@ git_analyzer(
 }
 ```
 
-### 2. `pr_manager` - Comprehensive PR Management
+### 2. `pr_manager` - LLM-Enhanced PR Management
 
-Complete PR workflow management with staging, validation, and impact reporting.
+Intelligent PR workflow management with staging, validation, and impact reporting powered by LLM analysis.
 
 #### Actions:
 - **`analyze`**: Full PR analysis using git_analyzer plus PR-specific insights

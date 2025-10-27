@@ -11,7 +11,7 @@ TOOL_SCHEMA = {
         "description": (
             "Comprehensive PR management for staging changes, analyzing cross-branch "
             "impacts, and ensuring safe commits. Perfect for multi-branch development workflows. "
-            "Optional LLM enhancement for intelligent validation and coordination planning."
+            "LLM enhancement for intelligent validation and coordination planning."
         ),
         "parameters": {
             "type": "object",
@@ -74,7 +74,7 @@ TOOL_SCHEMA = {
                         "'smart' (LLM-enhanced validation), "
                         "'deep' (comprehensive LLM analysis with coordination planning)"
                     ),
-                    "default": "fast",
+                    "default": "smart",
                 },
                 "llm_model": {
                     "type": "string",
@@ -99,7 +99,7 @@ def pr_manager(
     safety_level: str = "moderate",
     generate_patch: bool = True,
     include_tests: bool = True,
-    intelligence_level: str = "fast",
+    intelligence_level: str = "smart",
     llm_model: str | None = None,
 ) -> tuple[bool, str, Any]:
     """
@@ -133,7 +133,7 @@ def pr_manager(
             "success": False,
             "warnings": [],
             "blocking_issues": [],
-            "llm_enhanced": intelligence_level in ["smart", "deep"],
+            "llm_enhanced": True,  # Always use LLM analysis
         }
 
         # Helper function to run git commands
@@ -196,18 +196,17 @@ def pr_manager(
                 safety_result = validate_safety(result, safety_level)
                 result["safety_validation"] = safety_result
 
-                # Perform LLM-enhanced PR analysis if requested
-                if intelligence_level in ["smart", "deep"]:
-                    llm_pr_analysis = perform_llm_pr_analysis(
-                        repo_path_obj,
-                        source_branch,
-                        target_branch,
-                        context_branches or [],
-                        intelligence_level,
-                        llm_model,
-                        result,
-                    )
-                    result["llm_pr_analysis"] = llm_pr_analysis
+                # Perform LLM-enhanced PR analysis (always required now)
+                llm_pr_analysis = perform_llm_pr_analysis(
+                    repo_path_obj,
+                    source_branch,
+                    target_branch,
+                    context_branches or [],
+                    intelligence_level,
+                    llm_model,
+                    result,
+                )
+                result["llm_pr_analysis"] = llm_pr_analysis
 
                 result["success"] = True
                 return True, "PR analysis completed successfully", result
@@ -913,7 +912,7 @@ def generate_llm_pr_recommendations(
             )
 
     # Risk mitigation recommendations
-    if llm_pr_analysis.get("intelligence_level") == "deep":
+    if True:  # Always include deep analysis features
         risk_mitigation = business_impact.get("recommendations", [])
         for suggestion in risk_mitigation[:2]:  # Top 2 suggestions
             recommendations.append(f"💡 {suggestion}")

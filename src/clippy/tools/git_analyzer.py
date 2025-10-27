@@ -11,7 +11,7 @@ TOOL_SCHEMA = {
         "description": (
             "Analyze git changes across branches for PR-level impact assessment. "
             "Detects potential collisions and impacts on other branches/contexts. "
-            "Optional LLM enhancement for deeper analysis of breaking changes and "
+            "LLM enhancement for deeper analysis of breaking changes and "
             "coordination needs."
         ),
         "parameters": {
@@ -67,7 +67,7 @@ TOOL_SCHEMA = {
                         "'smart' (LLM-enhanced key analysis), "
                         "'deep' (comprehensive LLM analysis with coordination planning)"
                     ),
-                    "default": "fast",
+                    "default": "smart",
                 },
                 "llm_model": {
                     "type": "string",
@@ -90,7 +90,7 @@ def git_analyzer(
     repo_path: str = ".",
     analysis_depth: str = "files",
     include_semantic_analysis: bool = True,
-    intelligence_level: str = "fast",
+    intelligence_level: str = "smart",
     llm_model: str | None = None,
 ) -> tuple[bool, str, Any]:
     """
@@ -132,7 +132,7 @@ def git_analyzer(
             "impacts": {},
             "collisions": [],
             "recommendations": [],
-            "llm_enhanced": intelligence_level in ["smart", "deep"],
+            "llm_enhanced": True,  # Always use LLM analysis
         }
 
         # Helper function to run git commands
@@ -203,21 +203,20 @@ def git_analyzer(
             )
             analysis_result["semantic_analysis"] = semantic_impact
 
-        # Perform LLM-enhanced analysis if requested
-        if intelligence_level in ["smart", "deep"]:
-            llm_analysis = perform_llm_enhanced_analysis(
-                repo_path_obj,
-                base_branch,
-                feature_branch,
-                compare_branches or [],
-                intelligence_level,
-                llm_model,
-            )
-            analysis_result["llm_analysis"] = llm_analysis
+        # Perform LLM-enhanced analysis (always required now)
+        llm_analysis = perform_llm_enhanced_analysis(
+            repo_path_obj,
+            base_branch,
+            feature_branch,
+            compare_branches or [],
+            intelligence_level,
+            llm_model,
+        )
+        analysis_result["llm_analysis"] = llm_analysis
 
-            # Merge LLM insights into recommendations
-            if "error" not in llm_analysis:
-                merge_llm_recommendations(analysis_result, llm_analysis)
+        # Merge LLM insights into recommendations
+        if llm_analysis.get("code_analysis", {}):
+            merge_llm_recommendations(analysis_result, llm_analysis)
 
         # Generate recommendations
         recommendations = generate_safety_recommendations(analysis_result)
@@ -613,8 +612,6 @@ def merge_llm_recommendations(
     analysis_result: dict[str, Any], llm_analysis: dict[str, Any]
 ) -> None:
     """Merge LLM-generated recommendations into the main analysis results."""
-    if "error" in llm_analysis:
-        return
 
     code_analysis = llm_analysis.get("code_analysis", {})
 

@@ -73,7 +73,7 @@ class LLMAnalyzer:
             LLM analysis results
         """
         if not self.is_available():
-            return {"error": "LLM not available"}
+            raise ValueError("LLM not available or not configured")
 
         system_prompt = """You are an expert software engineer analyzing git changes for
 potential impacts and risks.
@@ -171,7 +171,7 @@ Focus on practical impacts and coordination needs."""
             Quality analysis results
         """
         if not self.is_available():
-            return {"error": "LLM not available"}
+            raise ValueError("LLM not available or not configured")
 
         system_prompt = """You are an expert code reviewer evaluating commit message quality.
 
@@ -256,7 +256,7 @@ Provide honest assessment of their quality and usefulness."""
             Business impact assessment
         """
         if not self.is_available():
-            return {"error": "LLM not available"}
+            raise ValueError("LLM not available or not configured")
 
         system_prompt = """You are a technical product manager assessing business impact
 of code changes.
@@ -351,7 +351,7 @@ Focus on practical business implications and stakeholder communication."""
             Coordination plan with specific actions
         """
         if not self.is_available():
-            return {"error": "LLM not available"}
+            raise ValueError("LLM not available or not configured")
 
         system_prompt = """You are a technical project manager creating a coordination
 plan for multi-branch development.

@@ -31,7 +31,7 @@ from clippy.tools.git_analyzer import git_analyzer
 from clippy.tools.pr_manager import pr_manager
 
 
-def demonstrate_b_branch_analysis(use_llm=False):
+def demonstrate_b_branch_analysis():
     """
     Demonstrate analysis of subfeatureB changes and their impact on:
     - subfeatureA (sibling)
@@ -70,7 +70,7 @@ def demonstrate_b_branch_analysis(use_llm=False):
     print("1. GIT ANALYSIS")
     print("=" * 40)
 
-    intelligence_level = "smart" if use_llm else "fast"
+    intelligence_level = "smart"
     print(f"🧠 Using intelligence level: {intelligence_level}")
     print()
 
@@ -330,10 +330,8 @@ def interactive_analysis():
     if context_branches:
         print(f"Context branches: {', '.join(context_branches)}")
 
-    # Ask if user wants LLM enhancement
-    use_llm_input = input("Use LLM enhancement? (y/N, default: N): ").strip().lower()
-    use_llm = use_llm_input in ["y", "yes"]
-    intelligence_level = "smart" if use_llm else "fast"
+    # Always use LLM analysis
+    intelligence_level = "smart"
 
     print(f"\n🔍 Analyzing {source_branch} → {target_branch}...")
     print(f"🧠 Intelligence level: {intelligence_level}")
@@ -371,12 +369,12 @@ if __name__ == "__main__":
         if sys.argv[1] == "interactive":
             interactive_analysis()
         elif sys.argv[1] == "llm":
-            demonstrate_b_branch_analysis(use_llm=True)
+            demonstrate_b_branch_analysis()
         elif sys.argv[1] == "--help" or sys.argv[1] == "-h":
             print("Clippy PR Analysis Demo")
             print("========================")
             print("Usage:")
-            print("  python examples/pr_analysis_demo.py           # Fast, rule-based analysis")
+            print("  python examples/pr_analysis_demo.py           # LLM-enhanced analysis")
             print("  python examples/pr_analysis_demo.py llm      # Smart, LLM-enhanced analysis")
             print("  python examples/pr_analysis_demo.py interactive  # Interactive mode")
             print()
