@@ -86,8 +86,8 @@ See [Setup API Keys](#setup-api-keys) for provider configuration details.
 # One-shot mode - execute a single task
 clippy "create a hello world python script"
 
-# Interactive mode - REPL-style conversations
-clippy -i
+# Interactive mode - REPL-style conversations (starts when no prompt given)
+clippy
 
 
 
@@ -114,7 +114,7 @@ make run          # Launch clippy-code in interactive mode
 ### Two Interface Modes
 
 1. **One-shot mode**: `clippy "your task"` - Execute single task and exit
-2. **Interactive mode**: `clippy -i` - REPL-style multi-turn conversations with slash commands
+2. **Interactive mode**: `clippy` - REPL-style multi-turn conversations with slash commands (starts when no prompt given)
 
 ### Permission System
 

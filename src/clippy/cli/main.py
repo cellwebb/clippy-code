@@ -143,13 +143,13 @@ def main() -> None:
     )
 
     # Determine mode
-    if args.interactive or not args.prompt:
-        # Interactive mode
-        run_interactive(agent, args.yes)
-    else:
-        # One-shot mode
+    if args.prompt:
+        # One-shot mode - user provided a prompt
         prompt = " ".join(args.prompt)
         run_one_shot(agent, prompt, args.yes)
+    else:
+        # Interactive mode - no prompt provided, start REPL
+        run_interactive(agent, args.yes)
 
 
 if __name__ == "__main__":

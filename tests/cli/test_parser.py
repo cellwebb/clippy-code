@@ -17,7 +17,6 @@ def test_parser_defaults() -> None:
     parsed = _parse([])
 
     assert parsed.prompt == []
-    assert parsed.interactive is False
     assert parsed.yes is False
     assert parsed.model is None
     assert parsed.base_url is None
@@ -37,10 +36,9 @@ def test_parser_collects_prompt(args: list[str], expected_prompt: list[str]) -> 
     assert parsed.prompt == expected_prompt
 
 
-def test_parser_supports_mode_flags() -> None:
-    parsed = _parse(["-i", "-y"])
+def test_parser_supports_flags() -> None:
+    parsed = _parse(["-y"])
 
-    assert parsed.interactive is True
     assert parsed.yes is True
 
 

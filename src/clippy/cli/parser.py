@@ -17,13 +17,6 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-i",
-        "--interactive",
-        action="store_true",
-        help="Start in interactive mode (REPL)",
-    )
-
-    parser.add_argument(
         "-y",
         "--yes",
         action="store_true",

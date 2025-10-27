@@ -36,8 +36,6 @@ def test_resolve_model_raw_id(monkeypatch: pytest.MonkeyPatch) -> None:
 def _make_args(**overrides: Any) -> SimpleNamespace:
     defaults = {
         "prompt": [],
-        "interactive": False,
-        "document": False,
         "yes": False,
         "verbose": False,
         "model": None,
@@ -51,7 +49,7 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
     monkeypatch.setattr(cli_main, "load_env", lambda: None)
 
-    args = _make_args(interactive=True, verbose=True)
+    args = _make_args(verbose=True)
     monkeypatch.setattr(cli_main, "create_parser", lambda: SimpleNamespace(parse_args=lambda: args))
 
     logged: list[bool] = []
@@ -158,7 +156,7 @@ def test_main_handles_mcp_manager_failure(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("OPENAI_API_KEY", "secret")
     monkeypatch.setattr(cli_main, "load_env", lambda: None)
 
-    args = _make_args(prompt=["hello"], interactive=False, document=False)
+    args = _make_args(prompt=["hello"])
     monkeypatch.setattr(cli_main, "create_parser", lambda: SimpleNamespace(parse_args=lambda: args))
     monkeypatch.setattr(cli_main, "setup_logging", lambda verbose: None)
 
