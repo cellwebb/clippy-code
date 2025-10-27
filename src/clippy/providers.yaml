@@ -13,6 +13,11 @@ providers:
     api_key_env: CEREBRAS_API_KEY
     description: "Cerebras"
 
+  chutes:
+    base_url: https://llm.chutes.ai/v1
+    api_key_env: CHUTES_API_KEY
+    description: "Chutes.ai"
+
   groq:
     base_url: https://api.groq.com/openai/v1
     api_key_env: GROQ_API_KEY
