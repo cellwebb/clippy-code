@@ -143,12 +143,7 @@ def main() -> None:
     )
 
     # Determine mode
-    if args.document:
-        # Document mode (Word-like TUI)
-        from ..ui import run_document_mode
-
-        run_document_mode(agent, args.yes)
-    elif args.interactive or not args.prompt:
+    if args.interactive or not args.prompt:
         # Interactive mode
         run_interactive(agent, args.yes)
     else:

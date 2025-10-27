@@ -24,13 +24,6 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-d",
-        "--document",
-        action="store_true",
-        help="Start in document mode (Word-like TUI interface)",
-    )
-
-    parser.add_argument(
         "-y",
         "--yes",
         action="store_true",

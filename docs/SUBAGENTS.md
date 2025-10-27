@@ -174,13 +174,13 @@ All subagent messages and tool calls are prefixed with `[subagent_type:name]` in
 
 ### Document Mode Compatibility
 
-The visual indicators work seamlessly in document mode (`clippy -d`). The approval dialogs have been enhanced to handle:
+The approval system has been enhanced to handle:
 
 - **Rich markup escaping**: Subagent output containing markup tags is safely escaped
 - **Complex tool inputs**: JSON formatting for nested structures (dict/list parameters)
 - **Error recovery**: Comprehensive error handling prevents silent crashes
 
-If document mode encounters issues with subagent approvals, check the logs:
+If you encounter issues with subagent approvals, check the logs:
 
 ```bash
 # List recent log files (newest first)

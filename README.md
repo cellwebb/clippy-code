@@ -77,7 +77,7 @@ To use MCP servers, create an `mcp.json` configuration file in your project root
 
 See [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md) for detailed information about MCP configuration and usage.
 
-MCP tools will automatically be available in interactive and document modes, with appropriate approval prompts to maintain safety.
+MCP tools will automatically be available in interactive mode, with appropriate approval prompts to maintain safety.
 See [Setup API Keys](#setup-api-keys) for provider configuration details.
 
 ### Basic Usage
@@ -89,8 +89,7 @@ clippy "create a hello world python script"
 # Interactive mode - REPL-style conversations
 clippy -i
 
-# Document mode - Word-inspired TUI interface
-clippy -d
+
 
 # Specify a model
 clippy --model gpt-5 "refactor main.py to use async/await"
@@ -112,11 +111,10 @@ make run          # Launch clippy-code in interactive mode
 
 ## Features
 
-### Three Interface Modes
+### Two Interface Modes
 
 1. **One-shot mode**: `clippy "your task"` - Execute single task and exit
 2. **Interactive mode**: `clippy -i` - REPL-style multi-turn conversations with slash commands
-3. **Document mode**: `clippy -d` - Word-inspired TUI with toolbar buttons
 
 ### Permission System
 
@@ -149,7 +147,7 @@ Options:
 - `(a)llow` or `a` - Approve and auto-approve this action type for the session
 - Empty (just press Enter) - Reprompt for input
 
-### Slash Commands (Interactive/Document Mode)
+### Slash Commands (Interactive Mode)
 
 - `/reset`, `/clear`, `/new` - Reset conversation history
 - `/status` - Show token usage and session info
@@ -260,11 +258,7 @@ src/clippy/
 │   ├── transports.py           # MCP transport layer
 │   ├── trust.py                # MCP trust system
 │   └── types.py                # MCP type definitions
-├── ui/
-│   ├── document_app.py         # Textual-based document mode interface
-│   ├── styles.py               # CSS styling for document mode
-│   ├── utils.py                # UI utility functions
-│   └── widgets.py              # Custom UI widgets
+
 ├── diff_utils.py               # Diff generation utilities
 ├── executor.py                 # Tool execution implementations
 ├── models.py                   # Model configuration loading and presets
@@ -414,7 +408,7 @@ To use MCP servers, create an `mcp.json` configuration file in your home directo
 }
 ```
 
-MCP tools will automatically be available in interactive and document modes, with appropriate approval prompts to maintain safety.
+MCP tools will automatically be available in interactive mode, with appropriate approval prompts to maintain safety.
 
 ## Design Principles
 

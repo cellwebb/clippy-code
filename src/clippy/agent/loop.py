@@ -204,11 +204,7 @@ def run_agent_loop(
             return content if isinstance(content, str) else ""
 
         # Start spinner for next iteration (since we're continuing the loop)
-        # Detect document mode to disable spinner in document mode
-        in_document_mode = (
-            hasattr(sys.stdout, "_original_stdstream_copy") or not sys.stdout.isatty()
-        )
-        spinner = Spinner("Thinking", enabled=not in_document_mode)
+        spinner = Spinner("Thinking", enabled=sys.stdout.isatty())
         spinner.start()
 
     # Max iterations reached - cleanup and display warning

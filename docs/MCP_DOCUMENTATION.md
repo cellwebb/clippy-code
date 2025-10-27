@@ -82,7 +82,7 @@ You can use environment variable substitution in your MCP configuration using th
 
 ## MCP Commands in Interactive Mode
 
-Once configured, you can manage MCP servers using these slash commands in interactive/document mode:
+Once configured, you can manage MCP servers using these slash commands in interactive mode:
 
 - `/mcp list` - List configured MCP servers and their connection status
 - `/mcp tools [server]` - List tools available from MCP servers (all servers or specific one)

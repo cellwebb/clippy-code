@@ -177,14 +177,8 @@ class LLMProvider:
         Raises:
             Various OpenAI exceptions if all retries fail
         """
-        # Check if we're in document mode by looking for Textual's console redirection
-        # In document mode, stdout is redirected to a StringIO buffer
-        in_document_mode = (
-            hasattr(sys.stdout, "_original_stdstream_copy") or not sys.stdout.isatty()
-        )
-
-        # Create and start spinner to indicate processing (disabled in document mode)
-        spinner = Spinner("Thinking", enabled=not in_document_mode)
+        # Create and start spinner to indicate processing
+        spinner = Spinner("Thinking", enabled=sys.stdout.isatty())
         spinner.start()
 
         try:
@@ -224,7 +218,7 @@ class LLMProvider:
                     content_to_print = delta.content.lstrip("\n")
                     # Only print prefix and set started if we have actual content
                     if content_to_print:
-                        # Print prefix and content together to avoid split in document mode
+                        # Print prefix and content together
                         print(f"\n[📎] {content_to_print}", end="", flush=True)
                         content_started = True
                 else:
