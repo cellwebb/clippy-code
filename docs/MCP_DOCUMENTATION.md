@@ -1,68 +1,14 @@
-# MCP (Model Context Protocol) Documentation for clippy-code
+# MCP Documentation for clippy-code
 
-📎 Model Context Protocol (MCP) integration allows clippy-code to dynamically discover and use tools from external MCP servers. This enables extending the agent's capabilities without modifying the core codebase.
+## Overview
 
-## What is MCP?
+clippy-code supports the Model Context Protocol (MCP) for dynamically discovering and using external tools. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
 
-The Model Context Protocol (MCP) is an open specification that enables applications to expose tools to AI models in a standardized way. MCP servers can provide various capabilities like:
+## Configuration
 
-- File system operations
-- Database access
-- API integrations
-- Specialized domain tools
-- Custom business logic
+### Creating the Configuration File
 
-## How MCP Works in clippy-code
-
-When clippy-code starts, it:
-
-1. Looks for MCP configuration files
-2. Connects to configured MCP servers
-3. Discovers available tools from each server
-4. Maps MCP tool schemas to OpenAI-compatible format
-5. Makes these tools available during agent iterations
-
-MCP tools are automatically integrated with clippy-code's permission system. By default, MCP tools require user approval before execution, but you can trust specific servers to auto-approve their tools.
-
-## MCP Configuration
-
-To use MCP servers, create an `mcp.json` configuration file. The configuration can be placed in:
-
-1. `$HOME/.clippy/mcp.json` (user-level configuration - highest priority)
-2. `$PWD/.clippy/mcp.json` (project-level configuration)
-
-The configuration file uses JSON format with the following structure:
-
-```json
-{
-  "mcp_servers": {
-    "server-id": {
-      "command": "executable-command",
-      "args": ["argument1", "argument2", "..."],
-      "env": {
-        "ENV_VAR_NAME": "environment-variable-value"
-      },
-      "cwd": "/working/directory",
-      "timeout_s": 30
-    }
-  }
-}
-```
-
-### Configuration Fields
-
-- `server-id`: A unique identifier for the MCP server (you can use any name)
-- `command`: The executable command to start the MCP server
-- `args`: Array of command-line arguments to pass to the server
-- `env`: Optional dictionary of environment variables to set for the server process
-- `cwd`: Optional working directory for the server process
-- `timeout_s`: Optional timeout in seconds for server operations (default: 30)
-
-**Note**: Stderr output from MCP servers is automatically redirected to clippy's debug logs to keep your terminal clean. This means progress indicators and debug messages won't clutter your terminal, but they're still available in the logs if needed for debugging.
-
-### Environment Variable Substitution
-
-You can use environment variable substitution in your MCP configuration using the syntax `${VAR_NAME}`:
+Create an `mcp.json` configuration file in your home directory (`~/.clippy/mcp.json`) or project directory (`.clippy/mcp.json`):
 
 ```json
 {
@@ -74,25 +20,83 @@ You can use environment variable substitution in your MCP configuration using th
     "perplexity-ask": {
       "command": "npx",
       "args": ["-y", "server-perplexity-ask"],
-      "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
+      "env": {
+        "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
+      }
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "mcp-sequential-thinking"]
     }
   }
 }
 ```
 
-## MCP Commands in Interactive Mode
+### Server Configuration
 
-Once configured, you can manage MCP servers using these slash commands in interactive mode:
+Each MCP server can have the following properties:
 
-- `/mcp list` - List configured MCP servers and their connection status
-- `/mcp tools [server]` - List tools available from MCP servers (all servers or specific one)
-- `/mcp refresh` - Refresh connections to MCP servers and update tool catalogs
-- `/mcp allow <server>` - Mark an MCP server as trusted for this session (auto-approves its tools)
-- `/mcp revoke <server>` - Revoke trust for an MCP server
+- `command`: The command to run (required)
+- `args`: Array of command arguments (required)
+- `env`: Additional environment variables (optional)
+- `cwd`: Working directory for the server (optional)
 
-## Examples
+### Environment Variables
 
-### Example 1: Context7 Integration
+Use `${VAR_NAME}` syntax to reference environment variables in your configuration:
+
+```json
+{
+  "mcp_servers": {
+    "my-server": {
+      "command": "node",
+      "args": ["server.js"],
+      "env": {
+        "API_KEY": "${MY_API_KEY}",
+        "DATABASE_URL": "${DATABASE_URL}"
+      }
+    }
+  }
+}
+```
+
+## Available MCP Commands
+
+### `/mcp list`
+Show configured MCP servers and their connection status.
+
+### `/mcp tools [server]`
+List available tools from MCP servers. If `server` is specified, only show tools from that server.
+
+### `/mcp refresh`
+Refresh connections to MCP servers and reload tool catalogs.
+
+### `/mcp allow <server>`
+Mark an MCP server as trusted for the current session. Trusted servers have their tools auto-approved.
+
+### `/mcp revoke <server>`
+Revoke trust for an MCP server. Tools from this server will require approval.
+
+## Security
+
+### Trust System
+
+clippy-code implements a trust system for MCP servers:
+
+- **New servers**: Require explicit trust before tools can be used
+- **Trusted servers**: Tools are auto-approved but can still be blocked
+- **Permission integration**: MCP tools respect the same permission system as built-in tools
+
+### Safety Considerations
+
+- Only use MCP servers from sources you trust
+- Review server commands and arguments carefully
+- Keep API keys secure using environment variables
+- Regularly review which servers are trusted
+
+## Example Configurations
+
+### Context7 (Documentation Retrieval)
 
 ```json
 {
@@ -105,99 +109,100 @@ Once configured, you can manage MCP servers using these slash commands in intera
 }
 ```
 
-Once configured, you can use Context7 tools like retrieving documentation for libraries:
-
-```
-/mcp allow context7  # Trust the context7 server
-```
-
-### Example 2: Perplexity Ask Integration
+### Perplexity AI (Web Search)
 
 ```json
 {
   "mcp_servers": {
-    "perplexity-ask": {
+    "perplexity": {
       "command": "npx",
       "args": ["-y", "server-perplexity-ask"],
-      "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
+      "env": {
+        "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
+      }
     }
   }
 }
 ```
 
-### Example 3: Custom Local MCP Server
+### Local MCP Server
 
 ```json
 {
   "mcp_servers": {
     "local-tools": {
       "command": "python",
-      "args": ["./tools/mcp_server.py"],
-      "cwd": "/path/to/project",
-      "timeout_s": 60
+      "args": ["-m", "my_mcp_server"],
+      "cwd": "/path/to/server"
     }
   }
 }
 ```
 
-## Trust System
-
-For security, MCP tools require explicit user approval before execution. However, you can mark servers as trusted:
-
-```
-/mcp allow server-name  # Auto-approve all tools from this server
-/mcp revoke server-name  # Remove trust for this server
-```
-
-Trusted servers have their tools auto-approved for the current session.
-
-## Error Handling
-
-MCP integration includes comprehensive error handling:
-
-- Connection failures are gracefully handled
-- Tool execution errors are properly reported
-- Schema mapping errors are logged but don't crash the application
-- Timeout handling for long-running operations
-
-When an MCP tool fails, you'll see detailed error messages that help identify the issue.
-
-## Developing Custom MCP Servers
-
-To create a custom MCP server for use with clippy-code:
-
-1. Implement the MCP protocol specification
-2. Expose your tools using the standardized MCP interface
-3. Configure clippy-code to connect to your server
-4. Test integration using the `/mcp` commands
-
-Many MCP servers are available as npm packages that can be easily integrated:
-
-- `@upstash/context7-mcp` - Context7 documentation retrieval
-- `server-perplexity-ask` - Perplexity API integration
-- And many more community-developed tools
-
-## Best Practices
-
-1. **Security**: Only trust MCP servers you control or explicitly trust
-2. **Timeouts**: Set appropriate timeouts for your tools
-3. **Error Handling**: Implement proper error handling in your MCP tools
-4. **Documentation**: Provide clear descriptions for your MCP tools
-5. **Schema Validation**: Use proper JSON Schema for tool input validation
-
 ## Troubleshooting
 
-If MCP tools aren't appearing:
+### Server Won't Connect
 
-1. Check your `mcp.json` configuration file syntax
-2. Verify the server executable is available in your PATH
-3. Check that environment variables are properly set
-4. Use `/mcp refresh` to retry connections
-5. Look for error messages in the console output
+1. Check that the command and arguments are correct
+2. Ensure all required environment variables are set
+3. Verify that any required dependencies are installed
+4. Use `/mcp list` to check connection status
 
-If MCP tools fail to execute:
+### Tools Not Available
 
-1. Ensure the server process is running correctly
-2. Check for network or permission issues
-3. Verify API keys and authentication
-4. Check clippy's debug logs (`~/.clippy/logs/`) for stderr output from the MCP server - all MCP server stderr is automatically logged there
+1. Run `/mcp refresh` to reload tool catalogs
+2. Check server logs for errors
+3. Verify the server is properly configured
+
+### Permission Issues
+
+1. Use `/mcp allow <server>` to trust a server
+2. Check that MCP tool permissions aren't blocked in configuration
+3. Review the specific tool being requested
+
+## Developing MCP Servers
+
+For information on developing your own MCP servers, see:
+- [MCP Specification](https://modelcontextprotocol.io/)
+- [MCP SDK Documentation](https://github.com/modelcontextprotocol/servers)
+
+## Integration with clippy-code
+
+MCP tools integrate seamlessly with clippy-code's existing features:
+
+- **Permission System**: MCP tools respect auto-approval and manual approval settings
+- **Tool Execution**: Same format and error handling as built-in tools
+- **Conversation Context**: MCP results are included in conversation history
+- **Subagent Support**: MCP tools can be used by subagents
+
+## Examples in Use
+
+### Web Search with Perplexity
+
+```
+[You] ➜ search the web for latest python 3.12 features
+
+[clippy-code] I'll search the web for the latest Python 3.12 features using the Perplexity MCP server.
+
+→ perplexity-ask
+  query: "latest python 3.12 features"
+
+[?] Approve this action? [(y)es/(n)o/(a)llow]: y
+
+✓ Found information about Python 3.12 features...
+```
+
+### Documentation Lookup with Context7
+
+```
+[You] ➜ explain how to use context managers in python
+
+[clippy-code] I'll look up Python context manager documentation using Context7.
+
+→ context7
+  topic: "python context managers"
+
+[?] Approve this action? [(y)es/(n)o/(a)llow]: y
+
+✓ Retrieved comprehensive documentation...
+```

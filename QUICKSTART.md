@@ -12,8 +12,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv tool install clippy-code
 
 # Or install from source
-git clone https://github.com/yourusername/clippy.git
-cd clippy
+git clone https://github.com/cellwebb/clippy-code.git
+cd clippy-code
 uv pip install -e .
 ```
 
@@ -80,10 +80,18 @@ clippy-code will:
 ## 4. Interactive Mode
 
 ```bash
-clippy -i
+clippy
 ```
 
-Now you can have a conversation:
+Interactive mode provides a rich conversational experience with advanced features:
+
+- Tab completion for commands and file paths
+- Command history with up/down arrows  
+- Double-ESC to interrupt execution
+- Slash commands for model switching and configuration
+- Real-time streaming responses
+
+Here's how a typical interactive session looks:
 
 ```
 [You] ➜ create a simple calculator function
@@ -100,23 +108,35 @@ Now you can have a conversation:
 
 [You] ➜ add tests for it
 
-[clippy-code continues...]
+[clippy-code continues with test generation...]
 ```
 
-## 5. Document Mode (Word-like Interface)
+### Key Interactive Features
 
-```bash
-clippy -d
-```
+1. **Smart Completion**: Tab completion works for:
+   - File paths and directory names
+   - Slash commands and their arguments
+   - Model names and provider names
 
-This mode provides a Textual-based UI with:
+2. **Command History**: Use up/down arrows to navigate previous commands
 
-- A document area for conversations
-- Toolbar buttons for common actions
-- Visual status bar showing model/token info
-- Approval dialogs with diff previews
+3. **Interruption Control**: 
+   - Single ESC: Shows you're thinking
+   - Double ESC: Immediately stops current execution
+   - Ctrl+C: Also interrupts execution
 
-## 6. Safety Controls
+4. **Rich Slash Commands**: Full set of commands for:
+   - Model management (`/model list`, `/model add`, etc.)
+   - Permission control (`/auto list`, `/auto revoke`)
+   - MCP server management (`/mcp list`, `/mcp tools`)
+   - Session control (`/status`, `/compact`, `/reset`)
+   - Subagent configuration (`/subagent list`, `/subagent set`)
+
+5. **Real-time Feedback**: See responses as they're being generated, not just at the end
+
+**Note**: A document mode (Word-like interface) is planned for future releases but not yet implemented.
+
+## 5. Safety Controls
 
 ### Auto-Approved Actions
 
@@ -154,7 +174,7 @@ When prompted for approval, you can respond with:
 - Press Ctrl+C during execution
 - Use `/exit` to quit interactive mode
 
-## 7. Common Usage Patterns
+## 6. Common Usage Patterns
 
 ### Code Generation
 
@@ -191,7 +211,7 @@ During interactive sessions, switch models with:
 /model ollama        # Switch to Ollama (local) provider
 ```
 
-## 8. Tips
+## 7. Tips
 
 1. **Be Specific**: The more context you provide, the better
 
@@ -217,7 +237,7 @@ During interactive sessions, switch models with:
 
 5. **Use Document Mode for Better Visualization**:
    ```bash
-   clippy -d  # Especially useful for longer coding sessions
+   clippy      # Interactive mode with all features
    ```
 
 ## Troubleshooting

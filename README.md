@@ -89,8 +89,6 @@ clippy "create a hello world python script"
 # Interactive mode - REPL-style conversations (starts when no prompt given)
 clippy
 
-
-
 # Specify a model
 clippy --model gpt-5 "refactor main.py to use async/await"
 
@@ -227,11 +225,12 @@ src/clippy/
 │   ├── utils.py                # Agent helper utilities
 │   └── errors.py               # Agent-specific exceptions
 ├── cli/
-│   ├── main.py                 # Main entry point
-│   ├── parser.py               # Argument parsing
-│   ├── oneshot.py              # One-shot mode implementation
-│   ├── repl.py                 # Interactive REPL mode
+│   ├── completion.py           # Command completion utilities
 │   ├── commands.py             # High-level CLI commands
+│   ├── main.py                 # Main entry point
+│   ├── oneshot.py              # One-shot mode implementation
+│   ├── parser.py               # Argument parsing
+│   ├── repl.py                 # Interactive REPL mode
 │   └── setup.py                # Initial setup helpers
 ├── tools/
 │   ├── __init__.py             # Tool registrations
@@ -258,15 +257,13 @@ src/clippy/
 │   ├── transports.py           # MCP transport layer
 │   ├── trust.py                # MCP trust system
 │   └── types.py                # MCP type definitions
-
 ├── diff_utils.py               # Diff generation utilities
 ├── executor.py                 # Tool execution implementations
-├── models.py                   # Model configuration loading and presets
-├── models.yaml                 # Model presets for different providers
+├── models.py                   # Model configuration loading and management
 ├── permissions.py              # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
 ├── prompts.py                  # System prompts for the agent
 ├── providers.py                # OpenAI-compatible LLM provider
-├── providers.yaml              # Model/provider preset definitions
+├── providers.yaml              # Provider preset definitions
 ├── __main__.py                 # Module entry point
 └── __version__.py              # Version helper
 ```
@@ -310,7 +307,7 @@ The default model is **GPT-5** from OpenAI.
 /model remove q3c
 ```
 
-Saved models are stored in `~/.clippy/models.json` and persist across sessions.
+Saved models are stored in `~/.clippy/models.json` and persist across sessions. The system automatically creates this file when you add your first model.
 
 ## Development Workflow
 
@@ -386,7 +383,7 @@ clippy-code has access to these tools:
 | `grep`             | Search patterns in files                          | ✅            |
 | `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            |
 
-For detailed information about MCP integration, see [MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md).
+For detailed information about MCP integration, see [docs/MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md).
 
 clippy-code can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
 

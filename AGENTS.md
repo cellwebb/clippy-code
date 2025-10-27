@@ -12,8 +12,8 @@ make run              # Launch interactive mode through the Makefile
 make format           # Autofix and format code with ruff
 make lint             # Static analysis with ruff
 make type-check       # Run mypy against src/clippy
-python -m clippy -i   # Run in interactive mode
-python -m clippy -d   # Run in document mode (Word-like TUI)
+make run              # Launch clippy-code in interactive mode through Makefile
+python -m clippy       # Run in interactive mode
 ```
 
 ## Development Workflow Tips
@@ -41,11 +41,12 @@ src/clippy/
 │   ├── utils.py                # Agent helper utilities
 │   └── errors.py               # Agent-specific exceptions
 ├── cli/
-│   ├── main.py                 # Main entry point
-│   ├── parser.py               # Argument parsing
-│   ├── oneshot.py              # One-shot mode implementation
-│   ├── repl.py                 # Interactive REPL mode
+│   ├── completion.py           # Command completion utilities
 │   ├── commands.py             # High-level CLI commands
+│   ├── main.py                 # Main entry point
+│   ├── oneshot.py              # One-shot mode implementation
+│   ├── parser.py               # Argument parsing
+│   ├── repl.py                 # Interactive REPL mode
 │   └── setup.py                # Initial setup helpers
 ├── tools/
 │   ├── __init__.py             # Tool registrations
@@ -72,19 +73,13 @@ src/clippy/
 │   ├── transports.py           # MCP transport layer
 │   ├── trust.py                # MCP trust system
 │   └── types.py                # MCP type definitions
-├── ui/
-│   ├── document_app.py         # Textual-based document mode interface
-│   ├── styles.py               # CSS styling for document mode
-│   ├── utils.py                # UI utility functions
-│   └── widgets.py              # Custom UI widgets
 ├── diff_utils.py               # Diff generation utilities
 ├── executor.py                 # Tool execution implementations
-├── models.py                   # Model configuration loading and presets
-├── models.yaml                 # Model presets for different providers
+├── models.py                   # Model configuration loading and management
 ├── permissions.py              # Permission system (AUTO_APPROVE, REQUIRE_APPROVAL, DENY)
 ├── prompts.py                  # System prompts for the agent
 ├── providers.py                # OpenAI-compatible LLM provider
-├── providers.yaml              # Model/provider preset definitions
+├── providers.yaml              # Provider preset definitions
 ├── __main__.py                 # Module entry point
 └── __version__.py              # Version helper
 ```
@@ -124,9 +119,10 @@ Individual tool implementations are located in `src/clippy/tools/` directory wit
 
 ### Models System
 
-- Model configurations are defined in `models.yaml` with presets for different providers
-- Supports OpenAI, Cerebras, Ollama, Together AI, Groq, and DeepSeek
-- Users can switch models in interactive/document mode using `/model <name>` command
+- Model configurations are managed programmatically through `models.py` with provider definitions in `providers.yaml`
+- Users can save custom model configurations in `~/.clippy/models.json`
+- Supports OpenAI, Cerebras, Ollama, Together AI, Groq, DeepSeek, and other providers
+- Users can switch models in interactive mode using `/model <name>` command
 - Each provider can specify its own API key environment variable
 
 ### Permissions
@@ -167,6 +163,13 @@ Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, 
 7. Write tests in `tests/tools/test_your_tool.py`
 
 ### UI Modes
+
+Currently, clippy-code supports two interface modes:
+
+1. **One-shot Mode**: Execute a single task and exit
+2. **Interactive Mode**: REPL-style multi-turn conversations with slash commands
+
+Document mode (Word-like TUI) is planned for future releases but not yet implemented.
 
 ### Subagent System
 
@@ -290,9 +293,7 @@ Environment variables:
 
 MCP Configuration:
 
-Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or project directory (`.clippy/mcp.json`). See [MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md) for detailed configuration.
-
-For detailed MCP configuration and usage, see [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md).
+Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or project directory (`.clippy/mcp.json`). See [docs/MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md) for detailed configuration and usage.
 
 ## Key Implementation Details
 
