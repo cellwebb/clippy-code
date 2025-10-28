@@ -137,6 +137,14 @@ class ClippyCommandCompleter(Completer):
             if " " not in at_prefix and not at_prefix.startswith("/"):
                 return self._get_file_completions_with_position(text, last_at_index)
 
+        # Handle general file completion when no special prefix is used
+        # Check if we should offer file completions based on context
+        if not text.startswith("/") and len(words) > 0:
+            current_word = words[-1] if not text.endswith(" ") else ""
+            # Offer file completions if the current word looks like it could be a file reference
+            if self._should_offer_file_completion(current_word, text):
+                return self._get_file_completions_for_word(current_word)
+
         # If we're at the beginning and text starts with "/", show base commands
         at_beginning = len(words) == 0 or (len(words) == 1 and not text.endswith(" "))
         if at_beginning and text.startswith("/"):
@@ -152,6 +160,81 @@ class ClippyCommandCompleter(Completer):
                 return self._get_command_specific_completions(command, words, text, complete_event)
 
         return []
+
+    def _should_offer_file_completion(self, current_word: str, full_text: str) -> bool:
+        """Determine if we should offer file completions for the current word."""
+        # Don't offer completions for very short words (likely still typing)
+        if len(current_word) < 3:
+            return False
+
+        # Offer completions if the word contains path separators or file extensions
+        if "/" in current_word or "\\" in current_word:
+            return True
+
+        # Check common file extensions
+        common_extensions = [
+            ".py",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".html",
+            ".css",
+            ".json",
+            ".md",
+            ".txt",
+            ".yaml",
+            ".yml",
+            ".toml",
+            ".cfg",
+            ".conf",
+            ".xml",
+            ".csv",
+            ".log",
+        ]
+
+        # Offer completions if word ends with a common extension
+        for ext in common_extensions:
+            if current_word.endswith(ext):
+                return True
+
+        # Offer completions if word matches beginning of known filenames
+        try:
+            all_files = glob("**/*", recursive=True)
+            all_files = [f for f in all_files if os.path.isfile(f)]
+            for filename in all_files:
+                if filename.startswith(current_word):
+                    return True
+        except Exception:
+            pass
+
+        return False
+
+    def _get_file_completions_for_word(self, word: str) -> list[Completion]:
+        """Get file completions for a word without '@' prefix."""
+        try:
+            matches = glob("**/*", recursive=True)
+            # Filter to only include actual files
+            matches = [m for m in matches if os.path.isfile(m)]
+
+            completions = []
+            for match in matches:
+                # Check if the match starts with our word
+                if match.startswith(word):
+                    completions.append(
+                        Completion(
+                            text=match,
+                            display=match,
+                            display_meta="File",
+                            start_position=-len(word),  # Replace only the word part
+                        )
+                    )
+
+            # Sort completions and limit to avoid overwhelming user
+            return sorted(completions, key=lambda c: c.text)[:30]
+        except Exception:
+            # If there's an error, return empty completions
+            return []
 
     def _get_file_completions_with_position(self, text: str, at_index: int) -> list[Completion]:
         """Get completions for file references with proper positioning."""
@@ -200,7 +283,7 @@ class ClippyCommandCompleter(Completer):
             return []
 
     def _get_file_completions(self, text: str) -> list[Completion]:
-        """Get completions for file references starting with '@'."""
+        """Get completions for file references with '@' prefix."""
         # Remove the '@' prefix for matching
         prefix = text[1:]  # Everything after '@'
 
@@ -232,10 +315,10 @@ class ClippyCommandCompleter(Completer):
                 if match.startswith(prefix):
                     completions.append(
                         Completion(
-                            text=match,
+                            text="@" + match,  # Include the "@" symbol
                             display=f"@{match}",
                             display_meta="File reference",
-                            start_position=-len(prefix),  # Replace only the prefix part
+                            start_position=-len(prefix) - 1,  # Replace prefix & "@"
                         )
                     )
 

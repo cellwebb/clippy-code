@@ -178,12 +178,10 @@ class TestFileCompletion:
         # Should have some completions (exact files depend on test environment)
         # but we should check that they follow the expected format
         for completion in completions:
-            # completion.text might be just the filename or include "@"
+            # completion.text should include the "@" symbol
             text = completion.text
-            if text.startswith("@"):
-                assert text[1:].startswith("READ")  # Skip "@"
-            else:
-                assert text.startswith("READ")
+            assert text.startswith("@")
+            assert text[1:].startswith("READ")  # Skip "@"
 
             # completion.display might be a FormattedText object, so we check the first part
             if isinstance(completion.display, str):
@@ -276,12 +274,62 @@ class TestFileCompletion:
         """Test that file completion is ignored when there's a space after '@'."""
         completer = ClippyCommandCompleter()
 
-        # Test with "@ " - should not trigger file completion
-        doc = Document("read @ READ")
+        # Test with "read @ " - space after @ should not trigger file completion
+        doc = Document("read @ ")
         completions = list(completer.get_completions(doc, None))
 
-        # Should not have any file completions
+        # Should not have any file completions triggered by the "@ " part
         assert len(completions) == 0
+
+    def test_general_file_completion_python_file(self) -> None:
+        """Test general completion of Python files without '@' prefix."""
+        completer = ClippyCommandCompleter()
+
+        # Test completing "test_" at the end of text - should find test files
+        doc = Document("run test_", 8)  # cursor at end of "run test_"
+        completions = list(completer.get_completions(doc, None))
+
+        # The behavior depends on files available, but shouldn't crash
+        # Just verify the completion structure if we get any
+        for completion in completions:
+            # completion.text should be a filename
+            assert isinstance(completion.text, str)
+            # Start position should be negative (replacing backwards)
+            assert completion.start_position < 0
+
+    def test_general_file_completion_with_path(self) -> None:
+        """Test general completion of paths without '@' prefix."""
+        completer = ClippyCommandCompleter()
+
+        # Test completing "tests/" - should find test files in tests directory
+        doc = Document("check tests/", 12)  # cursor at end of "check tests/"
+        completions = list(completer.get_completions(doc, None))
+
+        # The behavior depends on files available, but shouldn't crash
+        # Just verify the completion structure if we get any
+        for completion in completions:
+            # completion.text should be a filename
+            assert isinstance(completion.text, str)
+            # Start position should be negative (replacing backwards)
+            assert completion.start_position < 0
+
+    def test_general_file_completion_with_extension(self) -> None:
+        """Test general completion of files with extensions."""
+        completer = ClippyCommandCompleter()
+
+        # Test completing ".py" at the end of text
+        doc = Document("edit .py", 8)  # cursor at end of "edit .py"
+        completions = list(completer.get_completions(doc, None))
+
+        # The behavior depends on files available, but shouldn't crash
+        # Just verify the completion structure if we get any
+        for completion in completions:
+            # completion.text should be a filename
+            assert isinstance(completion.text, str)
+            # Should contain ".py" in the filename
+            assert ".py" in completion.text
+            # Start position should be negative (replacing backwards)
+            assert completion.start_position < 0
 
 
 class TestCreateCompleter:
