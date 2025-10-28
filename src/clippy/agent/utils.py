@@ -58,7 +58,7 @@ def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | N
                     old_content = "[Could not read existing file content]"
 
             # Generate diff
-            return generate_diff(old_content, new_content, filepath)
+            return generate_diff(old_content, new_content, filepath, context=1)
 
         elif tool_name == "edit_file":
             filepath = tool_input.get("path")
@@ -103,7 +103,7 @@ def generate_preview_diff(tool_name: str, tool_input: dict[str, Any]) -> str | N
                 )
                 if success and new_content:
                     # Generate diff between old and new content
-                    return generate_diff(old_content, new_content, filepath)
+                    return generate_diff(old_content, new_content, filepath, context=1)
             except Exception:
                 # If simulation fails, we can't generate preview
                 return None

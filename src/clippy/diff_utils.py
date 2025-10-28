@@ -3,7 +3,7 @@
 import difflib
 
 
-def generate_diff(old_content: str, new_content: str, filepath: str) -> str:
+def generate_diff(old_content: str, new_content: str, filepath: str, context: int = 1) -> str:
     """
     Generate a unified diff between old and new content.
 
@@ -11,6 +11,7 @@ def generate_diff(old_content: str, new_content: str, filepath: str) -> str:
         old_content: The original content of the file
         new_content: The new content to be written to the file
         filepath: The path to the file being modified
+        context: Number of context lines to show before and after changes (default: 1)
 
     Returns:
         A string containing the unified diff
@@ -19,13 +20,25 @@ def generate_diff(old_content: str, new_content: str, filepath: str) -> str:
     old_lines = old_content.splitlines(keepends=True) if old_content else []
     new_lines = new_content.splitlines(keepends=True) if new_content else []
 
-    # Generate unified diff
+    # Generate unified diff with specified context
     diff = difflib.unified_diff(
-        old_lines, new_lines, fromfile=f"a/{filepath}", tofile=f"b/{filepath}", lineterm=""
+        old_lines,
+        new_lines,
+        fromfile=f"a/{filepath}",
+        tofile=f"b/{filepath}",
+        lineterm="",
+        n=context,
     )
 
-    # Convert diff generator to string
-    diff_str = "\n".join(diff)
+    # Convert diff generator to string and clean up spacing
+    diff_lines = []
+    for line in diff:
+        # Remove any trailing whitespace and normalize line endings
+        line = line.rstrip()
+        if line:  # Only add non-empty lines to avoid double spacing
+            diff_lines.append(line)
+
+    diff_str = "\n".join(diff_lines)
 
     # Return empty string if no diff
     if not diff_str:

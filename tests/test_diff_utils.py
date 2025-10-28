@@ -85,6 +85,51 @@ Line 5 changed
     assert "+Line 5 changed" in diff
 
 
+def test_generate_diff_context_parameter() -> None:
+    """Test that the context parameter works correctly."""
+    old_content = """Line 1
+Line 2
+Line 3
+Line 4
+Line 5
+Line 6
+Line 7
+"""
+
+    new_content = """Line 1
+Line 2
+Line 3 changed
+Line 4
+Line 5
+Line 6
+Line 7
+"""
+
+    filepath = "context_test.txt"
+
+    # Test with 1 line of context (default)
+    diff_1 = generate_diff(old_content, new_content, filepath, context=1)
+    # Test with 3 lines of context (default for difflib)
+    diff_3 = generate_diff(old_content, new_content, filepath, context=3)
+
+    # Both should have the basic diff structure
+    assert "--- a/context_test.txt" in diff_1
+    assert "+++ b/context_test.txt" in diff_1
+    assert "--- a/context_test.txt" in diff_3
+    assert "+++ b/context_test.txt" in diff_3
+
+    # 1-line context should be more concise
+    diff_1_lines = [
+        line for line in diff_1.split("\n") if line.startswith(" ") and not line.startswith("@@")
+    ]
+    diff_3_lines = [
+        line for line in diff_3.split("\n") if line.startswith(" ") and not line.startswith("@@")
+    ]
+
+    # 1-line context should have fewer context lines than 3-line context
+    assert len(diff_1_lines) <= len(diff_3_lines)
+
+
 def test_format_diff_for_display_no_truncation() -> None:
     diff = """--- a/file\n+++ b/file\n@@\n-Line\n+Line changed\n"""
     formatted, truncated = format_diff_for_display(diff, max_lines=10)
