@@ -3,6 +3,7 @@
 import json
 import logging
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -94,6 +95,18 @@ class ClippyAgent:
         self.conversations_dir = Path.home() / ".clippy" / "conversations"
         self.conversations_dir.mkdir(exist_ok=True, parents=True)
 
+    def _get_conversation_path(self, name: str) -> Path:
+        """
+        Get the file path for a conversation.
+
+        Args:
+            name: Name of the conversation
+
+        Returns:
+            Path to the conversation file
+        """
+        return self.conversations_dir / f"{name}.json"
+
     def run(self, user_message: str, auto_approve_all: bool = False) -> str:
         """
         Run the agent with a user message.
@@ -110,6 +123,8 @@ class ClippyAgent:
         # Initialize with system message if first run
         if not self.conversation_history:
             self.conversation_history.append({"role": "system", "content": create_system_prompt()})
+            # Set conversation start time for filename generation
+            self._conversation_start_time = time.time()
 
         # Add user message
         self.conversation_history.append({"role": "user", "content": user_message})
@@ -146,6 +161,9 @@ class ClippyAgent:
         """Reset the conversation history."""
         self.conversation_history = []
         self.interrupted = False
+        # Clear conversation start time so new conversation gets fresh timestamp
+        if hasattr(self, "_conversation_start_time"):
+            delattr(self, "_conversation_start_time")
 
     def switch_model(
         self,
@@ -195,12 +213,12 @@ class ClippyAgent:
         except Exception as e:
             return False, f"Failed to switch model: {e}"
 
-    def save_conversation(self, name: str = "default") -> tuple[bool, str]:
+    def save_conversation(self, name: str | None = None) -> tuple[bool, str]:
         """
         Save the current conversation to disk.
 
         Args:
-            name: Name for the conversation (default: "default")
+            name: Name for the conversation (optional - auto-generates if None)
 
         Returns:
             Tuple of (success: bool, message: str)
@@ -208,6 +226,19 @@ class ClippyAgent:
         try:
             # Ensure the conversations directory exists
             self.conversations_dir.mkdir(exist_ok=True, parents=True)
+
+            # Auto-generate filename if not provided
+            if name is None:
+                # Use conversation start time if available, otherwise current time
+                if hasattr(self, "_conversation_start_time"):
+                    start_time = self._conversation_start_time
+                else:
+                    start_time = time.time()
+                    self._conversation_start_time = start_time
+
+                # Format as YYYYMMDD-HHMMSS
+                datetime_str = datetime.fromtimestamp(start_time).strftime("%Y%m%d-%H%M%S")
+                name = f"conversation-{datetime_str}"
 
             conversation_file = self.conversations_dir / f"{name}.json"
 
@@ -217,6 +248,7 @@ class ClippyAgent:
                 "base_url": self.base_url,
                 "conversation_history": self.conversation_history,
                 "timestamp": time.time(),
+                "conversation_start_time": getattr(self, "_conversation_start_time", time.time()),
             }
 
             # Save to file
@@ -255,6 +287,11 @@ class ClippyAgent:
             self.provider = LLMProvider(api_key=self.api_key, base_url=self.base_url)
 
             self.conversation_history = conversation_data.get("conversation_history", [])
+
+            # Restore conversation start time
+            self._conversation_start_time = conversation_data.get(
+                "conversation_start_time", time.time()
+            )
 
             return True, f"Conversation '{name}' loaded successfully"
         except Exception as e:

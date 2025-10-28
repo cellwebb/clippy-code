@@ -276,7 +276,7 @@ def test_conversation_persistence_handles_exceptions_during_load() -> None:
 
 
 def test_default_conversation_name(mock_agent_with_persistence: ClippyAgent) -> None:
-    """Test that save_conversation uses 'default' as default name."""
+    """Test that save_conversation generates timestamp-based filename when no name provided."""
     agent = mock_agent_with_persistence
 
     # Add some conversation history
@@ -288,8 +288,14 @@ def test_default_conversation_name(mock_agent_with_persistence: ClippyAgent) -> 
     success, message = agent.save_conversation()  # No name specified
 
     assert success is True
-    assert "default" in message
+
+    # Should generate a timestamp-based filename
+    assert "conversation-" in message
+    assert "2025" in message  # Should contain the year from timestamp
+
+    # Extract the generated filename from the message
+    generated_filename = message.replace("Conversation saved as '", "").replace("'", "")
 
     # Check that file was created
-    conversation_file = agent.conversations_dir / "default.json"
+    conversation_file = agent.conversations_dir / f"{generated_filename}.json"
     assert conversation_file.exists()

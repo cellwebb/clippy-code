@@ -37,11 +37,6 @@ class ClippyCommandCompleter(Completer):
                 "alias": ["quit"],
                 "completer": None,
             },
-            "reset": {
-                "description": "Reset conversation history",
-                "alias": ["clear", "new"],
-                "completer": None,
-            },
             "resume": {
                 "description": "Resume a saved conversation",
                 "completer": None,

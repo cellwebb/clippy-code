@@ -466,33 +466,19 @@ def test_handle_resume_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class StubAgent:
         def __init__(self) -> None:
-            self.load_conversation_called = False
-            self.list_saved_conversations_called = False
-            self.conversation_name = None
+            self.conversation_history = []
+            self.conversations_dir = None
 
-        def load_conversation(self, name: str = "default") -> tuple[bool, str]:
-            self.load_conversation_called = True
-            self.conversation_name = name
+        def load_conversation(self, name: str) -> tuple[bool, str]:
             return (True, f"Conversation '{name}' loaded successfully")
 
-        def list_saved_conversations(self) -> list[str]:
-            self.list_saved_conversations_called = True
-            return ["default", "project1", "project2"]
-
+    # Test with specific conversation name (this should work without needing interactive input)
     agent = StubAgent()
-    commands.handle_resume_command(agent, console, "")
-    assert agent.load_conversation_called
-    assert agent.conversation_name == "default"
-    assert any("loaded successfully" in str(msg) for msg in console.messages)
+    result = commands.handle_resume_command(agent, console, "conversation-20251027-153000")
 
-    # Test with specific conversation name
-    console.messages.clear()
-    agent = StubAgent()
-    commands.handle_resume_command(agent, console, "project1")
-    assert agent.load_conversation_called
-    assert agent.conversation_name == "project1"
+    # Verify the function completed successfully and produced expected output
+    assert result == "continue"
     assert any("loaded successfully" in str(msg) for msg in console.messages)
-    assert any("Available conversations" in str(msg) for msg in console.messages)
 
 
 def test_handle_resume_command_error_handling(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -503,18 +489,35 @@ def test_handle_resume_command_error_handling(monkeypatch: pytest.MonkeyPatch) -
         def __init__(self) -> None:
             pass
 
-        def load_conversation(self, name: str = "default") -> tuple[bool, str]:
+        def load_conversation(self, name: str) -> tuple[bool, str]:
             return (False, f"No saved conversation found with name '{name}'")
 
-        def list_saved_conversations(self) -> list[str]:
-            return ["default", "project1", "project2"]
+    # Mock the conversation discovery function to return some conversations
+    def mock_get_conversations(agent):
+        return [
+            {
+                "name": "conversation-20251027-143000",
+                "timestamp": 1234567890,
+                "model": "gpt-5",
+                "message_count": 5,
+            },
+            {
+                "name": "conversation-20251027-153000",
+                "timestamp": 1234567900,
+                "model": "gpt-5",
+                "message_count": 3,
+            },
+        ]
+
+    monkeypatch.setattr(
+        "clippy.cli.commands._get_all_conversations_with_timestamps", mock_get_conversations
+    )
 
     agent = StubAgent()
     commands.handle_resume_command(agent, console, "nonexistent")
     # Check for the error message substring that should be present
     assert any("No saved conversation found with name" in str(msg) for msg in console.messages)
     assert any("Available conversations" in str(msg) for msg in console.messages)
-    assert any("project1" in str(msg) for msg in console.messages)
 
 
 def test_handle_resume_command_no_saved_conversations(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -525,14 +528,18 @@ def test_handle_resume_command_no_saved_conversations(monkeypatch: pytest.Monkey
         def __init__(self) -> None:
             pass
 
-        def load_conversation(self, name: str = "default") -> tuple[bool, str]:
+        def load_conversation(self, name: str) -> tuple[bool, str]:
             return (False, "No saved conversation found with name 'default'")
 
-        def list_saved_conversations(self) -> list[str]:
-            return []
+    # Mock the conversation discovery function to return empty list
+    def mock_get_conversations(agent):
+        return []
+
+    monkeypatch.setattr(
+        "clippy.cli.commands._get_all_conversations_with_timestamps", mock_get_conversations
+    )
 
     agent = StubAgent()
     commands.handle_resume_command(agent, console, "")
-    # Check for the error message substring that should be present
-    assert any("No saved conversation found with name" in str(msg) for msg in console.messages)
+    # Check for the proper error message for no conversations
     assert any("No saved conversations found" in str(msg) for msg in console.messages)
