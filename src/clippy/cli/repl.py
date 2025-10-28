@@ -74,6 +74,9 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
             "  /mcp revoke <server> - Revoke trust for an MCP server\n"
             "  /help - Show this help message\n\n"
+            "File References:\n"
+            "  Start typing @ followed by file name and press Tab for completion\n"
+            "  Example: @READ[TAB] completes to @README.md\n\n"
             "Type your request and press Enter.\n"
             "Use Ctrl+C or double-ESC to interrupt execution.",
             border_style="green",

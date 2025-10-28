@@ -1,6 +1,8 @@
 """Tab completion system for clippy-code commands."""
 
+import os
 from collections.abc import Callable
+from glob import glob
 from typing import Any
 
 from prompt_toolkit.completion import (
@@ -125,6 +127,16 @@ class ClippyCommandCompleter(Completer):
         text = document.text_before_cursor
         words = text.split()
 
+        # Handle file completion when there's an "@" symbol
+        # Find the last occurrence of "@" to handle completion in the middle of text
+        last_at_index = text.rfind("@")
+        if last_at_index != -1:
+            # Get text after the last "@"
+            at_prefix = text[last_at_index + 1 :]
+            # Only do file completion if the prefix is reasonable (no spaces, not a command)
+            if " " not in at_prefix and not at_prefix.startswith("/"):
+                return self._get_file_completions_with_position(text, last_at_index)
+
         # If we're at the beginning and text starts with "/", show base commands
         at_beginning = len(words) == 0 or (len(words) == 1 and not text.endswith(" "))
         if at_beginning and text.startswith("/"):
@@ -140,6 +152,98 @@ class ClippyCommandCompleter(Completer):
                 return self._get_command_specific_completions(command, words, text, complete_event)
 
         return []
+
+    def _get_file_completions_with_position(self, text: str, at_index: int) -> list[Completion]:
+        """Get completions for file references with proper positioning."""
+        # Get text after the "@"
+        prefix = text[at_index + 1 :]
+
+        # Find all files in current directory and subdirectories
+        try:
+            matches = glob("**/*", recursive=True)
+            # Filter out directories and hidden files (except .gitignore)
+            matches = [
+                m
+                for m in matches
+                if not os.path.isdir(m) and (not m.startswith(".") or m == ".gitignore")
+            ]
+            # Additional filtering to only include files (in case of symlinks, etc.)
+            matches = [m for m in matches if os.path.isfile(m)]
+
+            # If prefix is empty, show a limited number of common files
+            if not prefix:
+                # Sort by modification time (recent files first) and limit
+                matches = sorted(
+                    matches,
+                    key=lambda m: os.path.getmtime(m) if os.path.exists(m) else 0,
+                    reverse=True,
+                )
+                matches = matches[:50]  # Limit to 50 most recently modified files
+
+            completions = []
+            for match in matches:
+                # Check if the match starts with our prefix
+                if match.startswith(prefix):
+                    completions.append(
+                        Completion(
+                            text="@" + match,  # Include the "@" symbol
+                            display=f"@{match}",
+                            display_meta="File reference",
+                            start_position=-len(prefix) - 1,  # Replace prefix & "@"
+                        )
+                    )
+
+            # Sort completions and limit to 50 for performance
+            return sorted(completions, key=lambda c: c.text)[:50]
+        except Exception:
+            # If there's an error, return empty completions
+            return []
+
+    def _get_file_completions(self, text: str) -> list[Completion]:
+        """Get completions for file references starting with '@'."""
+        # Remove the '@' prefix for matching
+        prefix = text[1:]  # Everything after '@'
+
+        # Find all files in current directory and subdirectories
+        try:
+            matches = glob("**/*", recursive=True)
+            # Filter out directories and hidden files (except .gitignore)
+            matches = [
+                m
+                for m in matches
+                if not os.path.isdir(m) and (not m.startswith(".") or m == ".gitignore")
+            ]
+            # Additional filtering to only include files (in case of symlinks, etc.)
+            matches = [m for m in matches if os.path.isfile(m)]
+
+            # If prefix is empty, show a limited number of common files
+            if not prefix:
+                # Sort by modification time (recent files first) and limit
+                matches = sorted(
+                    matches,
+                    key=lambda m: os.path.getmtime(m) if os.path.exists(m) else 0,
+                    reverse=True,
+                )
+                matches = matches[:50]  # Limit to 50 most recently modified files
+
+            completions = []
+            for match in matches:
+                # Check if the match starts with our prefix
+                if match.startswith(prefix):
+                    completions.append(
+                        Completion(
+                            text=match,
+                            display=f"@{match}",
+                            display_meta="File reference",
+                            start_position=-len(prefix),  # Replace only the prefix part
+                        )
+                    )
+
+            # Sort completions and limit to 50 for performance
+            return sorted(completions, key=lambda c: c.text)[:50]
+        except Exception:
+            # If there's an error, return empty completions
+            return []
 
     def _get_base_command_completions(self, text: str) -> list[Completion]:
         """Get completions for base commands."""

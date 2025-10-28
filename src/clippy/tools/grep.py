@@ -99,14 +99,17 @@ def translate_grep_flags_to_rg(flags: str) -> str:
 
         # Handle flags that require arguments
         if flag in ["-A", "--after-context", "-B", "--before-context", "-C", "--context"]:
-            translated_flags.append(flag_mapping.get(flag, flag))
-            # Add the argument for context flags
-            if i + 1 < len(flag_list):
-                translated_flags.append(flag_list[i + 1])
-                i += 2
-            else:
-                i += 1
-            continue
+            rg_flag = flag_mapping.get(flag, flag)
+            # Skip None values (flags that don't apply to ripgrep)
+            if rg_flag is not None:
+                translated_flags.append(rg_flag)
+                # Add the argument for context flags
+                if i + 1 < len(flag_list):
+                    translated_flags.append(flag_list[i + 1])
+                    i += 2
+                else:
+                    i += 1
+                continue
 
         # Handle --include and --exclude patterns
         if flag == "--include":
