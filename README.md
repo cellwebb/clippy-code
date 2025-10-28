@@ -107,77 +107,46 @@ make test         # Run the test suite
 make run          # Launch clippy-code in interactive mode
 ```
 
-## Features
+## Key Features
 
-### Two Interface Modes
+### 🌐 **Supported Providers**
 
-1. **One-shot mode**: `clippy "your task"` - Execute single task and exit
-2. **Interactive mode**: `clippy` - REPL-style multi-turn conversations with slash commands (starts when no prompt given)
+- **OpenAI** • **Cerebras** • **Chutes.ai** • **Groq** • **LM Studio** • **MiniMax**
+- **Ollama** • **OpenRouter** • **Synthetic.new** • **Together AI** • **Z.AI**
 
-### Permission System
+### 🛡️ **Safety-First Design**
 
-clippy-code implements safety-first design with a three-tier permission system:
+- **Three-tier permissions**: Auto-approve read operations, require confirmation for writes, and block destructive actions
+- **Interactive approval flow**: Clear prompts showing exact changes before execution with yes/no/allow-all options
+- **Session-based trust**: Grant temporary auto-approval for specific actions without compromising safety
+- **MCP server trust system**: Explicit approval required before external tools can access your codebase
 
-**Auto-approved actions** (read-only operations):
+### 🔧 **Flexible Interface Modes**
 
-- read_file, list_directory, search_files, get_file_info, grep, read_files
+- **One-shot mode**: Execute single tasks and exit (`clippy "create a script"`)
+- **Interactive REPL**: Multi-turn conversations with slash commands for model switching, context management, and permission control
+- **Document mode**: Microsoft Word-like TUI interface for a richer development experience (`clippy -d`)
 
-**Require approval** (potentially destructive operations):
+### 🤖 **Advanced Agent Capabilities**
 
-- write_file, delete_file, create_directory, execute_command, edit_file
+- **Streaming responses**: Real-time output with progress indicators for immediate feedback
+- **Context management**: Automatic conversation compaction to stay within token limits while preserving important history
+- **Dynamic model switching**: Change providers and models mid-conversation without losing context
+- **Subagent delegation**: Spawn specialized agents for focused tasks (code review, testing, refactoring) with isolated contexts
 
-**Blocked actions** (currently empty but configurable)
+### 🔌 **Extensible Tool System**
 
-When clippy-code wants to perform a risky action, you'll see a prompt:
+- **Built-in file operations**: Read, write, edit, search with glob patterns and grep-like content search
+- **Command execution**: Run shell commands with configurable timeouts and output capture
+- **MCP integration**: Dynamically discover and use tools from external Model Context Protocol servers
+- **Easy tool development**: Add new capabilities with simple declarative schemas and type-safe implementations
 
-```
-→ write_file
-  path: example.py
-  content: print("Hello, World!")
+### 💻 **Developer Experience**
 
-[?] Approve this action? [(y)es/(n)o/(a)llow]:
-```
-
-Options:
-
-- `(y)es` or `y` - Approve and execute
-- `(n)o` or `n` - Reject and stop execution
-- `(a)llow` or `a` - Approve and auto-approve this action type for the session
-- Empty (just press Enter) - Reprompt for input
-
-### Slash Commands (Interactive Mode)
-
-- `/reset`, `/clear`, `/new` - Reset conversation history
-- `/status` - Show token usage and session info
-- `/compact` - Summarize conversation to reduce context usage
-- `/model list` - Show available models
-- `/model <name>` - Switch model/provider
-- `/auto list` - List auto-approved actions
-- `/auto revoke <action>` - Revoke auto-approval for an action
-- `/auto clear` - Clear all auto-approvals
-- `/mcp list` - List configured MCP servers
-- `/mcp tools [server]` - List tools available from MCP servers
-- `/mcp refresh` - Refresh tool catalogs from MCP servers
-- `/mcp allow <server>` - Mark an MCP server as trusted for this session
-- `/mcp revoke <server>` - Revoke trust for an MCP server
-- `/help` - Show help message
-- `/exit`, `/quit` - Exit clippy-code
-
-### Supported Providers
-
-Works with any OpenAI-compatible API out of the box:
-
-- OpenAI
-- Cerebras
-- Together AI
-- Ollama
-- Groq
-- DeepSeek
-- Azure OpenAI
-- llama.cpp
-- vLLM
-
-Switch providers with the `/model` command or CLI arguments.
+- **Production-ready**: Comprehensive error handling with retry logic, exponential backoff, and graceful degradation
+- **Type-safe codebase**: Full MyPy type checking for reliability and IDE support
+- **Rich CLI**: Syntax highlighting, progress spinners, and formatted output using rich and prompt_toolkit
+- **Flexible configuration**: Environment files, CLI arguments, and saved model configurations for any workflow
 
 ## Architecture Overview
 
@@ -185,7 +154,7 @@ Switch providers with the `/model` command or CLI arguments.
 
 clippy-code follows a layered architecture with clear separation of concerns:
 
-```
+```text
 ┌─────────────────────────────────────────────────────┐
 │                   CLI Layer                         │
 │  (Argument Parsing, User Interaction, Display)      │
@@ -198,18 +167,18 @@ clippy-code follows a layered architecture with clear separation of concerns:
                       │
 ┌─────────────────────▼───────────────────────────────┐
 │               Tool System                           │
-│  (Tool Definitions, Execution, Permissions)        │
+│  (Tool Definitions, Execution, Permissions)         │
 └─────────────────────────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────┐
 │               Provider Layer                        │
-│  (OpenAI-compatible API Abstraction)               │
+│  (OpenAI-compatible API Abstraction)                │
 └─────────────────────────────────────────────────────┘
 ```
 
 ### Core Components
 
-```
+```text
 src/clippy/
 ├── agent/
 │   ├── core.py                 # Core agent implementation
@@ -479,8 +448,6 @@ This project showcases proficiency in:
 - Layered architecture with clear module boundaries
 - Error handling and graceful degradation
 - Configuration management (environment, CLI, defaults)
-
-
 
 **Product Thinking**:
 
