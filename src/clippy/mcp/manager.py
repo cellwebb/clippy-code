@@ -22,6 +22,25 @@ class Manager:
     """Manages MCP server connections and tool execution."""
 
     def __init__(self, config: Config | None = None, console: Console | None = None) -> None:
+        def __init__(self, config: Config | None = None, console: Console | None = None) -> None:
+            """
+            Initialize the MCP Manager.
+
+            Args:
+                config: MCP configuration
+                console: Rich console for output
+            """
+            self.config = config or Config(mcp_servers={})
+            self.console = console
+            self._stdio_contexts: dict[str, Any] = {}  # Server ID -> stdio context manager
+            self._session_contexts: dict[str, Any] = {}  # Server ID -> session context manager
+            self._sessions: dict[str, Any] = {}  # Server ID -> active session
+            self._tools: dict[str, list[types.Tool]] = {}  # Server ID -> tools
+            self._stderr_pipes: dict[str, tuple[int, int]] = {}  # Server ID -> (read_fd, write_fd)
+            self._stderr_threads: dict[str, threading.Thread] = {}  # Server ID -> logging thread
+            self._stderr_stop_events: dict[str, threading.Event] = {}  # Server ID -> stop event
+            self._trust_store = TrustStore()
+            self._enabled_servers: set[str] = set(self.config.mcp_servers.keys())  # Track enabled servers
         """
         Initialize the MCP Manager.
 
@@ -100,8 +119,10 @@ class Manager:
 
     async def _async_start(self) -> None:
         """Start the MCP manager and initialize connections (async implementation)."""
-        # Initialize all configured servers
+        # Initialize only enabled servers
         for server_id, server_config in self.config.mcp_servers.items():
+            if server_id not in self._enabled_servers:
+                continue  # Skip disabled servers
             try:
                 # Create stdio transport parameters
                 params = StdioServerParameters(
@@ -226,10 +247,12 @@ class Manager:
         servers = []
         for server_id in self.config.mcp_servers.keys():
             connected = server_id in self._sessions
+            enabled = server_id in self._enabled_servers
             servers.append(
                 {
                     "server_id": server_id,
                     "connected": connected,
+                    "enabled": enabled,
                     "tools_count": len(self._tools.get(server_id, [])),
                 }
             )
@@ -369,6 +392,122 @@ class Manager:
         return self._trust_store.is_trusted(server_id)
 
     def set_trusted(self, server_id: str, trusted: bool) -> None:
+        def set_trusted(self, server_id: str, trusted: bool) -> None:
+            """
+            Set server trust status.
+
+            Args:
+                server_id: Server identifier
+                trusted: Trust status
+            """
+            self._trust_store.set_trusted(server_id, trusted)
+
+        def is_enabled(self, server_id: str) -> bool:
+            """
+            Check if a server is enabled.
+
+            Args:
+                server_id: Server identifier
+
+            Returns:
+                True if server is enabled
+            """
+            return server_id in self._enabled_servers
+
+        def set_enabled(self, server_id: str, enabled: bool) -> bool:
+            """
+            Enable or disable a server.
+
+            Args:
+                server_id: Server identifier
+                enabled: Enable or disable status
+
+            Returns:
+                True if operation was successful
+            """
+            # Check if server exists in configuration
+            if server_id not in self.config.mcp_servers:
+                return False
+
+            if enabled:
+                self._enabled_servers.add(server_id)
+            else:
+                self._enabled_servers.discard(server_id)
+                # Also disconnect if currently connected
+                if server_id in self._sessions:
+                    try:
+                        self._run_in_loop(self._disconnect_server(server_id))
+                    except Exception as e:
+                        logger.warning(f"Error disconnecting disabled server '{server_id}': {e}")
+
+            return True
+
+        async def _disconnect_server(self, server_id: str) -> None:
+            """
+            Disconnect from a specific server.
+
+            Args:
+                server_id: Server identifier
+            """
+            try:
+                # Close session context first
+                session_context = self._session_contexts.get(server_id)
+                if session_context and hasattr(session_context, "__aexit__"):
+                    await session_context.__aexit__(None, None, None)
+            except (RuntimeError, Exception):
+                # Suppress cleanup errors
+                pass
+
+            try:
+                # Then close stdio context
+                stdio_context = self._stdio_contexts.get(server_id)
+                if stdio_context and hasattr(stdio_context, "__aexit__"):
+                    await stdio_context.__aexit__(None, None, None)
+            except (RuntimeError, Exception):
+                # Suppress cleanup errors
+                pass
+
+            # Clean up related resources
+            self._sessions.pop(server_id, None)
+            self._tools.pop(server_id, None)
+            self._session_contexts.pop(server_id, None)
+            self._stdio_contexts.pop(server_id, None)
+
+            # Stop stderr logging and cleanup pipes
+            if server_id in self._stderr_stop_events:
+                self._stderr_stop_events[server_id].set()
+
+            if server_id in self._stderr_threads:
+                thread = self._stderr_threads[server_id]
+                thread.join(timeout=1.0)
+                self._stderr_threads.pop(server_id, None)
+
+            if server_id in self._stderr_pipes:
+                read_fd, write_fd = self._stderr_pipes[server_id]
+                try:
+                    os.close(read_fd)
+                    os.close(write_fd)
+                except OSError:
+                    pass
+                self._stderr_pipes.pop(server_id, None)
+
+        def list_enabled_servers(self) -> list[str]:
+            """
+            Get list of enabled server IDs.
+
+            Returns:
+                List of enabled server IDs
+            """
+            return sorted(list(self._enabled_servers))
+
+        def list_disabled_servers(self) -> list[str]:
+            """
+            Get list of disabled server IDs.
+
+            Returns:
+                List of disabled server IDs
+            """
+            return sorted(list(set(self.config.mcp_servers.keys()) - self._enabled_servers))
         """
         Set server trust status.
 

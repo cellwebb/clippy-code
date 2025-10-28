@@ -852,7 +852,7 @@ def handle_mcp_command(agent: ClippyAgent, console: Console, command_args: str) 
     """Handle /mcp commands."""
     if not command_args:
         console.print("[red]Usage: /mcp <command>[/red]")
-        console.print("[dim]Available commands: list, tools, refresh, allow, revoke[/dim]")
+        console.print("[dim]Available commands: list, tools, refresh, allow, revoke, enable, disable[/dim]")
         return "continue"
 
     parts = command_args.strip().split(maxsplit=1)
@@ -876,9 +876,13 @@ def handle_mcp_command(agent: ClippyAgent, console: Console, command_args: str) 
         _handle_mcp_allow(mcp_manager, console, subcommand_args)
     elif subcommand == "revoke":
         _handle_mcp_revoke(mcp_manager, console, subcommand_args)
+    elif subcommand == "enable":
+        _handle_mcp_enable(mcp_manager, console, subcommand_args)
+    elif subcommand == "disable":
+        _handle_mcp_disable(mcp_manager, console, subcommand_args)
     else:
         console.print(f"[red]Unknown MCP command: {subcommand}[/red]")
-        console.print("[dim]Available commands: list, tools, refresh, allow, revoke[/dim]")
+        console.print("[dim]Available commands: list, tools, refresh, allow, revoke, enable, disable[/dim]")
 
     return "continue"
 
@@ -963,6 +967,47 @@ def _handle_mcp_allow(mcp_manager: Any, console: Console, server_arg: str) -> No
 
 
 def _handle_mcp_revoke(mcp_manager: Any, console: Console, server_arg: str) -> None:
+def _handle_mcp_revoke(mcp_manager: Any, console: Console, server_arg: str) -> None:
+    """Handle /mcp revoke command."""
+    if not server_arg:
+        console.print("[red]Usage: /mcp revoke <server_id>[/red]")
+        return
+
+    server_id = server_arg.strip()
+    mcp_manager.set_trusted(server_id, False)
+    console.print(f"[green]✓ Revoked trust for MCP server '{server_id}'[/green]")
+
+
+def _handle_mcp_enable(mcp_manager: Any, console: Console, server_arg: str) -> None:
+    """Handle /mcp enable command."""
+    if not server_arg:
+        console.print("[red]Usage: /mcp enable <server_id>[/red]")
+        return
+
+    server_id = server_arg.strip()
+    success = mcp_manager.set_enabled(server_id, True)
+    
+    if success:
+        console.print(f"[green]✓ Enabled MCP server '{server_id}'[/green]")
+        console.print("[dim]Server will be available on next refresh or restart[/dim]")
+    else:
+        console.print(f"[red]✗ MCP server '{server_id}' not found in configuration[/red]")
+
+
+def _handle_mcp_disable(mcp_manager: Any, console: Console, server_arg: str) -> None:
+    """Handle /mcp disable command."""
+    if not server_arg:
+        console.print("[red]Usage: /mcp disable <server_id>[/red]")
+        return
+
+    server_id = server_arg.strip()
+    success = mcp_manager.set_enabled(server_id, False)
+    
+    if success:
+        console.print(f"[green]✓ Disabled MCP server '{server_id}'[/green]")
+        console.print("[dim]Server has been disconnected and won't be started automatically[/dim]")
+    else:
+        console.print(f"[red]✗ MCP server '{server_id}' not found in configuration[/red]")
     """Handle /mcp revoke command."""
     if not server_arg:
         console.print("[red]Usage: /mcp revoke <server_id>[/red]")
