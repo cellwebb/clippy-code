@@ -287,7 +287,9 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /mcp tools [server] - List tools available from MCP servers\n"
             "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
             "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
-            "  /mcp revoke <server> - Revoke trust for an MCP server\n\n"
+            "  /mcp revoke <server> - Revoke trust for an MCP server\n"
+            "  /mcp enable <server> - Enable a disabled MCP server\n"
+            "  /mcp disable <server> - Disable an enabled MCP server\n\n"
             "[bold]Interrupt:[/bold]\n"
             "  Ctrl+C or double-ESC - Stop current execution",
             border_style="blue",
@@ -899,8 +901,9 @@ def _handle_mcp_list(mcp_manager: Any, console: Console) -> None:
     server_lines = []
     for server in servers:
         status = "[green]connected[/green]" if server["connected"] else "[red]disconnected[/red]"
+        enabled_status = "[green]enabled[/green]" if server["enabled"] else "[yellow]disabled[/yellow]"
         server_lines.append(
-            f"  [cyan]{server['server_id']:20}[/cyan] - {status} ({server['tools_count']} tools)"
+            f"  [cyan]{server['server_id']:20}[/cyan] - {enabled_status} - {status} ({server['tools_count']} tools)"
         )
 
     console.print(
@@ -967,7 +970,6 @@ def _handle_mcp_allow(mcp_manager: Any, console: Console, server_arg: str) -> No
 
 
 def _handle_mcp_revoke(mcp_manager: Any, console: Console, server_arg: str) -> None:
-def _handle_mcp_revoke(mcp_manager: Any, console: Console, server_arg: str) -> None:
     """Handle /mcp revoke command."""
     if not server_arg:
         console.print("[red]Usage: /mcp revoke <server_id>[/red]")
@@ -986,7 +988,7 @@ def _handle_mcp_enable(mcp_manager: Any, console: Console, server_arg: str) -> N
 
     server_id = server_arg.strip()
     success = mcp_manager.set_enabled(server_id, True)
-    
+
     if success:
         console.print(f"[green]✓ Enabled MCP server '{server_id}'[/green]")
         console.print("[dim]Server will be available on next refresh or restart[/dim]")
@@ -1002,7 +1004,7 @@ def _handle_mcp_disable(mcp_manager: Any, console: Console, server_arg: str) -> 
 
     server_id = server_arg.strip()
     success = mcp_manager.set_enabled(server_id, False)
-    
+
     if success:
         console.print(f"[green]✓ Disabled MCP server '{server_id}'[/green]")
         console.print("[dim]Server has been disconnected and won't be started automatically[/dim]")
