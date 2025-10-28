@@ -169,8 +169,6 @@ Currently, clippy-code supports two interface modes:
 1. **One-shot Mode**: Execute a single task and exit
 2. **Interactive Mode**: REPL-style multi-turn conversations with slash commands
 
-Document mode (Word-like TUI) is planned for future releases but not yet implemented.
-
 ### Subagent System
 
 clippy-code includes a powerful subagent system for complex task decomposition and parallel execution:
@@ -261,8 +259,6 @@ Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or proje
 }
 ```
 
-Available MCP commands in interactive/document mode:
-
 - `/mcp list` - Show configured MCP servers and connection status
 - `/mcp tools [server]` - List available tools from MCP servers
 - `/mcp refresh` - Refresh connections to MCP servers
@@ -318,6 +314,3 @@ Keep `pyproject.toml` and `src/clippy/__version__.py` in sync. Use: `make bump-p
 - **3 permission levels**: AUTO_APPROVE (safe ops), REQUIRE_APPROVAL (risky), DENY (blocked)
 - **100 iteration max**: Prevents infinite loops, allows for more complex tasks
 - **Retry logic**: Exponential backoff with 3 attempts for resilience against transient failures
-- **Separate tools/executor/permissions**: Interface vs execution vs policy (separation of concerns)
-- **Document mode**: Provides a more intuitive interface for longer coding tasks
-- **Model presets**: Makes it easy to switch between different providers and models

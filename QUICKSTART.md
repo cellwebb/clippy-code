@@ -134,7 +134,7 @@ Here's how a typical interactive session looks:
 
 5. **Real-time Feedback**: See responses as they're being generated, not just at the end
 
-**Note**: A document mode (Word-like interface) is planned for future releases but not yet implemented.
+
 
 ## 5. Safety Controls
 

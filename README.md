@@ -480,11 +480,7 @@ This project showcases proficiency in:
 - Error handling and graceful degradation
 - Configuration management (environment, CLI, defaults)
 
-**UI/UX Design**:
 
-- Multiple interface modes for different workflows
-- Textual-based TUI with custom styling
-- Intuitive command system and user workflows
 
 **Product Thinking**:
 

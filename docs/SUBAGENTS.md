@@ -172,13 +172,7 @@ All subagent messages and tool calls are prefixed with `[subagent_type:name]` in
 - **Status Visibility**: Understand subagent progress and completion status
 - **Type Identification**: Know which specialized subagent type is being used
 
-### Document Mode Compatibility
 
-The approval system has been enhanced to handle:
-
-- **Rich markup escaping**: Subagent output containing markup tags is safely escaped
-- **Complex tool inputs**: JSON formatting for nested structures (dict/list parameters)
-- **Error recovery**: Comprehensive error handling prevents silent crashes
 
 If you encounter issues with subagent approvals, check the logs:
 
