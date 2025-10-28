@@ -28,6 +28,11 @@ providers:
     api_key_env: LMSTUDIO_API_KEY # Usually not needed, can be "lmstudio" or empty
     description: "LM Studio (local)"
 
+  minimax:
+    base_url: https://api.minimax.io/v1
+    api_key_env: MINIMAX_API_KEY
+    description: "MiniMax"
+
   ollama:
     base_url: http://localhost:11434/v1
     api_key_env: OLLAMA_API_KEY  # Usually not needed, can be "ollama" or empty
