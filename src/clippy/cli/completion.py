@@ -69,17 +69,20 @@ class ClippyCommandCompleter(Completer):
                 "completer": self._create_auto_completer(),
                 "subcommands": ["list", "revoke", "clear"],
             },
-            "mcp": {
-                "description": "MCP server management",
-                "completer": self._create_mcp_completer(),
-                "subcommands": ["list", "tools", "refresh", "allow", "revoke"],
-            },
             "subagent": {
                 "description": "Subagent configuration",
                 "completer": self._create_subagent_completer(),
                 "subcommands": ["list", "set", "clear", "reset"],
             },
         }
+
+        # Only add MCP command if MCP servers are configured
+        if self._has_mcp_servers():
+            self.base_commands["mcp"] = {
+                "description": "MCP server management",
+                "completer": self._create_mcp_completer(),
+                "subcommands": ["list", "tools", "refresh", "allow", "revoke"],
+            }
 
     def _create_provider_completer(self) -> WordCompleter:
         """Create completer for provider names."""
@@ -117,6 +120,18 @@ class ClippyCommandCompleter(Completer):
             return SubagentCommandCompleter()
 
         return get_completer
+
+    def _has_mcp_servers(self) -> bool:
+        """Check if there are any MCP servers configured."""
+        if not self.agent or not hasattr(self.agent, "mcp_manager") or not self.agent.mcp_manager:
+            return False
+
+        try:
+            servers = self.agent.mcp_manager.list_servers()
+            return len(servers) > 0
+        except Exception:
+            # If there's an error accessing MCP manager, assume no servers
+            return False
 
     def _setup_dynamic_completers(self) -> None:
         """Setup completers that need dynamic data."""
