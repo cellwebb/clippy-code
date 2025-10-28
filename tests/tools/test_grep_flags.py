@@ -22,12 +22,13 @@ def test_grep_flag_translation_basic_flags() -> None:
     assert "--only-matching" == translate_grep_flags_to_rg("-o")
 
     # Test file recursion flags
-    assert "--recursive" == translate_grep_flags_to_rg("-r")
+    assert "" == translate_grep_flags_to_rg("-r")
     assert "--files-without-match" == translate_grep_flags_to_rg("-L")
 
     # Test long form flags remain unchanged
     assert "--ignore-case" == translate_grep_flags_to_rg("--ignore-case")
     assert "--invert-match" == translate_grep_flags_to_rg("--invert-match")
+    assert "" == translate_grep_flags_to_rg("--recursive")
 
 
 def test_grep_flag_translation_context_flags() -> None:

@@ -51,6 +51,7 @@ def translate_grep_flags_to_rg(flags: str) -> str:
         String of translated ripgrep flags
     """
     # Mapping of grep flags to ripgrep equivalents
+    # Note: ripgrep searches recursively by default, so -r/--recursive flags are ignored
     flag_mapping = {
         # Basic matching
         "-i": "--ignore-case",
@@ -73,11 +74,11 @@ def translate_grep_flags_to_rg(flags: str) -> str:
         "-q": "--quiet",
         "--quiet": "--quiet",
         # File inclusion/exclusion
-        "-r": "--recursive",
-        "--recursive": "--recursive",
+        "-r": None,  # ripgrep searches recursively by default
+        "--recursive": None,  # ripgrep searches recursively by default
         "-L": "--files-without-match",
         "--files-without-match": "--files-without-match",
-        "--include": "--glob",  # -r and --include need special handling
+        "--include": "--glob",
         "--exclude": "--glob",
         # Context control
         "-A": "--after-context",
@@ -127,7 +128,10 @@ def translate_grep_flags_to_rg(flags: str) -> str:
 
         # Direct mapping for other flags
         if flag in flag_mapping:
-            translated_flags.append(flag_mapping[flag])
+            rg_flag = flag_mapping[flag]
+            # Skip None values (flags that don't apply to ripgrep)
+            if rg_flag is not None:
+                translated_flags.append(rg_flag)
         else:
             # Keep unknown flags as-is (might be ripgrep-specific)
             translated_flags.append(flag)
