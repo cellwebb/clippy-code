@@ -320,6 +320,12 @@ def handle_tool_use(
     # Add result to conversation
     add_tool_result(conversation_history, tool_use_id, success, message, result)
 
+    # Save conversation automatically after each tool execution
+    if parent_agent is not None:
+        save_success, save_message = parent_agent.save_conversation()
+        if not save_success:
+            logger.warning(f"Failed to auto-save conversation after tool execution: {save_message}")
+
     # Add blank line after tool result for visual separation
     console.print("")
 

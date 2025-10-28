@@ -1,6 +1,9 @@
 """AI agent with OpenAI-compatible LLM support."""
 
+import json
 import logging
+import time
+from pathlib import Path
 from typing import Any
 
 from rich.console import Console
@@ -87,6 +90,10 @@ class ClippyAgent:
             max_concurrent=max_concurrent_subagents,
         )
 
+        # Set up conversation persistence
+        self.conversations_dir = Path.home() / ".clippy" / "conversations"
+        self.conversations_dir.mkdir(exist_ok=True, parents=True)
+
     def run(self, user_message: str, auto_approve_all: bool = False) -> str:
         """
         Run the agent with a user message.
@@ -109,6 +116,12 @@ class ClippyAgent:
 
         try:
             response = self._run_agent_loop(auto_approve_all)
+
+            # Save conversation automatically after each interaction
+            success, message = self.save_conversation()
+            if not success:
+                logger.warning(f"Failed to auto-save conversation: {message}")
+
             return response
         except InterruptedExceptionError:
             return "Execution interrupted by user."
@@ -181,6 +194,105 @@ class ClippyAgent:
 
         except Exception as e:
             return False, f"Failed to switch model: {e}"
+
+    def save_conversation(self, name: str = "default") -> tuple[bool, str]:
+        """
+        Save the current conversation to disk.
+
+        Args:
+            name: Name for the conversation (default: "default")
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        try:
+            # Ensure the conversations directory exists
+            self.conversations_dir.mkdir(exist_ok=True, parents=True)
+
+            conversation_file = self.conversations_dir / f"{name}.json"
+
+            # Prepare conversation data
+            conversation_data = {
+                "model": self.model,
+                "base_url": self.base_url,
+                "conversation_history": self.conversation_history,
+                "timestamp": time.time(),
+            }
+
+            # Save to file
+            with open(conversation_file, "w") as f:
+                json.dump(conversation_data, f, indent=2)
+
+            return True, f"Conversation saved as '{name}'"
+        except Exception as e:
+            return False, f"Failed to save conversation: {e}"
+
+    def load_conversation(self, name: str = "default") -> tuple[bool, str]:
+        """
+        Load a conversation from disk.
+
+        Args:
+            name: Name of the conversation to load (default: "default")
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        try:
+            conversation_file = self.conversations_dir / f"{name}.json"
+
+            if not conversation_file.exists():
+                return False, f"No saved conversation found with name '{name}'"
+
+            # Load from file
+            with open(conversation_file) as f:
+                conversation_data = json.load(f)
+
+            # Restore conversation data
+            self.model = conversation_data.get("model", self.model)
+            self.base_url = conversation_data.get("base_url", self.base_url)
+
+            # Recreate provider with restored settings
+            self.provider = LLMProvider(api_key=self.api_key, base_url=self.base_url)
+
+            self.conversation_history = conversation_data.get("conversation_history", [])
+
+            return True, f"Conversation '{name}' loaded successfully"
+        except Exception as e:
+            return False, f"Failed to load conversation: {e}"
+
+    def list_saved_conversations(self) -> list[str]:
+        """
+        List all saved conversations.
+
+        Returns:
+            List of conversation names
+        """
+        try:
+            conversation_files = self.conversations_dir.glob("*.json")
+            return [f.stem for f in conversation_files]
+        except Exception:
+            return []
+
+    def delete_conversation(self, name: str) -> tuple[bool, str]:
+        """
+        Delete a saved conversation.
+
+        Args:
+            name: Name of the conversation to delete
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        try:
+            conversation_file = self.conversations_dir / f"{name}.json"
+
+            if not conversation_file.exists():
+                return False, f"No saved conversation found with name '{name}'"
+
+            conversation_file.unlink()
+            return True, f"Conversation '{name}' deleted successfully"
+        except Exception as e:
+            return False, f"Failed to delete conversation: {e}"
 
     def get_token_count(self) -> dict[str, Any]:
         """

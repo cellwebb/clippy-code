@@ -35,6 +35,35 @@ def handle_reset_command(agent: ClippyAgent, console: Console) -> CommandResult:
     return "continue"
 
 
+def handle_resume_command(agent: ClippyAgent, console: Console, command_args: str) -> CommandResult:
+    """Handle /resume command."""
+    # Parse command arguments
+    args = shlex.split(command_args) if command_args else []
+
+    # Default to "default" conversation if no name specified
+    conversation_name = args[0] if args else "default"
+
+    # Load the conversation
+    success, message = agent.load_conversation(conversation_name)
+
+    if success:
+        console.print(f"[green]✓ {escape(message)}[/green]")
+        # Show info about the loaded conversation
+        saved_conversations = agent.list_saved_conversations()
+        if saved_conversations:
+            console.print(f"[dim]Available conversations: {', '.join(saved_conversations)}[/dim]")
+    else:
+        console.print(f"[red]✗ {escape(message)}[/red]")
+        # Show available conversations if loading failed
+        saved_conversations = agent.list_saved_conversations()
+        if saved_conversations:
+            console.print(f"[dim]Available conversations: {', '.join(saved_conversations)}[/dim]")
+        else:
+            console.print("[dim]No saved conversations found.[/dim]")
+
+    return "continue"
+
+
 def handle_help_command(console: Console) -> CommandResult:
     """Handle /help command."""
     console.print(
@@ -42,7 +71,8 @@ def handle_help_command(console: Console) -> CommandResult:
             "[bold]Session Control:[/bold]\n"
             "  /help - Show this help message\n"
             "  /exit, /quit - Exit clippy-code\n"
-            "  /reset, /clear, /new - Reset conversation history\n\n"
+            "  /reset, /clear, /new - Reset conversation history\n"
+            "  /resume [name] - Resume a saved conversation\n\n"
             "[bold]Session Info:[/bold]\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n\n"
@@ -899,6 +929,12 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
     # Reset commands
     if command_lower in ["/reset", "/clear", "/new"]:
         return handle_reset_command(agent, console)
+
+    # Resume command
+    if command_lower.startswith("/resume"):
+        parts = user_input.split(maxsplit=1)
+        command_args = parts[1] if len(parts) > 1 else ""
+        return handle_resume_command(agent, console, command_args)
 
     # Help command
     if command_lower == "/help":

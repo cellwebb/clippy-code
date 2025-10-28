@@ -137,6 +137,12 @@ def run_agent_loop(
         # Add to conversation history
         conversation_history.append(assistant_message)
 
+        # Save conversation automatically after each assistant message
+        if parent_agent is not None:
+            success, message = parent_agent.save_conversation()
+            if not success:
+                logger.warning(f"Failed to auto-save conversation: {message}")
+
         # Handle tool calls
         has_tool_calls = False
         if response.get("tool_calls"):

@@ -297,7 +297,13 @@ def test_handle_tool_use_delegate_to_subagent(
     history: list[dict[str, Any]] = []
     permission_manager = PermissionManager(PermissionConfig())
     executor = RecordingExecutor()
-    parent_agent = object()
+
+    # Create a mock parent agent with save_conversation method
+    class MockParentAgent:
+        def save_conversation(self):
+            return (True, "Conversation saved")
+
+    parent_agent = MockParentAgent()
 
     called = {}
 
@@ -354,7 +360,13 @@ def test_handle_tool_use_run_parallel_subagents(
     history: list[dict[str, Any]] = []
     permission_manager = PermissionManager(PermissionConfig())
     executor = RecordingExecutor()
-    parent_agent = object()
+
+    # Create a mock parent agent with save_conversation method
+    class MockParentAgent:
+        def save_conversation(self):
+            return (True, "Conversation saved")
+
+    parent_agent = MockParentAgent()
 
     def fake_run(parent_agent: Any, permission_manager: PermissionManager, **payload: Any):
         return True, "parallel ok", {"count": 2}

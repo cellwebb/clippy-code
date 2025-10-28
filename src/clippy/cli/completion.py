@@ -42,6 +42,11 @@ class ClippyCommandCompleter(Completer):
                 "alias": ["clear", "new"],
                 "completer": None,
             },
+            "resume": {
+                "description": "Resume a saved conversation",
+                "completer": None,
+                "takes_arg": True,
+            },
             "status": {
                 "description": "Show token usage and session info",
                 "completer": None,

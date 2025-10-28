@@ -453,4 +453,86 @@ def test_handle_command_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(commands, "handle_subagent_command", lambda a, c, args: "continue")
     assert commands.handle_command("/subagent list", agent, console) == "continue"
 
+    monkeypatch.setattr(commands, "handle_resume_command", lambda a, c, args: "continue")
+    assert commands.handle_command("/resume", agent, console) == "continue"
+    assert commands.handle_command("/resume project1", agent, console) == "continue"
+
     assert commands.handle_command("normal text", agent, console) is None
+
+
+def test_handle_resume_command(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test the /resume command functionality."""
+    console = DummyConsole()
+
+    class StubAgent:
+        def __init__(self) -> None:
+            self.load_conversation_called = False
+            self.list_saved_conversations_called = False
+            self.conversation_name = None
+
+        def load_conversation(self, name: str = "default") -> tuple[bool, str]:
+            self.load_conversation_called = True
+            self.conversation_name = name
+            return (True, f"Conversation '{name}' loaded successfully")
+
+        def list_saved_conversations(self) -> list[str]:
+            self.list_saved_conversations_called = True
+            return ["default", "project1", "project2"]
+
+    agent = StubAgent()
+    commands.handle_resume_command(agent, console, "")
+    assert agent.load_conversation_called
+    assert agent.conversation_name == "default"
+    assert any("loaded successfully" in str(msg) for msg in console.messages)
+
+    # Test with specific conversation name
+    console.messages.clear()
+    agent = StubAgent()
+    commands.handle_resume_command(agent, console, "project1")
+    assert agent.load_conversation_called
+    assert agent.conversation_name == "project1"
+    assert any("loaded successfully" in str(msg) for msg in console.messages)
+    assert any("Available conversations" in str(msg) for msg in console.messages)
+
+
+def test_handle_resume_command_error_handling(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that /resume command handles errors gracefully."""
+    console = DummyConsole()
+
+    class StubAgent:
+        def __init__(self) -> None:
+            pass
+
+        def load_conversation(self, name: str = "default") -> tuple[bool, str]:
+            return (False, f"No saved conversation found with name '{name}'")
+
+        def list_saved_conversations(self) -> list[str]:
+            return ["default", "project1", "project2"]
+
+    agent = StubAgent()
+    commands.handle_resume_command(agent, console, "nonexistent")
+    # Check for the error message substring that should be present
+    assert any("No saved conversation found with name" in str(msg) for msg in console.messages)
+    assert any("Available conversations" in str(msg) for msg in console.messages)
+    assert any("project1" in str(msg) for msg in console.messages)
+
+
+def test_handle_resume_command_no_saved_conversations(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that /resume command handles case with no saved conversations."""
+    console = DummyConsole()
+
+    class StubAgent:
+        def __init__(self) -> None:
+            pass
+
+        def load_conversation(self, name: str = "default") -> tuple[bool, str]:
+            return (False, "No saved conversation found with name 'default'")
+
+        def list_saved_conversations(self) -> list[str]:
+            return []
+
+    agent = StubAgent()
+    commands.handle_resume_command(agent, console, "")
+    # Check for the error message substring that should be present
+    assert any("No saved conversation found with name" in str(msg) for msg in console.messages)
+    assert any("No saved conversations found" in str(msg) for msg in console.messages)
