@@ -167,7 +167,9 @@ def grep(pattern: str, paths: list[str], flags: str = "") -> tuple[bool, str, An
                 rg_flags.append(translated_flags)
 
             # Build command - paths with glob patterns should not be quoted to allow shell expansion
-            cmd_parts = ["rg"] + rg_flags + [shlex.quote(pattern)]
+            # Add -- to separate flags from pattern (prevents pattern starting with -
+            # being interpreted as flag)
+            cmd_parts = ["rg"] + rg_flags + ["--", shlex.quote(pattern)]
             for path in paths:
                 # Check if path contains glob patterns
                 if "*" in path or "?" in path or "[" in path:
@@ -196,7 +198,9 @@ def grep(pattern: str, paths: list[str], flags: str = "") -> tuple[bool, str, An
                 grep_flags_list.extend(flag_list)
 
             # Build command - paths with glob patterns should not be quoted to allow shell expansion
-            cmd_parts = ["grep"] + grep_flags_list + [shlex.quote(pattern)]
+            # Add -- to separate flags from pattern (prevents pattern starting with -
+            # being interpreted as flag)
+            cmd_parts = ["grep"] + grep_flags_list + ["--", shlex.quote(pattern)]
             for path in paths:
                 # Check if path contains glob patterns
                 if "*" in path or "?" in path or "[" in path:

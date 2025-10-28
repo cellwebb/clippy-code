@@ -113,3 +113,32 @@ def test_grep_handles_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     assert success is False
     assert "timed out" in message
     assert output is None
+
+
+def test_grep_pattern_starting_with_dash_does_not_break_command(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test that patterns starting with - don't get interpreted as flags."""
+    recorded: list[str] = []
+
+    def fake_run(cmd, *args, **kwargs):  # type: ignore[no-untyped-def]
+        if cmd == ["rg", "--version"]:
+            return _completed()
+        recorded.append(cmd)
+        return _completed(returncode=1)  # no matches would be found
+
+    monkeypatch.setattr(grep_module.subprocess, "run", fake_run)
+
+    # This pattern starts with -n which could be interpreted as a flag
+    success, message, output = grep("-n.*pattern", ["file.txt"])
+
+    assert success is True
+    assert message.endswith("no matches found)")
+
+    # Verify that -- was added to separate flags from pattern
+    command = recorded[0]
+    assert "--" in command
+    assert " '-n.*pattern'" in command
+
+    # Should have both the -- flag separator and the quoted pattern
+    assert command.count("--") >= 1
