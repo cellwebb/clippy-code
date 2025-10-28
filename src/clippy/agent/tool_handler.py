@@ -86,7 +86,7 @@ def display_tool_request(
     else:
         console.print(f"\n[bold cyan]→ {tool_name}[/bold cyan]")
 
-    input_str = "\n".join(f"  {k}: {v}" for k, v in tool_input.items())
+    input_str = "\n".join(f"  {k}: {escape(str(v))}" for k, v in tool_input.items())
     if input_str:
         console.print(f"[cyan]{input_str}[/cyan]")
 
@@ -105,10 +105,10 @@ def display_tool_request(
 
             formatted_diff, _truncated = format_diff_for_display(diff_content, max_lines=100)
             if _truncated:
-                console.print(f"[yellow]{formatted_diff}[/yellow]")
+                console.print(f"[yellow]{escape(formatted_diff)}[/yellow]")
                 console.print("[dim][... additional lines truncated][/dim]")
             else:
-                console.print(f"[yellow]{formatted_diff}[/yellow]")
+                console.print(f"[yellow]{escape(formatted_diff)}[/yellow]")
 
 
 def handle_tool_use(
