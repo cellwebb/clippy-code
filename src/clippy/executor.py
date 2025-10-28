@@ -12,8 +12,10 @@ from .tools.delete_file import delete_file
 from .tools.edit_file import edit_file
 from .tools.execute_command import execute_command
 from .tools.get_file_info import get_file_info
+from .tools.git_analyzer import git_analyzer
 from .tools.grep import grep
 from .tools.list_directory import list_directory
+from .tools.pr_manager import pr_manager
 from .tools.read_file import read_file
 from .tools.read_files import read_files
 from .tools.search_files import search_files
@@ -84,6 +86,8 @@ class ActionExecutor:
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+            "git_analyzer": ActionType.GIT_ANALYZER,  # Add mapping for git_analyzer tool
+            "pr_manager": ActionType.PR_MANAGER,  # Add mapping for pr_manager tool
             "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
             "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
         }
@@ -140,6 +144,26 @@ class ActionExecutor:
                     tool_input.get("inherit_indent", True),
                     tool_input.get("start_pattern", ""),
                     tool_input.get("end_pattern", ""),
+                )
+            elif tool_name == "git_analyzer":
+                result = git_analyzer(
+                    tool_input["base_branch"],
+                    tool_input["feature_branch"],
+                    tool_input.get("compare_branches"),
+                    tool_input.get("repo_path", "."),
+                    tool_input.get("analysis_depth", "files"),
+                    tool_input.get("include_semantic_analysis", True),
+                )
+            elif tool_name == "pr_manager":
+                result = pr_manager(
+                    tool_input["action"],
+                    tool_input["source_branch"],
+                    tool_input["target_branch"],
+                    tool_input.get("context_branches"),
+                    tool_input.get("repo_path", "."),
+                    tool_input.get("safety_level", "moderate"),
+                    tool_input.get("generate_patch", True),
+                    tool_input.get("include_tests", True),
                 )
             else:
                 logger.warning(f"Unimplemented tool: {tool_name}")
