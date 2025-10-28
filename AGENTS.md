@@ -294,7 +294,7 @@ Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or proje
 ## Key Implementation Details
 
 - **Agent loop**: 100 iteration max (prevents infinite loops)
-- **Command timeout**: 30 seconds
+- **Command timeout**: 300 seconds by default (configurable, 0 for unlimited)
 - **File ops**: Auto-create parent dirs, UTF-8 encoding, use `pathlib.Path`
 - **Executor returns**: `tuple[bool, str, Any]` (success, message, result)
 - **Message format**: Uses OpenAI format natively throughout (no conversions)

@@ -114,7 +114,10 @@ class ActionExecutor:
             elif tool_name == "create_directory":
                 result = create_directory(tool_input["path"])
             elif tool_name == "execute_command":
-                result = execute_command(tool_input["command"], tool_input.get("working_dir", "."))
+                timeout = tool_input.get("timeout", 300)  # Default to 5 minutes
+                result = execute_command(
+                    tool_input["command"], tool_input.get("working_dir", "."), timeout
+                )
             elif tool_name == "search_files":
                 result = search_files(tool_input["pattern"], tool_input.get("path", "."))
             elif tool_name == "get_file_info":
