@@ -292,7 +292,9 @@ def handle_tool_use(
                 console.print(f"[bold red]✗ MCP server '{server_id}' not configured[/bold red]")
                 console.print("[dim]Check your mcp.json configuration file[/dim]")
             else:
-                console.print(f"[bold red]✗ MCP Tool Error ({server_id}): {message}[/bold red]")
+                console.print(
+                    f"[bold red]✗ MCP Tool Error ({server_id}): {escape(message)}[/bold red]"
+                )
                 console.print(f"[dim]Tool: {tool}[/dim]")
 
                 # Provide specific suggestions based on error patterns
@@ -307,13 +309,13 @@ def handle_tool_use(
                     )
 
         except ValueError:
-            console.print(f"[bold red]✗ MCP Tool Error: {message}[/bold red]")
+            console.print(f"[bold red]✗ MCP Tool Error: {escape(message)}[/bold red]")
     else:
         # Standard success/error display for non-MCP tools
         if success:
-            console.print(f"[bold green]✓ {message}[/bold green]")
+            console.print(f"[bold green]✓ {escape(message)}[/bold green]")
         else:
-            console.print(f"[bold red]✗ {message}[/bold red]")
+            console.print(f"[bold red]✗ {escape(message)}[/bold red]")
 
     # Add result to conversation
     add_tool_result(conversation_history, tool_use_id, success, message, result)

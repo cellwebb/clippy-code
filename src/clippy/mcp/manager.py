@@ -9,6 +9,7 @@ from typing import Any
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 from rich.console import Console
+from rich.markup import escape
 
 from .config import Config
 from .schema import map_mcp_to_openai
@@ -148,7 +149,8 @@ class Manager:
                 logger.warning(f"Failed to connect to MCP server '{server_id}': {e}")
                 if self.console:
                     error_msg = (
-                        f"[yellow]⚠ Failed to connect to MCP server '{server_id}': {e}[/yellow]"
+                        f"[yellow]⚠ Failed to connect to MCP server '{server_id}': "
+                        f"{escape(str(e))}[/yellow]"
                     )
                     self.console.print(error_msg)
 
@@ -283,7 +285,7 @@ class Manager:
                     if self.console:
                         error_msg = (
                             f"[yellow]⚠ Failed to map MCP tool '{tool.name}' "
-                            f"from server '{server_id}'[/yellow]"
+                            f"from server '{server_id}': {escape(str(e))}[/yellow]"
                         )
                         self.console.print(error_msg)
 

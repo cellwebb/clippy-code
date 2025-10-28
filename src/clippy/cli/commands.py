@@ -183,7 +183,7 @@ def handle_compact_command(agent: ClippyAgent, console: Console) -> CommandResul
     else:
         console.print(
             Panel.fit(
-                f"[bold yellow]⚠ Cannot Compact[/bold yellow]\n\n{message}",
+                f"[bold yellow]⚠ Cannot Compact[/bold yellow]\n\n{escape(message)}",
                 title="Compact",
                 border_style="yellow",
             )
@@ -391,11 +391,11 @@ def _handle_model_add(console: Console, args: list[str]) -> CommandResult:
     )
 
     if success:
-        console.print(f"[green]✓ {message}[/green]")
+        console.print(f"[green]✓ {escape(message)}[/green]")
         if is_default:
             console.print("[dim]Set as default model[/dim]")
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        console.print(f"[red]✗ {escape(message)}[/red]")
 
     return "continue"
 
@@ -411,9 +411,9 @@ def _handle_model_remove(console: Console, args: list[str]) -> CommandResult:
     success, message = user_manager.remove_model(name)
 
     if success:
-        console.print(f"[green]✓ {message}[/green]")
+        console.print(f"[green]✓ {escape(message)}[/green]")
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        console.print(f"[red]✗ {escape(message)}[/red]")
 
     return "continue"
 
@@ -429,9 +429,9 @@ def _handle_model_default(console: Console, args: list[str]) -> CommandResult:
     success, message = user_manager.set_default(name)
 
     if success:
-        console.print(f"[green]✓ {message}[/green]")
+        console.print(f"[green]✓ {escape(message)}[/green]")
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        console.print(f"[red]✗ {escape(message)}[/red]")
         # Show available models if the model doesn't exist
         available_models = user_manager.list_models()
         if available_models:
@@ -478,7 +478,7 @@ def _handle_model_use(agent: ClippyAgent, console: Console, args: list[str]) -> 
         console.print(f"[green]✓ Using {provider_name}/{model_id} (temporary)[/green]")
         console.print("[dim]Use /model add to save this configuration[/dim]")
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        console.print(f"[red]✗ {escape(message)}[/red]")
 
     return "continue"
 
@@ -501,9 +501,9 @@ def _handle_model_threshold(agent: ClippyAgent, console: Console, args: list[str
     success, message = user_manager.set_compaction_threshold(name, threshold)
 
     if success:
-        console.print(f"[green]✓ {message}[/green]")
+        console.print(f"[green]✓ {escape(message)}[/green]")
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        console.print(f"[red]✗ {escape(message)}[/red]")
 
     return "continue"
 
@@ -557,7 +557,7 @@ def _handle_model_switch(agent: ClippyAgent, console: Console, model_name: str) 
         console.print(f"[green]✓ Switched to {model.name}[/green]")
         console.print(f"[dim]Using {provider.name}/{model.model_id}[/dim]")
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        console.print(f"[red]✗ {escape(message)}[/red]")
 
     return "continue"
 
