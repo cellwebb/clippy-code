@@ -74,6 +74,8 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
             "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
             "  /mcp revoke <server> - Revoke trust for an MCP server\n"
+            "  /mcp enable <server> - Enable a disabled MCP server\n"
+            "  /mcp disable <server> - Disable an enabled MCP server\n"
             "  /help - Show this help message\n\n"
             "File References:\n"
             "  Start typing @ followed by file name and press Tab for completion\n"
