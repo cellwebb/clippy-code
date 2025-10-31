@@ -854,7 +854,9 @@ def handle_mcp_command(agent: ClippyAgent, console: Console, command_args: str) 
     """Handle /mcp commands."""
     if not command_args:
         console.print("[red]Usage: /mcp <command>[/red]")
-        console.print("[dim]Available commands: list, tools, refresh, allow, revoke, enable, disable[/dim]")
+        console.print(
+            "[dim]Available commands: list, tools, refresh, allow, revoke, enable, disable[/dim]"
+        )
         return "continue"
 
     parts = command_args.strip().split(maxsplit=1)
@@ -884,7 +886,9 @@ def handle_mcp_command(agent: ClippyAgent, console: Console, command_args: str) 
         _handle_mcp_disable(mcp_manager, console, subcommand_args)
     else:
         console.print(f"[red]Unknown MCP command: {subcommand}[/red]")
-        console.print("[dim]Available commands: list, tools, refresh, allow, revoke, enable, disable[/dim]")
+        console.print(
+            "[dim]Available commands: list, tools, refresh, allow, revoke, enable, disable[/dim]"
+        )
 
     return "continue"
 
@@ -901,9 +905,12 @@ def _handle_mcp_list(mcp_manager: Any, console: Console) -> None:
     server_lines = []
     for server in servers:
         status = "[green]connected[/green]" if server["connected"] else "[red]disconnected[/red]"
-        enabled_status = "[green]enabled[/green]" if server["enabled"] else "[yellow]disabled[/yellow]"
+        enabled_status = (
+            "[green]enabled[/green]" if server["enabled"] else "[yellow]disabled[/yellow]"
+        )
         server_lines.append(
-            f"  [cyan]{server['server_id']:20}[/cyan] - {enabled_status} - {status} ({server['tools_count']} tools)"
+            f"  [cyan]{server['server_id']:20}[/cyan] - {enabled_status} - "
+            f"{status} ({server['tools_count']} tools)"
         )
 
     console.print(
@@ -1010,14 +1017,6 @@ def _handle_mcp_disable(mcp_manager: Any, console: Console, server_arg: str) -> 
         console.print("[dim]Server has been disconnected and won't be started automatically[/dim]")
     else:
         console.print(f"[red]✗ MCP server '{server_id}' not found in configuration[/red]")
-    """Handle /mcp revoke command."""
-    if not server_arg:
-        console.print("[red]Usage: /mcp revoke <server_id>[/red]")
-        return
-
-    server_id = server_arg.strip()
-    mcp_manager.set_trusted(server_id, False)
-    console.print(f"[green]✓ Revoked trust for MCP server '{server_id}'[/green]")
 
 
 def handle_subagent_command(

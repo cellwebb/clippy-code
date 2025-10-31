@@ -81,7 +81,7 @@ class ClippyCommandCompleter(Completer):
             self.base_commands["mcp"] = {
                 "description": "MCP server management",
                 "completer": self._create_mcp_completer(),
-                "subcommands": ["list", "tools", "refresh", "allow", "revoke"],
+                "subcommands": ["list", "tools", "refresh", "allow", "revoke", "enable", "disable"],
             }
 
     def _create_provider_completer(self) -> WordCompleter:
@@ -445,6 +445,8 @@ class ClippyCommandCompleter(Completer):
             ("mcp", "refresh"): "Refresh MCP connections",
             ("mcp", "allow"): "Trust MCP server",
             ("mcp", "revoke"): "Revoke trust for MCP server",
+            ("mcp", "enable"): "Enable a disabled MCP server",
+            ("mcp", "disable"): "Disable an enabled MCP server",
             ("subagent", "list"): "Show subagent configurations",
             ("subagent", "set"): "Set model for subagent type",
             ("subagent", "clear"): "Clear model override",
