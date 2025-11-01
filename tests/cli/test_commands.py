@@ -298,7 +298,7 @@ def test_handle_mcp_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
         def list_servers(self):
             self.list_servers_calls += 1
-            return [{"server_id": "alpha", "connected": True, "tools_count": 3}]
+            return [{"server_id": "alpha", "connected": True, "enabled": True, "tools_count": 3}]
 
         def list_tools(self, server: str | None = None):
             self.list_tools_calls.append(server)
@@ -317,6 +317,9 @@ def test_handle_mcp_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
         def set_trusted(self, server_id: str, trusted: bool) -> None:
             self.allowed.append((server_id, trusted))
+
+        def set_enabled(self, server_id: str, enabled: bool) -> bool:
+            return True if server_id == "alpha" else False
 
     manager = StubManager()
     agent = SimpleNamespace(mcp_manager=manager)

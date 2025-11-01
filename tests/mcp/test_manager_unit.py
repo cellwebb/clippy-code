@@ -61,8 +61,8 @@ def test_manager_list_servers_and_tools(manager_factory):
 
     servers = manager.list_servers()
     assert servers == [
-        {"server_id": "alpha", "connected": True, "tools_count": 1},
-        {"server_id": "beta", "connected": False, "tools_count": 0},
+        {"server_id": "alpha", "connected": True, "enabled": True, "tools_count": 1},
+        {"server_id": "beta", "connected": False, "enabled": True, "tools_count": 0},
     ]
 
     tools_all = manager.list_tools()

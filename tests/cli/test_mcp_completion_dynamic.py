@@ -64,6 +64,8 @@ def test_mcp_command_completion_with_servers():
         "refresh",
         "allow",
         "revoke",
+        "enable",
+        "disable",
     }
 
     # Check actual completions
