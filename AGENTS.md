@@ -91,7 +91,7 @@ src/clippy/
 All LLM interactions go through a single `LLMProvider` class (~100 lines total).
 
 - Uses OpenAI SDK with native OpenAI format throughout (no conversions)
-- Works with any OpenAI-compatible API: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, Groq, etc.
+- Works with OpenAI or any OpenAI-compatible API: Mistral, Cerebras, Z.AI, Synthetic.new, Together AI, Ollama, Groq, etc.
 - Configure alternate providers via `base_url` parameter
 - Includes retry logic with exponential backoff (up to 3 attempts)
 - Streams responses in real-time
@@ -121,7 +121,7 @@ Individual tool implementations are located in `src/clippy/tools/` directory wit
 
 - Model configurations are managed programmatically through `models.py` with provider definitions in `providers.yaml`
 - Users can save custom model configurations in `~/.clippy/models.json`
-- Supports OpenAI, Cerebras, Ollama, Together AI, Groq, DeepSeek, and other providers
+- Supports Mistral, OpenAI, Cerebras, Ollama, Together AI, Groq, DeepSeek, and other providers
 - Users can switch models in interactive mode using `/model <name>` command
 - Each provider can specify its own API key environment variable
 
@@ -150,7 +150,7 @@ clippy-code uses OpenAI format natively, so any OpenAI-compatible provider works
 2. Use model presets from `models.yaml` or specify custom model/base_url
 3. No code changes needed!
 
-Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, Groq, Mistral API
+Examples: OpenAI, Cerebras, Together AI, Azure OpenAI, Ollama, llama.cpp, vLLM, Groq, Mistral
 
 ### New Tool (checklist):
 
@@ -273,9 +273,10 @@ Environment variables:
 
 - `OPENAI_API_KEY`: API key for OpenAI or OpenAI-compatible provider (required for OpenAI)
 - `CEREBRAS_API_KEY`: API key for Cerebras provider
-- `TOGETHER_API_KEY`: API key for Together AI provider
-- `GROQ_API_KEY`: API key for Groq provider
 - `DEEPSEEK_API_KEY`: API key for DeepSeek provider
+- `GROQ_API_KEY`: API key for Groq provider
+- `MISTRAL_API_KEY`: API key for Mistral provider
+- `TOGETHER_API_KEY`: API key for Together AI provider
 - `OPENAI_BASE_URL`: Base URL for alternate providers (e.g., https://api.cerebras.ai/v1)
 
 ### Subagent Configuration

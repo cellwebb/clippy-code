@@ -31,14 +31,17 @@ For other providers:
 # Cerebras
 echo "CEREBRAS_API_KEY=your_key_here" > .env
 
-# Together AI
-echo "TOGETHER_API_KEY=your_key_here" > .env
+# DeepSeek
+echo "DEEPSEEK_API_KEY=your_key_here" > .env
 
 # Groq
 echo "GROQ_API_KEY=your_key_here" > .env
 
-# DeepSeek
-echo "DEEPSEEK_API_KEY=your_key_here" > .env
+# Mistral
+echo "MISTRAL_API_KEY=your_key_here" > .env
+
+# Together AI
+echo "TOGETHER_API_KEY=your_key_here" > .env
 ```
 
 For local models like Ollama, you typically don't need an API key:
@@ -86,7 +89,7 @@ clippy
 Interactive mode provides a rich conversational experience with advanced features:
 
 - Tab completion for commands and file paths
-- Command history with up/down arrows  
+- Command history with up/down arrows
 - Double-ESC to interrupt execution
 - Slash commands for model switching and configuration
 - Real-time streaming responses
@@ -114,18 +117,21 @@ Here's how a typical interactive session looks:
 ### Key Interactive Features
 
 1. **Smart Completion**: Tab completion works for:
+
    - File paths and directory names
    - Slash commands and their arguments
    - Model names and provider names
 
 2. **Command History**: Use up/down arrows to navigate previous commands
 
-3. **Interruption Control**: 
+3. **Interruption Control**:
+
    - Single ESC: Shows you're thinking
    - Double ESC: Immediately stops current execution
    - Ctrl+C: Also interrupts execution
 
 4. **Rich Slash Commands**: Full set of commands for:
+
    - Model management (`/model list`, `/model add`, etc.)
    - Permission control (`/auto list`, `/auto revoke`)
    - MCP server management (`/mcp list`, `/mcp tools`)
@@ -133,8 +139,6 @@ Here's how a typical interactive session looks:
    - Subagent configuration (`/subagent list`, `/subagent set`)
 
 5. **Real-time Feedback**: See responses as they're being generated, not just at the end
-
-
 
 ## 5. Safety Controls
 

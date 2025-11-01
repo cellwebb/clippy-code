@@ -42,6 +42,9 @@ clippy-code supports multiple LLM providers through OpenAI-compatible APIs:
 # OpenAI (default)
 echo "OPENAI_API_KEY=your_api_key_here" > .env
 
+# Mistral
+echo "MISTRAL_API_KEY=your_api_key_here" > .env
+
 # Cerebras
 echo "CEREBRAS_API_KEY=your_api_key_here" > .env
 
@@ -111,7 +114,7 @@ make run          # Launch clippy-code in interactive mode
 
 ### 🌐 **Supported Providers**
 
-- **OpenAI** • **Cerebras** • **Chutes.ai** • **Groq** • **LM Studio** • **MiniMax**
+- **Mistral** • **OpenAI** • **Cerebras** • **Chutes.ai** • **Groq** • **LM Studio** • **MiniMax**
 - **Ollama** • **OpenRouter** • **Synthetic.new** • **Together AI** • **Z.AI**
 
 ### 🛡️ **Safety-First Design**
@@ -241,14 +244,14 @@ src/clippy/
 
 ### Environment Variables
 
-- Provider-specific API keys: `OPENAI_API_KEY`, `CEREBRAS_API_KEY`, `GROQ_API_KEY`, etc.
+- Provider-specific API keys: `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `CEREBRAS_API_KEY`, `GROQ_API_KEY`, etc.
 - `OPENAI_BASE_URL` - Optional base URL override
 
 ### Provider-Based Model System
 
 clippy-code uses a flexible provider-based system. Instead of maintaining a fixed list of models, you:
 
-1. **Choose from available providers** (defined in `providers.yaml`): OpenAI, Cerebras, Ollama, Together AI, Groq, DeepSeek, ZAI
+1. **Choose from available providers** (defined in `providers.yaml`): Mistral, OpenAI, Cerebras, Ollama, Together AI, Groq, DeepSeek, ZAI
 2. **Save your favorite model configurations** using `/model add`
 3. **Switch between saved models** anytime with `/model <name>`
 
