@@ -395,10 +395,61 @@ class ClippyCommandCompleter(Completer):
         # Handle subcommands
         subcommands_list = command_info.get("subcommands")
         if isinstance(subcommands_list, list):
-            if len(words) <= 2:
+            # Check for subcommand argument completion FIRST (more specific)
+            if len(words) >= 3 or (len(words) == 2 and text.endswith(" ")):
+                # Handle completion for subcommand arguments (3+ words or 2 words with space)
+                # For /model command, handle specific subcontexts
+                if command == "model":
+                    # Determine which word we're completing
+                    if len(words) >= 3:
+                        subcommand = words[1].lower()
+                        current_word = words[-1] if not text.endswith(" ") else ""
+                    else:  # len(words) == 2 and text.endswith(" ")
+                        subcommand = words[1].lower()
+                        current_word = ""  # Starting fresh completion
+
+                    # For "/model load" and "/model use", show model names only
+                    if subcommand in ["load", "use"]:
+                        models = list_available_models()
+                        completions: list[Completion] = []
+
+                        for model_config in models:
+                            model_name = model_config[0]
+                            if model_name.startswith(current_word):
+                                is_default = model_config[2]  # is_default boolean
+                                status_indicator = " (default)" if is_default else ""
+                                completions.append(
+                                    Completion(
+                                        text=model_name,
+                                        display=f"{model_name}{status_indicator}",
+                                        display_meta=model_config[1],  # Description
+                                        start_position=-len(current_word),
+                                    )
+                                )
+
+                        return completions
+
+                    # For "/model add", show providers
+                    elif subcommand == "add":
+                        providers = list_available_providers()
+                        completions = []
+
+                        for provider_name, provider_desc in providers:
+                            if provider_name.startswith(current_word):
+                                completions.append(
+                                    Completion(
+                                        text=provider_name,
+                                        display=provider_name,
+                                        display_meta=provider_desc,
+                                        start_position=-len(current_word),
+                                    )
+                                )
+
+                        return completions
+            elif len(words) <= 2:
                 # Complete subcommand names AND model names for /model command
                 subcommand_prefix = words[1] if len(words) > 1 else ""
-                completions: list[Completion] = []
+                completions = []
 
                 # For /model command, show subcommands first, then models
                 if command == "model":
@@ -454,20 +505,22 @@ class ClippyCommandCompleter(Completer):
 
                 return completions
 
-        # Use command-specific completer
-        completer_factory = command_info.get("completer")
-        if completer_factory:
-            if callable(completer_factory):
-                completer = completer_factory()
-            else:
-                completer = completer_factory
+        # Only use command-specific completer for cases NOT handled above
+        # For model command, we've handled subcommand cases, so use fallback for others
+        if command != "model":
+            completer_factory = command_info.get("completer")
+            if completer_factory:
+                if callable(completer_factory):
+                    completer = completer_factory()
+                else:
+                    completer = completer_factory
 
-            if completer:
-                # Create a new document with the relevant part for the sub-completer
-                if len(words) > 1:
-                    current_word = words[-1] if not text.endswith(" ") else ""
-                    sub_doc = Document(current_word)
-                    return list(completer.get_completions(sub_doc, complete_event))
+                if completer:
+                    # Create a new document with the relevant part for the sub-completer
+                    if len(words) > 1:
+                        current_word = words[-1] if not text.endswith(" ") else ""
+                        sub_doc = Document(current_word)
+                        return list(completer.get_completions(sub_doc, complete_event))
 
         return []
 

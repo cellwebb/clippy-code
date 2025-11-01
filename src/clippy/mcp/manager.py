@@ -66,7 +66,13 @@ class Manager:
         if self._loop is None:
             raise RuntimeError("Event loop not started")
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
-        return future.result()
+        try:
+            return future.result(timeout=30.0)  # reasonable timeout to prevent hangs
+        except Exception as e:
+            # If the future is still pending, cancel it to prevent hanging
+            if not future.done():
+                future.cancel()
+            raise
 
     def _start_stderr_logger(self, server_id: str, read_fd: int) -> None:
         """
