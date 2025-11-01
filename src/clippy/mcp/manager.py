@@ -68,7 +68,7 @@ class Manager:
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         try:
             return future.result(timeout=30.0)  # reasonable timeout to prevent hangs
-        except Exception as e:
+        except Exception:
             # If the future is still pending, cancel it to prevent hanging
             if not future.done():
                 future.cancel()

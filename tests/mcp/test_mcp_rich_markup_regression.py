@@ -1,10 +1,11 @@
 """Regression tests for Rich markup escaping in MCP manager.
 
-This version tests the Rich markup escaping more directly without relying on 
+This version tests the Rich markup escaping more directly without relying on
 complex async/await mocking that can hang in some environments.
 """
 
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
+
 import pytest
 from rich.console import Console
 from rich.markup import escape
@@ -15,7 +16,7 @@ from clippy.mcp.manager import Manager
 
 def test_rich_markup_escaping_directly():
     """Test that problematic Rich markup strings are properly escaped."""
-    
+
     # Test various problematic markup patterns
     problematic_strings = [
         "Connection failed: [/yellow] unmatched closing tag",
@@ -29,11 +30,11 @@ def test_rich_markup_escaping_directly():
         "Mangled tag [/unclosed bracket",
         "Tag with [invalid_chars!@#] markup",
     ]
-    
+
     for problematic_string in problematic_strings:
         # Test that the escape function properly handles the string
         escaped = escape(problematic_string)
-        
+
         # When printed to console, it should not raise MarkupError
         try:
             real_console = Console()
@@ -45,17 +46,16 @@ def test_rich_markup_escaping_directly():
 
 def test_mcp_manager_error_handling_with_problematic_markup():
     """Test that MCP manager properly escapes problematic markup in error messages."""
-    
+
     console = Mock(spec=Console)
-    config = Config(mcp_servers={})
-    manager = Manager(config, console)
-    
+
     # Mock a server with problematic markup in its error
     server_id = "test-server"
     problematic_error = Exception("Connection failed: [/yellow] unmatched closing tag")
-    
+
     # Mock console.print call to capture what gets printed
     printed_messages = []
+
     def capture_print(msg):
         printed_messages.append(msg)
         # This should not raise a MarkupError
@@ -65,9 +65,9 @@ def test_mcp_manager_error_handling_with_problematic_markup():
         except Exception as e:
             if "MarkupError" in str(type(e)) or "closing tag" in str(e):
                 pytest.fail(f"Rich markup error occurred: {e}")
-    
+
     console.print = capture_print
-    
+
     # Simulate the error handling that happens in _async_start
     try:
         raise problematic_error
@@ -78,7 +78,7 @@ def test_mcp_manager_error_handling_with_problematic_markup():
                 f"{escape(str(e))}[/yellow]"
             )
             console.print(error_msg)
-    
+
     # Verify the error message was constructed and printed successfully
     assert len(printed_messages) == 1
     assert "Failed to connect to MCP server 'test-server'" in printed_messages[0]
@@ -86,11 +86,11 @@ def test_mcp_manager_error_handling_with_problematic_markup():
 
 def test_mcp_manager_tool_mapping_error_with_markup_direct():
     """Test MCP tool mapping error with problematic markup, tested directly."""
-    
+
     console = Mock(spec=Console)
     config = Config(mcp_servers={})
     manager = Manager(config, console)
-    
+
     # Mock a tool with problematic description
     mock_tool = Mock()
     mock_tool.name = "test_tool"
@@ -98,9 +98,10 @@ def test_mcp_manager_tool_mapping_error_with_markup_direct():
 
     # Mock exception with problematic markup
     problematic_exception = Exception("Mapping failed: [bold red]invalid schema[/bold red]")
-    
+
     # Mock console.print to capture and test the message
     printed_messages = []
+
     def capture_print(msg):
         printed_messages.append(msg)
         # This should not raise a MarkupError
@@ -110,18 +111,18 @@ def test_mcp_manager_tool_mapping_error_with_markup_direct():
         except Exception as e:
             if "MarkupError" in str(type(e)) or "closing tag" in str(e):
                 pytest.fail(f"Rich markup error occurred: {e}")
-    
+
     console.print = capture_print
-    
+
     # Mock map_mcp_to_openai to raise the problematic exception
     with patch("clippy.mcp.manager.map_mcp_to_openai", side_effect=problematic_exception):
         with patch.object(manager, "_tools", {"test-server": [mock_tool]}):
             # Call the method directly
             result = manager.get_all_tools_openai()
-            
+
             # Should return empty list due to mapping failure
             assert result == []
-            
-            # Should have printed an error message - the important test is that this didn't raise MarkupError
+
+            # Should have printed an error message - the test is this didn't raise MarkupError
             assert len(printed_messages) == 1
             assert "Failed to map MCP tool" in printed_messages[0]
