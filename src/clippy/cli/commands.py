@@ -262,8 +262,10 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n\n"
             "[bold]Model Management:[/bold]\n"
+            "  /model - List available subcommands and models\n"
             "  /model list - Show your saved models\n"
             "  /model <name> - Switch to a saved model\n"
+            "  /model load <name> - Load model (same as direct switch)\n"
             "  /model add <provider> <model_id> [options] - Add a new model\n"
             "    Options: --name <name>, --default, --threshold <tokens>\n"
             "  /model remove <name> - Remove a saved model\n"
@@ -471,6 +473,7 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
                     "[bold]Available Commands:[/bold]\n"
                     "  /model list - Show your saved models\n"
                     "  /model <name> - Switch to a saved model\n"
+                    "  /model load <name> - Load model (same as direct switch)\n"
                     "  /model add <provider> <model_id> [options] - Add a new model\n"
                     "    Options: --name <name>, --default\n"
                     "  /model remove <name> - Remove a saved model\n"
@@ -509,6 +512,7 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
                 "[bold]Available Commands:[/bold]\n"
                 "  /model list - Show your saved models\n"
                 "  /model <name> - Switch to a saved model\n"
+                "  /model load <name> - Load model (same as direct switch)\n"
                 "  /model add <provider> <model_id> [options] - Add a new model\n"
                 "    Options: --name <name>, --default, --threshold <tokens>\n"
                 "  /model remove <name> - Remove a saved model\n"
@@ -548,6 +552,14 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
         return _handle_model_default(console, args[1:])
     elif subcommand == "use":
         return _handle_model_use(agent, console, args[1:])
+    elif subcommand == "load":
+        # Handle /model load <name> - same as direct switch
+        if len(args) >= 2:
+            return _handle_model_switch(agent, console, args[1])
+        else:
+            console.print("[red]Usage: /model load <name>[/red]")
+            console.print("[dim]Same as: /model <name>[/dim]")
+            return "continue"
     elif subcommand == "threshold":
         return _handle_model_threshold(agent, console, args[1:])
     else:

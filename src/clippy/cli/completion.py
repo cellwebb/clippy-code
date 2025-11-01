@@ -62,7 +62,7 @@ class ClippyCommandCompleter(Completer):
             "model": {
                 "description": "Model management",
                 "completer": self._create_model_completer(),
-                "subcommands": ["list", "add", "remove", "default", "use", "threshold"],
+                "subcommands": ["list", "add", "remove", "default", "use", "load", "threshold"],
             },
             "auto": {
                 "description": "Auto-approval management",
@@ -396,19 +396,62 @@ class ClippyCommandCompleter(Completer):
         subcommands_list = command_info.get("subcommands")
         if isinstance(subcommands_list, list):
             if len(words) <= 2:
-                # Complete subcommand names
+                # Complete subcommand names AND model names for /model command
                 subcommand_prefix = words[1] if len(words) > 1 else ""
                 completions: list[Completion] = []
-                for subcommand in command_info["subcommands"]:
-                    if subcommand.startswith(subcommand_prefix):
-                        completions.append(
-                            Completion(
-                                text=subcommand,
-                                display=subcommand,
-                                display_meta=self._get_subcommand_description(command, subcommand),
-                                start_position=-len(subcommand_prefix),
+
+                # For /model command, show subcommands first, then models
+                if command == "model":
+                    # Show subcommands first with clear prioritization
+                    subcommand_completions = []
+                    for subcommand in command_info["subcommands"]:
+                        if subcommand.startswith(subcommand_prefix):
+                            subcommand_completions.append(
+                                Completion(
+                                    text=subcommand,
+                                    display=subcommand,
+                                    display_meta=self._get_subcommand_description(
+                                        command, subcommand
+                                    ),
+                                    start_position=-len(subcommand_prefix),
+                                )
                             )
-                        )
+
+                    # Show model names below subcommands for direct switching
+                    models = list_available_models()
+                    model_completions = []
+                    for model_config in models:
+                        model_name = model_config[0]
+                        # Always include models for direct switching capability
+                        if model_name.startswith(subcommand_prefix):
+                            is_default = model_config[2]  # is_default boolean
+                            status_indicator = " (default)" if is_default else ""
+                            model_completions.append(
+                                Completion(
+                                    text=model_name,
+                                    display=f"{model_name}{status_indicator}",
+                                    display_meta=model_config[1],  # Description
+                                    start_position=-len(subcommand_prefix),
+                                )
+                            )
+
+                    # Combine: subcommands prioritized at top, models available below
+                    completions = subcommand_completions + model_completions
+                else:
+                    # For other commands, just show subcommands
+                    for subcommand in command_info["subcommands"]:
+                        if subcommand.startswith(subcommand_prefix):
+                            completions.append(
+                                Completion(
+                                    text=subcommand,
+                                    display=subcommand,
+                                    display_meta=self._get_subcommand_description(
+                                        command, subcommand
+                                    ),
+                                    start_position=-len(subcommand_prefix),
+                                )
+                            )
+
                 return completions
 
         # Use command-specific completer
@@ -436,6 +479,7 @@ class ClippyCommandCompleter(Completer):
             ("model", "remove"): "Remove a saved model",
             ("model", "default"): "Set model as default",
             ("model", "use"): "Try a model without saving",
+            ("model", "load"): "Load model (same as direct switch)",
             ("model", "threshold"): "Set compaction threshold",
             ("auto", "list"): "List auto-approved actions",
             ("auto", "revoke"): "Revoke auto-approval for action",
