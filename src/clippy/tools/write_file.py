@@ -9,7 +9,9 @@ TOOL_SCHEMA = {
     "function": {
         "name": "write_file",
         "description": (
-            "Write content to a file. Creates the file if it doesn't exist, overwrites if it does."
+            "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. "
+            "Automatically validates syntax for common file types: Python, JSON, YAML, XML, HTML, "
+            "CSS, JS, TS, Markdown, Dockerfile."
         ),
         "parameters": {
             "type": "object",
@@ -19,6 +21,11 @@ TOOL_SCHEMA = {
                     "type": "string",
                     "description": "The content to write to the file",
                 },
+                "skip_validation": {
+                    "type": "boolean",
+                    "description": "Skip file validation (use with caution)",
+                    "default": False,
+                },
             },
             "required": ["path", "content"],
         },
@@ -26,18 +33,20 @@ TOOL_SCHEMA = {
 }
 
 
-def write_file(path: str, content: str) -> tuple[bool, str, Any]:
-    """Write to a file."""
+def write_file(path: str, content: str, skip_validation: bool = False) -> tuple[bool, str, Any]:
+    """Write to a file with comprehensive validation."""
     # Use direct file I/O to avoid any event loop issues in async contexts (like document mode)
     # This is simpler and more reliable than using tempfile, which can have issues
     # when called from worker threads in an async application
     try:
-        # Validate Python syntax if it's a Python file
-        from ..agent.utils import validate_python_syntax
+        # Skip validation if requested
+        if not skip_validation:
+            # Validate file content based on file type
+            from ..file_validators import validate_file_content
 
-        is_valid, error_msg = validate_python_syntax(content, path)
-        if not is_valid:
-            return False, error_msg, None
+            validation_result = validate_file_content(content, path)
+            if not validation_result:
+                return False, f"File validation failed: {validation_result.message}", None
 
         # Create parent directories if needed
         Path(path).parent.mkdir(parents=True, exist_ok=True)
@@ -46,7 +55,8 @@ def write_file(path: str, content: str) -> tuple[bool, str, Any]:
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
 
-        return True, f"Successfully wrote to {path}", None
+        validation_note = " (validation skipped)" if skip_validation else ""
+        return True, f"Successfully wrote to {path}{validation_note}", None
     except PermissionError:
         return False, f"Permission denied when writing: {path}", None
     except OSError as e:

@@ -106,7 +106,11 @@ class ActionExecutor:
             if tool_name == "read_file":
                 result = read_file(tool_input["path"])
             elif tool_name == "write_file":
-                result = write_file(tool_input["path"], tool_input["content"])
+                result = write_file(
+                    tool_input["path"],
+                    tool_input["content"],
+                    tool_input.get("skip_validation", False),
+                )
             elif tool_name == "delete_file":
                 result = delete_file(tool_input["path"])
             elif tool_name == "list_directory":

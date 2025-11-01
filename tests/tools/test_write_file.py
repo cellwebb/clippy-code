@@ -92,7 +92,7 @@ def test_write_file_python_syntax_error(executor: ActionExecutor, temp_dir: str)
     )
 
     assert success is False
-    assert "Syntax error" in message
+    assert any(phrase in message for phrase in ["Syntax error", "File validation failed"])
     assert bad_file.exists() is False
 
 
