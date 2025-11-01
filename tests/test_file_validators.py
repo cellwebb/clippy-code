@@ -260,6 +260,13 @@ class TestFileContentValidation:
         assert result.is_valid
         assert "too large for validation" in result.message
 
+    def test_binary_file_detection(self):
+        """Test that binary files are rejected with helpful message."""
+        result = validate_file_content("fake image data", "test.png")
+        assert not result.is_valid
+        assert "Binary file" in result.message
+        assert "skip_validation=True" in result.message
+
     def test_case_insensitive_extensions(self):
         html_content = "<p>Test</p>"
         result = validate_file_content(html_content, "test.HTML")

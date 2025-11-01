@@ -110,5 +110,5 @@ def test_write_file_handles_os_error(
     success, message, _ = executor.execute("write_file", {"path": str(target), "content": "data"})
 
     assert success is False
-    assert "OS error when writing" in message
+    assert "File system error" in message
     assert target.exists() is False

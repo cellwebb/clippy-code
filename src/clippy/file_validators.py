@@ -37,7 +37,47 @@ def validate_file_content(content: str, filepath: str) -> ValidationResult:
     path = Path(filepath)
     extension = path.suffix.lower()
 
-    # Skip validation for unknown extensions or very large files
+    # Skip validation for binary files (common binary extensions)
+    binary_extensions = {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".ico",
+        ".svg",  # images
+        ".pdf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        ".ppt",
+        ".pptx",  # documents
+        ".zip",
+        ".tar",
+        ".gz",
+        ".rar",
+        ".7z",  # archives
+        ".exe",
+        ".dll",
+        ".so",
+        ".dylib",  # binaries
+        ".mp3",
+        ".mp4",
+        ".avi",
+        ".mov",
+        ".wav",  # media
+        ".ttf",
+        ".otf",
+        ".woff",
+        ".woff2",  # fonts
+    }
+
+    if extension in binary_extensions:
+        msg = f"Binary file .{extension} detected - use skip_validation=True"
+        return ValidationResult(False, msg)
+
+    # Skip validation for very large files (performance)
     if len(content) > 1_000_000:  # 1MB limit
         return ValidationResult(True, "File too large for validation (skipped)")
 
@@ -61,7 +101,7 @@ def validate_file_content(content: str, filepath: str) -> ValidationResult:
     if validator:
         return validator(content, filepath)
 
-    # Basic validation for text files
+    # Basic validation for unknown text files
     return ValidationResult(True, "No specific validator for this file type")
 
 

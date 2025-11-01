@@ -26,7 +26,7 @@ if __name__ == '__main__':
             success, message, result = write_file(temp_path, valid_code)
             assert success
             assert "Successfully wrote" in message
-            assert "validation" not in message  # No validation note for normal success
+            assert "validation" not in message
         finally:
             Path(temp_path).unlink(missing_ok=True)
 

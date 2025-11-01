@@ -9,9 +9,9 @@ TOOL_SCHEMA = {
     "function": {
         "name": "write_file",
         "description": (
-            "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. "
-            "Automatically validates syntax for common file types: Python, JSON, YAML, XML, HTML, "
-            "CSS, JS, TS, Markdown, Dockerfile."
+            "Write content to a file with automatic validation. Creates and overwrites files. "
+            "Validates syntax for: Python, JSON, YAML, XML, HTML, CSS, JS, TS, Markdown. "
+            "Use skip_validation for binary files or when validation is not desired."
         ),
         "parameters": {
             "type": "object",
@@ -23,7 +23,7 @@ TOOL_SCHEMA = {
                 },
                 "skip_validation": {
                     "type": "boolean",
-                    "description": "Skip file validation (use with caution)",
+                    "description": "Skip validation for binary files, minified code, or errors",
                     "default": False,
                 },
             },
@@ -34,14 +34,14 @@ TOOL_SCHEMA = {
 
 
 def write_file(path: str, content: str, skip_validation: bool = False) -> tuple[bool, str, Any]:
-    """Write to a file with comprehensive validation."""
-    # Use direct file I/O to avoid any event loop issues in async contexts (like document mode)
-    # This is simpler and more reliable than using tempfile, which can have issues
-    # when called from worker threads in an async application
+    """Write to a file with built-in validation.
+
+    This function automatically validates syntax for supported file types.
+    Use skip_validation=True for binary files or when writing files with intentional syntax errors.
+    """
     try:
-        # Skip validation if requested
+        # Skip validation if explicitly requested
         if not skip_validation:
-            # Validate file content based on file type
             from ..file_validators import validate_file_content
 
             validation_result = validate_file_content(content, path)
@@ -58,8 +58,10 @@ def write_file(path: str, content: str, skip_validation: bool = False) -> tuple[
         validation_note = " (validation skipped)" if skip_validation else ""
         return True, f"Successfully wrote to {path}{validation_note}", None
     except PermissionError:
-        return False, f"Permission denied when writing: {path}", None
+        msg = f"Permission denied: Cannot write to {path}. Check permissions."
+        return False, msg, None
     except OSError as e:
-        return False, f"OS error when writing {path}: {str(e)}", None
+        msg = f"File system error: {str(e)} | Check disk space and path"
+        return False, msg, None
     except Exception as e:
-        return False, f"Failed to write to {path}: {str(e)}", None
+        return False, f"Unexpected error writing {path}: {str(e)}", None
