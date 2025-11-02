@@ -155,6 +155,10 @@ def handle_tool_use(
         "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
         "grep": ActionType.GREP,  # Dedicated action type for grep
         "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+        "move_file": ActionType.MOVE_FILE,
+        "copy_file": ActionType.COPY_FILE,
+        "find_replace": ActionType.FIND_REPLACE,
+        "analyze_project": ActionType.ANALYZE_PROJECT,
         "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
         "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
     }

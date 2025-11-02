@@ -7,13 +7,17 @@ from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from .permissions import ActionType, PermissionManager
 
 # Import tool functions explicitly to avoid module/function conflicts
+from .tools.analyze_project import analyze_project
+from .tools.copy_file import copy_file
 from .tools.create_directory import create_directory
 from .tools.delete_file import delete_file
 from .tools.edit_file import edit_file
 from .tools.execute_command import execute_command
+from .tools.find_replace import find_replace
 from .tools.get_file_info import get_file_info
 from .tools.grep import grep
 from .tools.list_directory import list_directory
+from .tools.move_file import move_file
 from .tools.read_file import read_file
 from .tools.read_files import read_files
 from .tools.search_files import search_files
@@ -84,6 +88,10 @@ class ActionExecutor:
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+            "move_file": ActionType.MOVE_FILE,
+            "copy_file": ActionType.COPY_FILE,
+            "find_replace": ActionType.FIND_REPLACE,
+            "analyze_project": ActionType.ANALYZE_PROJECT,
             "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
             "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
         }
@@ -147,6 +155,44 @@ class ActionExecutor:
                     tool_input.get("inherit_indent", True),
                     tool_input.get("start_pattern", ""),
                     tool_input.get("end_pattern", ""),
+                )
+            elif tool_name == "move_file":
+                result = move_file(
+                    tool_input["source"],
+                    tool_input["destination"],
+                    tool_input.get("overwrite", False),
+                    tool_input.get("create_parents", True),
+                )
+            elif tool_name == "copy_file":
+                result = copy_file(
+                    tool_input["source"],
+                    tool_input["destination"],
+                    tool_input.get("recursive", True),
+                    tool_input.get("preserve_permissions", True),
+                    tool_input.get("verify_checksum", False),
+                    tool_input.get("overwrite", False),
+                    tool_input.get("create_parents", True),
+                )
+            elif tool_name == "find_replace":
+                result = find_replace(
+                    tool_input["pattern"],
+                    tool_input["replacement"],
+                    tool_input["paths"],
+                    tool_input.get("regex", False),
+                    tool_input.get("case_sensitive", False),
+                    tool_input.get("dry_run", True),
+                    tool_input.get("include_patterns", ["*"]),
+                    tool_input.get("exclude_patterns", []),
+                    tool_input.get("max_file_size", 10485760),
+                    tool_input.get("backup", False),
+                )
+            elif tool_name == "analyze_project":
+                result = analyze_project(
+                    tool_input["project_path"],
+                    tool_input.get("include_tests", True),
+                    tool_input.get("deep_scan", False),
+                    tool_input.get("security_focus", True),
+                    tool_input.get("max_file_size", 1048576),
                 )
             else:
                 logger.warning(f"Unimplemented tool: {tool_name}")
