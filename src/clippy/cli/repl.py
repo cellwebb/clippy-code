@@ -49,6 +49,13 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
         completer=create_completer(agent),
     )
 
+    # Get current model and provider info
+    current_model = agent.model
+    if agent.base_url and agent.base_url != "https://api.openai.com/v1":
+        provider_info = f" ({agent.base_url})"
+    else:
+        provider_info = " (OpenAI)"
+
     console.print(
         Panel.fit(
             "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
@@ -81,6 +88,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             "File References:\n"
             "  Start typing @ followed by file name and press Tab for completion\n"
             "  Example: @READ[TAB] completes to @README.md\n\n"
+            f"[cyan]Current Model:[/cyan] [bold]{current_model}[/bold]{provider_info}\n\n"
             "Type your request and press Enter.\n"
             "Use Ctrl+C or double-ESC to interrupt execution.",
             border_style="green",

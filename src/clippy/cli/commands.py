@@ -704,8 +704,21 @@ def _handle_model_use(agent: ClippyAgent, console: Console, args: list[str]) -> 
     )
 
     if success:
-        console.print(f"[green]✓ Using {provider_name}/{model_id} (temporary)[/green]")
-        console.print("[dim]Use /model add to save this configuration[/dim]")
+        if provider.base_url and provider.base_url != "https://api.openai.com/v1":
+            provider_info = f" ({provider.base_url})"
+        else:
+            provider_info = " (OpenAI)"
+        console.print(
+            Panel.fit(
+                f"[bold green]✓ Using Temporary Model[/bold green]\n\n"
+                f"[bold]Model ID:[/bold] [cyan]{model_id}[/cyan]\n"
+                f"[bold]Provider:[/bold] [cyan]{provider_name}[/cyan]{provider_info}\n\n"
+                f"[dim]This is temporary for the current session.\n"
+                f"Use '/model add {provider_name} {model_id} --name <name>' to save.[/dim]",
+                title="Temporary Model",
+                border_style="blue",
+            )
+        )
     else:
         console.print(f"[red]✗ {escape(message)}[/red]")
 
@@ -783,8 +796,20 @@ def _handle_model_switch(agent: ClippyAgent, console: Console, model_name: str) 
     )
 
     if success:
-        console.print(f"[green]✓ Switched to {model.name}[/green]")
-        console.print(f"[dim]Using {provider.name}/{model.model_id}[/dim]")
+        if provider.base_url and provider.base_url != "https://api.openai.com/v1":
+            provider_info = f" ({provider.base_url})"
+        else:
+            provider_info = " (OpenAI)"
+        console.print(
+            Panel.fit(
+                f"[bold green]✓ Model Switched Successfully[/bold green]\n\n"
+                f"[bold]New Model:[/bold] [cyan]{model.name}[/cyan]\n"
+                f"[bold]Provider:[/bold] [cyan]{provider.name}[/cyan]\n"
+                f"[bold]Model ID:[/bold] [cyan]{model.model_id}[/cyan]{provider_info}",
+                title="Model Changed",
+                border_style="green",
+            )
+        )
     else:
         console.print(f"[red]✗ {escape(message)}[/red]")
 
