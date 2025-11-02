@@ -9,6 +9,108 @@
 
 clippy-code is an AI-powered development assistant that works with any OpenAI-compatible API provider. It features robust permission controls, streaming responses, and multiple interface modes for different workflows.
 
+## 📚 Use Cases & Examples
+
+### 🚀 Real-World Scenarios
+
+#### Web Development
+```bash
+# Create a new Flask project with validation
+clippy "Create a Flask app with routes, templates, and config files"
+
+# Fix syntax errors in your code
+clippy "Find and fix Python syntax errors in my Flask app"
+
+# Update package.json with validation
+clippy "Add express dependency and update scripts in package.json"
+```
+
+#### Data Science
+```bash
+# Create a data analysis notebook
+clippy "Create a Jupyter notebook for data analysis with pandas and matplotlib"
+
+# Validate and update CSV processing script
+clippy "Update my data processing script to handle missing values"
+```
+
+#### CLI Tool Development  
+```bash
+# Create a command-line tool
+clippy "Build a Python CLI tool with argparse and man page"
+
+# Validate and fix configuration files
+clippy "Ensure my YAML config is valid and add missing sections"
+```
+
+#### DevOps & Automation
+```bash
+# Create Kubernetes manifests
+clippy "Generate Kubernetes deployment, service, and configmap files"
+
+# Validate Dockerfile and CI/CD configs
+clippy "Check my Dockerfile for best practices and fix issues"
+```
+
+#### API Development
+```bash
+# Create REST API endpoints
+clippy "Build FastAPI endpoints with models, CRUD operations, and validation"
+
+# Generate API documentation
+clippy "Create OpenAPI spec and API documentation for my service"
+```
+
+### 💡 Pro Tips
+
+#### File Validation Examples
+```bash
+# The enhanced write_file automatically validates syntax:
+clippy "Create a valid Python file with functions and docstrings"
+clippy "Generate a proper JSON configuration file"
+clippy "Write a valid HTML page with semantic structure"
+
+# Skip validation when needed:
+clippy "Write a minified JavaScript file (skip_validation=True)"
+clippy "Create a binary data file (skip_validation=True)"
+```
+
+#### Error Prevention
+```bash
+# Binary files are automatically detected and rejected with guidance:
+# ✅ "File validation failed: Binary file .png detected - use skip_validation=True"
+
+# Large files skip validation for performance:
+# ✅ "File too large for validation (skipped)"
+
+# Syntax errors caught before writing:
+# ✅ "File validation failed: Python syntax error: expected ':' at line 5"
+```
+
+#### Interactive Mode Power
+```bash
+# Start interactive REPL for complex tasks
+clippy
+
+# In REPL, use slash commands:
+/help                    # Show available tools and help
+/model list             # List saved model configurations
+/model add <model>       # Save a new model configuration
+/mcp list               # Show MCP server status
+/auto <action_type>     # Auto-approve specific action types
+```
+
+#### Advanced Subagent Workflows
+```bash
+# Parallel development tasks
+clippy "Use subagents to: 1) Review all Python files for security issues, 2) Generate unit tests for utils.py, 3) Refactor the database module"
+
+# Specialized agents for different tasks
+clippy "Use the code_review subagent to check my code for best practices"
+clippy "Use the testing subagent to create comprehensive test coverage"
+clippy "Use the documentation subagent to generate API docs from my code"
+```
+
 ## Quick Start
 
 ### Installation
@@ -97,6 +199,47 @@ clippy --model gpt-5 "refactor main.py to use async/await"
 
 # Auto-approve all actions (use with caution!)
 clippy -y "write unit tests for utils.py"
+
+# Document mode - rich TUI interface
+clippy -d
+```
+
+### Common Workflows
+
+#### 🛠️ File Operations with Validation
+```bash
+# Create files with automatic syntax validation
+clippy "Create a config.yaml file with database settings"
+
+# Edit existing files safely
+clippy "Fix the Python import errors in main.py"
+
+# Search and replace across files
+clippy "Find all TODO comments and create GitHub issues"
+```
+
+#### 🔄 Refactoring & Code Quality
+```bash
+# Refactor with subagents
+clippy "Use the refactor subagent to improve code quality in the authentication module"
+
+# Code review
+clippy "Use the code_review subagent to review my changes before commit"
+
+# Add tests
+clippy "Use the testing subagent to generate unit tests for the user service"
+```
+
+#### 📦 Project Setup & Maintenance
+```bash
+# Initialize new project
+clippy "Create a new Python project structure with setup.py, requirements.txt, and tests"
+
+# Dependency management
+clippy "Update package.json with the latest security patches"
+
+# Documentation generation
+clippy "Generate README and API documentation from the codebase"
 ```
 
 ### Development Workflow
@@ -339,21 +482,37 @@ Testing philosophy:
 
 ### Available Tools
 
-clippy-code has access to these tools:
+clippy-code has access to these tools with **smart file validation**:
 
-| Tool               | Description                                       | Auto-Approved |
-| ------------------ | ------------------------------------------------- | ------------- |
-| `read_file`        | Read file contents                                | ✅            |
-| `write_file`       | Write/modify entire files                         | ❌            |
-| `delete_file`      | Delete files                                      | ❌            |
-| `list_directory`   | List directory contents                           | ✅            |
-| `create_directory` | Create directories                                | ❌            |
-| `execute_command`  | Run shell commands                                | ❌            |
-| `search_files`     | Search with glob patterns                         | ✅            |
-| `get_file_info`    | Get file metadata                                 | ✅            |
-| `read_files`       | Read multiple files at once                       | ✅            |
-| `grep`             | Search patterns in files                          | ✅            |
-| `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            |
+| Tool               | Description                                       | Auto-Approved | Validation Features |
+| ------------------ | ------------------------------------------------- | ------------- | ------------------ |
+| `read_file`        | Read file contents                                | ✅            | - |
+| `write_file`       | **Write files with syntax validation**              | ❌            | **✅ Python, JSON, YAML, XML, HTML, CSS, JS, TS, Markdown, Dockerfile** |
+| `delete_file`      | Delete files                                      | ❌            | - |
+| `list_directory`   | List directory contents                           | ✅            | - |
+| `create_directory` | Create directories                                | ❌            | - |
+| `execute_command`  | Run shell commands                                | ❌            | - |
+| `search_files`     | Search with glob patterns                         | ✅            | - |
+| `get_file_info`    | Get file metadata                                 | ✅            | - |
+| `read_files`       | Read multiple files at once                       | ✅            | - |
+| `grep`             | Search patterns in files                          | ✅            | - |
+| `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            | - |
+
+#### 🔥 Enhanced write_file Features
+- **🛡️ Syntax Validation**: Automatic validation for 12+ file types
+- **🚫 Binary Detection**: Prevents binary files from being written as text
+- **⚡ Performance Smart**: Large files (>1MB) skip validation automatically  
+- **💡 Helpful Errors**: Specific error messages with actionable guidance
+- **🔧 Override Option**: `skip_validation=True` for binary files or intentional syntax errors
+
+**Supported File Types:**
+- 🐍 **Python**: AST syntax checking with detailed error messages
+- 📄 **JSON/YAML**: Structure validation with line numbers on errors  
+- 🌐 **HTML/CSS**: Tag balancing and syntax checking
+- 📱 **JavaScript/TypeScript**: Node.js-based validation when available
+- 📝 **Markdown**: Link and header validation
+- 🐳 **Dockerfile**: Instruction validation
+- 📦 **XML**: Well-formedness checking
 
 For detailed information about MCP integration, see [docs/MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md).
 
