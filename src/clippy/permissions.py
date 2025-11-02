@@ -29,8 +29,6 @@ class ActionType(str, Enum):
     GET_FILE_INFO = "get_file_info"
     GREP = "grep"
     EDIT_FILE = "edit_file"
-    MOVE_FILE = "move_file"
-    COPY_FILE = "copy_file"
     FIND_REPLACE = "find_replace"
     ANALYZE_PROJECT = "analyze_project"
     DELEGATE_TO_SUBAGENT = "delegate_to_subagent"
@@ -59,8 +57,6 @@ class PermissionConfig(BaseModel):
         ActionType.CREATE_DIR,
         ActionType.EXECUTE_COMMAND,
         ActionType.EDIT_FILE,
-        ActionType.MOVE_FILE,  # File operations require approval
-        ActionType.COPY_FILE,  # File operations require approval
         ActionType.FIND_REPLACE,  # Multi-file changes require approval
         ActionType.ANALYZE_PROJECT,  # Project analysis is read-only but complex
         ActionType.DELEGATE_TO_SUBAGENT,  # Require approval for subagent delegation

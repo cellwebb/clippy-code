@@ -95,7 +95,12 @@ def get_tool_categories() -> dict[str, dict[str, Any]]:
         "file_operations": {
             "name": "File Operations",
             "description": "Core file and directory management tools",
-            "use_cases": ["Reading/writing files", "Managing project structure", "File validation"],
+            "use_cases": [
+                "Reading/writing files",
+                "Managing project structure",
+                "File validation",
+                "System file operations via shell commands",
+            ],
             "tools": [
                 "read_file",
                 "write_file",
@@ -328,7 +333,7 @@ def enhance_tool_descriptions(tools: list[dict[str, Any]]) -> list[dict[str, Any
             ),
             "execute_command": (
                 "Run shell commands and external tools. Perfect for building, testing, "
-                "and system operations."
+                "system operations, and file operations like 'mv', 'cp', 'tar', 'zip', etc."
             ),
             "delegate_to_subagent": (
                 "Create specialized AI assistants for complex tasks like code review, testing, "
@@ -454,6 +459,11 @@ def get_tool_examples(tool_name: str) -> list[str]:
             "Run tests with pytest or unittest",
             "Build a project with make or npm",
             "Execute git commands or other system tools",
+            "Create directories: 'mkdir -p path/to/directory'",
+            "Copy or move files: 'cp source dest' or 'mv old new'",
+            "Delete files/directories: 'rm -rf file_or_directory'",
+            "Create archives: 'tar -czf archive.tar.gz files/'",
+            "Download files: 'curl -O URL' or 'wget URL'",
         ],
         "delegate_to_subagent": [
             "Perform a comprehensive code review",

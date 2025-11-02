@@ -8,16 +8,12 @@ from .permissions import ActionType, PermissionManager
 
 # Import tool functions explicitly to avoid module/function conflicts
 from .tools.analyze_project import analyze_project
-from .tools.copy_file import copy_file
-from .tools.create_directory import create_directory
-from .tools.delete_file import delete_file
 from .tools.edit_file import edit_file
 from .tools.execute_command import execute_command
 from .tools.find_replace import find_replace
 from .tools.get_file_info import get_file_info
 from .tools.grep import grep
 from .tools.list_directory import list_directory
-from .tools.move_file import move_file
 from .tools.read_file import read_file
 from .tools.read_files import read_files
 from .tools.search_files import search_files
@@ -88,8 +84,6 @@ class ActionExecutor:
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
-            "move_file": ActionType.MOVE_FILE,
-            "copy_file": ActionType.COPY_FILE,
             "find_replace": ActionType.FIND_REPLACE,
             "analyze_project": ActionType.ANALYZE_PROJECT,
             "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
@@ -119,12 +113,8 @@ class ActionExecutor:
                     tool_input["content"],
                     tool_input.get("skip_validation", False),
                 )
-            elif tool_name == "delete_file":
-                result = delete_file(tool_input["path"])
             elif tool_name == "list_directory":
                 result = list_directory(tool_input["path"], tool_input.get("recursive", False))
-            elif tool_name == "create_directory":
-                result = create_directory(tool_input["path"])
             elif tool_name == "execute_command":
                 timeout = tool_input.get("timeout", 300)  # Default to 5 minutes
                 result = execute_command(
@@ -155,23 +145,6 @@ class ActionExecutor:
                     tool_input.get("inherit_indent", True),
                     tool_input.get("start_pattern", ""),
                     tool_input.get("end_pattern", ""),
-                )
-            elif tool_name == "move_file":
-                result = move_file(
-                    tool_input["source"],
-                    tool_input["destination"],
-                    tool_input.get("overwrite", False),
-                    tool_input.get("create_parents", True),
-                )
-            elif tool_name == "copy_file":
-                result = copy_file(
-                    tool_input["source"],
-                    tool_input["destination"],
-                    tool_input.get("recursive", True),
-                    tool_input.get("preserve_permissions", True),
-                    tool_input.get("verify_checksum", False),
-                    tool_input.get("overwrite", False),
-                    tool_input.get("create_parents", True),
                 )
             elif tool_name == "find_replace":
                 result = find_replace(
