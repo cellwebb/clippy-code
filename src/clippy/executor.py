@@ -167,6 +167,40 @@ class ActionExecutor:
                     tool_input.get("security_focus", True),
                     tool_input.get("max_file_size", 1048576),
                 )
+            elif tool_name == "delete_file":
+                # Handle file deletion with proper error handling
+                path = tool_input["path"]
+
+                # Check if file exists first - for proper error handling
+                import os
+
+                if not os.path.exists(path):
+                    return False, "File not found", None
+
+                # Try to delete the file
+                try:
+                    os.remove(path)
+                    return True, f"Successfully deleted {path}", None
+                except PermissionError:
+                    return False, "Permission denied", None
+                except OSError as e:
+                    return False, f"OS error: {str(e)}", None
+                except Exception as e:
+                    return False, f"Error deleting file: {str(e)}", None
+            elif tool_name == "create_directory":
+                # Convert to meta-tool approach using execute_command
+                path = tool_input["path"]
+                result = execute_command(f"mkdir -p '{path}'", working_dir=".", timeout=300)
+                if result[0]:  # If command succeeded
+                    success, message, _ = result
+                    return True, f"Successfully created directory {path}", None
+                else:
+                    # Parse the error to give more meaningful messages
+                    if "Permission denied" in result[1]:
+                        return False, "Permission denied", None
+                    elif "OS error" in result[1]:
+                        return False, "OS error", None
+                    return result  # Return the error from execute_command
             else:
                 logger.warning(f"Unimplemented tool: {tool_name}")
                 return False, f"Unimplemented tool: {tool_name}", None

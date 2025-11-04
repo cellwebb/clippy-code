@@ -5,12 +5,9 @@ from typing import Any
 from .analyze_project import TOOL_SCHEMA as ANALYZE_PROJECT_SCHEMA
 from .analyze_project import analyze_project
 
-# Utility functions available for internal use but not exposed as tools
-from .copy_file import copy_file as _copy_file_util
-
+# Tool functions
 from .delegate_to_subagent import create_subagent_and_execute
 from .delegate_to_subagent import get_tool_schema as get_delegate_schema
-
 from .edit_file import TOOL_SCHEMA as EDIT_FILE_SCHEMA
 from .edit_file import edit_file
 from .execute_command import TOOL_SCHEMA as EXECUTE_COMMAND_SCHEMA
@@ -23,9 +20,6 @@ from .grep import TOOL_SCHEMA as GREP_SCHEMA
 from .grep import grep, translate_grep_flags_to_rg
 from .list_directory import TOOL_SCHEMA as LIST_DIRECTORY_SCHEMA
 from .list_directory import list_directory
-from .move_file import move_file as _move_file_util
-from .create_directory import create_directory as _create_directory_util
-from .delete_file import delete_file as _delete_file_util
 from .read_file import TOOL_SCHEMA as READ_FILE_SCHEMA
 from .read_file import read_file
 from .read_files import TOOL_SCHEMA as READ_FILES_SCHEMA
@@ -123,8 +117,4 @@ __all__ = [
     "get_tool_by_name",
     "get_create_subagent_and_execute",
     "get_create_parallel_subagents_and_execute",
-    "_copy_file_util",
-    "_move_file_util",
-    "_create_directory_util",
-    "_delete_file_util",
 ]
