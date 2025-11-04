@@ -16,49 +16,49 @@ clippy-code is an AI-powered development assistant that works with any OpenAI-co
 #### Web Development
 ```bash
 # Create a new Flask project with validation
-clippy "Create a Flask app with routes, templates, and config files"
+clippy-code "Create a Flask app with routes, templates, and config files"
 
 # Fix syntax errors in your code
-clippy "Find and fix Python syntax errors in my Flask app"
+clippy-code "Find and fix Python syntax errors in my Flask app"
 
 # Update package.json with validation
-clippy "Add express dependency and update scripts in package.json"
+clippy-code "Add express dependency and update scripts in package.json"
 ```
 
 #### Data Science
 ```bash
 # Create a data analysis notebook
-clippy "Create a Jupyter notebook for data analysis with pandas and matplotlib"
+clippy-code "Create a Jupyter notebook for data analysis with pandas and matplotlib"
 
 # Validate and update CSV processing script
-clippy "Update my data processing script to handle missing values"
+clippy-code "Update my data processing script to handle missing values"
 ```
 
 #### CLI Tool Development  
 ```bash
 # Create a command-line tool
-clippy "Build a Python CLI tool with argparse and man page"
+clippy-code "Build a Python CLI tool with argparse and man page"
 
 # Validate and fix configuration files
-clippy "Ensure my YAML config is valid and add missing sections"
+clippy-code "Ensure my YAML config is valid and add missing sections"
 ```
 
 #### DevOps & Automation
 ```bash
 # Create Kubernetes manifests
-clippy "Generate Kubernetes deployment, service, and configmap files"
+clippy-code "Generate Kubernetes deployment, service, and configmap files"
 
 # Validate Dockerfile and CI/CD configs
-clippy "Check my Dockerfile for best practices and fix issues"
+clippy-code "Check my Dockerfile for best practices and fix issues"
 ```
 
 #### API Development
 ```bash
 # Create REST API endpoints
-clippy "Build FastAPI endpoints with models, CRUD operations, and validation"
+clippy-code "Build FastAPI endpoints with models, CRUD operations, and validation"
 
 # Generate API documentation
-clippy "Create OpenAPI spec and API documentation for my service"
+clippy-code "Create OpenAPI spec and API documentation for my service"
 ```
 
 ### 💡 Pro Tips
@@ -66,13 +66,13 @@ clippy "Create OpenAPI spec and API documentation for my service"
 #### File Validation Examples
 ```bash
 # The enhanced write_file automatically validates syntax:
-clippy "Create a valid Python file with functions and docstrings"
-clippy "Generate a proper JSON configuration file"
-clippy "Write a valid HTML page with semantic structure"
+clippy-code "Create a valid Python file with functions and docstrings"
+clippy-code "Generate a proper JSON configuration file"
+clippy-code "Write a valid HTML page with semantic structure"
 
 # Skip validation when needed:
-clippy "Write a minified JavaScript file (skip_validation=True)"
-clippy "Create a binary data file (skip_validation=True)"
+clippy-code "Write a minified JavaScript file (skip_validation=True)"
+clippy-code "Create a binary data file (skip_validation=True)"
 ```
 
 #### Error Prevention
@@ -90,7 +90,7 @@ clippy "Create a binary data file (skip_validation=True)"
 #### Interactive Mode Power
 ```bash
 # Start interactive REPL for complex tasks
-clippy
+clippy-code
 
 # In REPL, use slash commands:
 /help                    # Show available tools and help
@@ -103,12 +103,28 @@ clippy
 #### Advanced Subagent Workflows
 ```bash
 # Parallel development tasks
-clippy "Use subagents to: 1) Review all Python files for security issues, 2) Generate unit tests for utils.py, 3) Refactor the database module"
+clippy-code "Use subagents to: 1) Review all Python files for security issues, 2) Generate unit tests for utils.py, 3) Refactor the database module"
 
 # Specialized agents for different tasks
-clippy "Use the code_review subagent to check my code for best practices"
-clippy "Use the testing subagent to create comprehensive test coverage"
-clippy "Use the documentation subagent to generate API docs from my code"
+clippy-code "Use the code_review subagent to check my code for best practices"
+clippy-code "Use the testing subagent to create comprehensive test coverage"
+clippy-code "Use the documentation subagent to generate API docs from my code"
+```
+
+#### Interactive REPL Commands
+```bash
+# In the interactive REPL, you can use these slash commands:
+/help                    # Show available tools and help
+/model list             # List saved model configurations
+/model add <model>       # Save a new model configuration
+/model <name>           # Switch to a saved model
+/mcp list               # Show MCP server status
+/mcp tools              # List available MCP tools
+/auto <action_type>     # Auto-approve specific action types for this session
+/compact                # Manually compact conversation history
+/status                 # Show current agent status and token usage
+/reset                  # Reset conversation history
+/resume                 # Resume last saved conversation
 ```
 
 ## Quick Start
@@ -185,7 +201,7 @@ See [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md) for detailed information about 
 MCP tools will automatically be available in interactive mode, with appropriate approval prompts to maintain safety.
 See [Setup API Keys](#setup-api-keys) for provider configuration details.
 
-### Basic Usage
+### Enhanced CLI Experience
 
 ```bash
 # One-shot mode - execute a single task
@@ -199,47 +215,55 @@ clippy --model gpt-5 "refactor main.py to use async/await"
 
 # Auto-approve all actions (use with caution!)
 clippy -y "write unit tests for utils.py"
-
-# Document mode - rich TUI interface
-clippy -d
 ```
+
+### Interactive Mode Features
+
+When running in interactive mode, clippy-code provides:
+
+- **⌨️ Smart Auto-completion**: File paths, commands, and parameters with context awareness
+- **🔄 Command History**: Use up/down arrows to navigate through previous commands
+- **⏳ Progress Indicators**: Visual feedback for long-running operations with elapsed time
+- **💡 Error Recovery**: Helpful suggestions when errors occur with examples
+- **📋 Rich Output Formatting**: Syntax highlighting and structured output for better readability
+- **🔧 Slash Commands**: Special commands for model switching, permission management, and more
 
 ### Common Workflows
 
 #### 🛠️ File Operations with Validation
 ```bash
 # Create files with automatic syntax validation
-clippy "Create a config.yaml file with database settings"
+clippy-code "Create a config.yaml file with database settings"
 
 # Edit existing files safely
-clippy "Fix the Python import errors in main.py"
+clippy-code "Fix the Python import errors in main.py"
 
 # Search and replace across files
-clippy "Find all TODO comments and create GitHub issues"
+clippy-code "Find all TODO comments and create GitHub issues"
 ```
 
 #### 🔄 Refactoring & Code Quality
 ```bash
 # Refactor with subagents
-clippy "Use the refactor subagent to improve code quality in the authentication module"
+clippy-code "Use the refactor subagent to improve code quality in the authentication module"
 
 # Code review
-clippy "Use the code_review subagent to review my changes before commit"
+clippy-code "Use the code_review subagent to review my changes before commit"
 
 # Add tests
-clippy "Use the testing subagent to generate unit tests for the user service"
+clippy-code "Use the testing subagent to generate unit tests for the user service"
 ```
 
 #### 📦 Project Setup & Maintenance
 ```bash
 # Initialize new project
-clippy "Create a new Python project structure with setup.py, requirements.txt, and tests"
+clippy-code "Create a new Python project structure with setup.py, requirements.txt, and tests"
 
 # Dependency management
-clippy "Update package.json with the latest security patches"
+clippy-code "Update package.json with the latest security patches"
 
 # Documentation generation
-clippy "Generate README and API documentation from the codebase"
+clippy-code "Generate README and API documentation from the codebase"
 ```
 
 ### Development Workflow
@@ -269,9 +293,8 @@ make run          # Launch clippy-code in interactive mode
 
 ### 🔧 **Flexible Interface Modes**
 
-- **One-shot mode**: Execute single tasks and exit (`clippy "create a script"`)
+- **One-shot mode**: Execute single tasks and exit (`clippy-code "create a script"`)
 - **Interactive REPL**: Multi-turn conversations with slash commands for model switching, context management, and permission control
-- **Document mode**: Microsoft Word-like TUI interface for a richer development experience (`clippy -d`)
 
 ### 🤖 **Advanced Agent Capabilities**
 
@@ -430,8 +453,8 @@ Saved models are stored in `~/.clippy/models.json` and persist across sessions. 
 
 ```bash
 # Clone and enter repository
-git clone https://github.com/yourusername/clippy.git
-cd clippy
+git clone https://github.com/cellwebb/clippy-code.git
+cd clippy-code
 
 # Create virtual environment with uv
 uv venv
@@ -440,7 +463,7 @@ source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 # Install in editable mode with dev dependencies
 uv pip install -e ".[dev]"
 
-# Run clippy in development
+# Run clippy-code in development
 python -m clippy
 ```
 
@@ -467,7 +490,7 @@ uv run mypy src/clippy
 uv run pytest
 
 # Run with coverage reporting
-uv run pytest --cov=clippy --cov-report=html
+uv run pytest --cov=src/clippy --cov-report=html
 
 # Run specific test file
 uv run pytest tests/test_permissions.py
@@ -482,21 +505,23 @@ Testing philosophy:
 
 ### Available Tools
 
-clippy-code has access to these tools with **smart file validation**:
+clippy-code has access to these tools with **smart file validation** and **enhanced CLI experience**:
 
-| Tool               | Description                                       | Auto-Approved | Validation Features |
-| ------------------ | ------------------------------------------------- | ------------- | ------------------ |
-| `read_file`        | Read file contents                                | ✅            | - |
-| `write_file`       | **Write files with syntax validation**              | ❌            | **✅ Python, JSON, YAML, XML, HTML, CSS, JS, TS, Markdown, Dockerfile** |
-| `delete_file`      | Delete files                                      | ❌            | - |
-| `list_directory`   | List directory contents                           | ✅            | - |
-| `create_directory` | Create directories                                | ❌            | - |
-| `execute_command`  | Run shell commands                                | ❌            | - |
-| `search_files`     | Search with glob patterns                         | ✅            | - |
-| `get_file_info`    | Get file metadata                                 | ✅            | - |
-| `read_files`       | Read multiple files at once                       | ✅            | - |
-| `grep`             | Search patterns in files                          | ✅            | - |
-| `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            | - |
+| Tool                   | Description                                           | Auto-Approved | Validation Features                |
+| ---------------------- | ----------------------------------------------------- | ------------- | ---------------------------------- |
+| `read_file`            | Read file contents                                    | ✅            | -                                  |
+| `write_file`           | **Write files with syntax validation**                | ❌            | **✅ Python, JSON, YAML, and 9+ formats** |
+| `list_directory`       | List directory contents (respects .gitignore)         | ✅            | -                                  |
+| `search_files`         | Search with glob patterns                             | ✅            | -                                  |
+| `get_file_info`        | Get file metadata                                     | ✅            | -                                  |
+| `read_files`           | Read multiple files at once                           | ✅            | -                                  |
+| `grep`                 | Search patterns in files (better than system grep)    | ✅            | -                                  |
+| `edit_file`            | Edit files (replace/delete/append/insert/block ops)   | ❌            | **✅ Preview diffs before execution** |
+| `execute_command`      | Run shell commands                                    | ❌            | -                                  |
+| `delegate_to_subagent` | Create and run specialized subagents                  | ❌            | -                                  |
+| `run_parallel_subagents` | Run multiple subagents concurrently                | ❌            | -                                  |
+| `create_directory`     | Create directories                                    | ❌            | -                                  |
+| `delete_file`          | Delete files                                          | ❌            | -                                  |
 
 #### 🔥 Enhanced write_file Features
 - **🛡️ Syntax Validation**: Automatic validation for 12+ file types
