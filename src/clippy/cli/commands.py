@@ -20,6 +20,11 @@ from ..models import (
     list_available_providers,
 )
 from ..permissions import ActionType, PermissionLevel
+from .utils import (
+    format_info_message,
+    format_success_message,
+    show_enhanced_help,
+)
 
 CommandResult = Literal["continue", "break", "run"]
 
@@ -152,14 +157,16 @@ def _display_conversation_history(agent: ClippyAgent, console: Console) -> None:
 
 def handle_exit_command(console: Console) -> CommandResult:
     """Handle /exit or /quit commands."""
-    console.print("[yellow]Goodbye![/yellow]")
+    console.print(format_success_message("Goodbye! Thanks for using clippy-code!", "exit"))
+    console.print("[dim]📎 Your conversation is saved and can be resumed later with /resume[/dim]")
     return "break"
 
 
 def handle_reset_command(agent: ClippyAgent, console: Console) -> CommandResult:
     """Handle /reset, /clear, or /new commands."""
     agent.reset_conversation()
-    console.print("[green]Conversation history reset[/green]")
+    console.print(format_success_message("Conversation history reset successfully", "reset"))
+    console.print(format_info_message("Starting fresh conversation"))
     return "continue"
 
 
@@ -250,53 +257,7 @@ def handle_resume_command(agent: ClippyAgent, console: Console, command_args: st
 
 def handle_help_command(console: Console) -> CommandResult:
     """Handle /help command."""
-    console.print(
-        Panel.fit(
-            "[bold]Session Control:[/bold]\n"
-            "  /help - Show this help message\n"
-            "  /exit, /quit - Exit clippy-code\n"
-            "  /reset, /clear, /new - Reset conversation history (not in tab completion)\n"
-            "  /resume [name] - Resume a saved conversation "
-            "(interactive selection if no name provided)\n\n"
-            "[bold]Session Info:[/bold]\n"
-            "  /status - Show token usage and session info\n"
-            "  /compact - Summarize conversation to reduce context usage\n\n"
-            "[bold]Model Management:[/bold]\n"
-            "  /model - List available subcommands and models\n"
-            "  /model list - Show your saved models\n"
-            "  /model <name> - Switch to a saved model\n"
-            "  /model load <name> - Load model (same as direct switch)\n"
-            "  /model add <provider> <model_id> [options] - Add a new model\n"
-            "    Options: --name <name>, --default, --threshold <tokens>\n"
-            "  /model remove <name> - Remove a saved model\n"
-            "  /model default <name> - Set model as default\n"
-            "  /model threshold <name> <tokens> - Set compaction threshold\n"
-            "  /model use <provider> <model_id> - Try a model without saving\n\n"
-            "[bold]Subagent Configuration:[/bold]\n"
-            "  /subagent list - Show subagent type configurations\n"
-            "  /subagent set <type> <model> - Set model for a subagent type\n"
-            "  /subagent clear <type> - Clear model override for a subagent type\n"
-            "  /subagent reset - Clear all model overrides\n\n"
-            "[bold]Providers:[/bold]\n"
-            "  /providers - List available providers\n"
-            "  /provider <name> - Show provider details\n\n"
-            "[bold]Permissions:[/bold]\n"
-            "  /auto list - List auto-approved actions\n"
-            "  /auto revoke <action> - Revoke auto-approval for an action\n"
-            "  /auto clear - Clear all auto-approvals\n\n"
-            "[bold]MCP Servers:[/bold]\n"
-            "  /mcp list - List configured MCP servers\n"
-            "  /mcp tools [server] - List tools available from MCP servers\n"
-            "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
-            "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
-            "  /mcp revoke <server> - Revoke trust for an MCP server\n"
-            "  /mcp enable <server> - Enable a disabled MCP server\n"
-            "  /mcp disable <server> - Disable an enabled MCP server\n\n"
-            "[bold]Interrupt:[/bold]\n"
-            "  Ctrl+C or double-ESC - Stop current execution",
-            border_style="blue",
-        )
-    )
+    show_enhanced_help(console)
     return "continue"
 
 
@@ -488,6 +449,9 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
                     border_style="yellow",
                 )
             )
+            # Show helpful tip about quick start
+            tip_msg = "💡 Quick start: Try /model use openai gpt-4o to test a model without saving"
+            console.print(f"[dim]{tip_msg}[/dim]")
             return "continue"
 
         model_lines = []
@@ -1226,6 +1190,7 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
             return handle_provider_command(console, parts[1])
         else:
             console.print("[red]Usage: /provider <name>[/red]")
+            console.print("[dim]💡 Tip: Use /providers to see available providers[/dim]")
             return "continue"
 
     # Model commands

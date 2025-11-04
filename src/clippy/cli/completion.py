@@ -17,11 +17,71 @@ from ..models import list_available_models, list_available_providers
 from ..permissions import ActionType
 
 
+class SmartFileCompleter:
+    """Smart file completion with context awareness."""
+
+    def __init__(self) -> None:
+        self.recent_files_cache: list[str] = []
+        self.cache_timestamp: int = 0
+        self.cache_timeout: int = 30  # Cache for 30 seconds
+
+    def get_recent_files(self) -> list[str]:
+        """Get recently modified files with caching."""
+        current_time = os.path.getmtime(__file__) if os.path.exists(__file__) else 0
+
+        # Refresh cache if it's stale
+        if current_time - self.cache_timestamp > self.cache_timeout:
+            try:
+                all_files = glob("**/*", recursive=True)
+                # Filter to files only, exclude hidden files except .gitignore
+                self.recent_files_cache = [
+                    f
+                    for f in all_files
+                    if os.path.isfile(f) and (not f.startswith(".") or f == ".gitignore")
+                ]
+                # Sort by modification time
+                self.recent_files_cache.sort(
+                    key=lambda f: os.path.getmtime(f) if os.path.exists(f) else 0, reverse=True
+                )
+                self.cache_timestamp = int(current_time)
+            except Exception:
+                self.recent_files_cache = []
+
+        return self.recent_files_cache
+
+    def suggest_files_for_context(
+        self, partial_word: str, last_command: str | None = None
+    ) -> list[str]:
+        """Suggest files based on command context."""
+        recent_files = self.get_recent_files()
+
+        # Filter by partial word
+        matches = [f for f in recent_files if f.startswith(partial_word)]
+
+        # Prioritize based on command context
+        if last_command:
+            last_command_lower = last_command.lower()
+
+            if any(keyword in last_command_lower for keyword in ["read", "view", "analyze"]):
+                # Prioritize readable files
+                readable_ext = {".py", ".js", ".ts", ".md", ".txt", ".json", ".yaml", ".yml"}
+                matches.sort(key=lambda f: os.path.splitext(f)[1] in readable_ext, reverse=True)
+
+            elif any(keyword in last_command_lower for keyword in ["write", "create", "output"]):
+                # Prioritize templates and examples
+                template_pat = ["template", "example", "sample"]
+                matches.sort(key=lambda f: any(p in f.lower() for p in template_pat), reverse=True)
+
+        return matches[:20]  # Limit to 20 most relevant suggestions
+
+
 class ClippyCommandCompleter(Completer):
     """Advanced command completer for clippy-code slash commands."""
 
     def __init__(self, agent: Any = None) -> None:
         self.agent = agent
+        self.smart_file_completer = SmartFileCompleter()
+        self.last_user_input = ""
         self._setup_base_commands()
         self._setup_dynamic_completers()
 
@@ -142,6 +202,9 @@ class ClippyCommandCompleter(Completer):
         text = document.text_before_cursor
         words = text.split()
 
+        # Update last user input for context awareness
+        self.last_user_input = text
+
         # Handle file completion when there's an "@" symbol
         # Find the last occurrence of "@" to handle completion in the middle of text
         last_at_index = text.rfind("@")
@@ -228,25 +291,34 @@ class ClippyCommandCompleter(Completer):
     def _get_file_completions_for_word(self, word: str) -> list[Completion]:
         """Get file completions for a word without '@' prefix."""
         try:
-            matches = glob("**/*", recursive=True)
-            # Filter to only include actual files
-            matches = [m for m in matches if os.path.isfile(m)]
+            # Use smart file completion for better context awareness
+            matches = self.smart_file_completer.suggest_files_for_context(
+                word, self.last_user_input
+            )
 
             completions = []
             for match in matches:
-                # Check if the match starts with our word
-                if match.startswith(word):
-                    completions.append(
-                        Completion(
-                            text=match,
-                            display=match,
-                            display_meta="File",
-                            start_position=-len(word),  # Replace only the word part
-                        )
-                    )
+                # Determine file type for better display
+                file_ext = os.path.splitext(match)[1].lower()
+                if file_ext in {".py", ".js", ".ts"}:
+                    display_meta = "Code"
+                elif file_ext in {".md", ".txt"}:
+                    display_meta = "Document"
+                elif file_ext in {".json", ".yaml", ".yml"}:
+                    display_meta = "Config"
+                else:
+                    display_meta = "File"
 
-            # Sort completions and limit to avoid overwhelming user
-            return sorted(completions, key=lambda c: c.text)[:30]
+                completions.append(
+                    Completion(
+                        text=match,
+                        display=match,
+                        display_meta=display_meta,
+                        start_position=-len(word),  # Replace only the word part
+                    )
+                )
+
+            return completions[:30]  # Limit to 30 most relevant suggestions
         except Exception:
             # If there's an error, return empty completions
             return []
