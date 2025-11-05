@@ -57,7 +57,7 @@ clean:
 
 # Running
 run:
-	@$(PYTHON) -m clippy -i
+	@$(PYTHON) -m clippy
 
 # Testing
 test:
