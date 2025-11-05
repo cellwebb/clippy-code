@@ -2,22 +2,25 @@
 
 from typing import Any
 
-from .create_directory import TOOL_SCHEMA as CREATE_DIRECTORY_SCHEMA
-from .create_directory import create_directory
+# Utility functions available for internal use but not exposed as tools
+from .copy_file import copy_file as _copy_file_util
+from .create_directory import create_directory as _create_directory_util
 from .delegate_to_subagent import create_subagent_and_execute
 from .delegate_to_subagent import get_tool_schema as get_delegate_schema
-from .delete_file import TOOL_SCHEMA as DELETE_FILE_SCHEMA
-from .delete_file import delete_file
+from .delete_file import delete_file as _delete_file_util
 from .edit_file import TOOL_SCHEMA as EDIT_FILE_SCHEMA
 from .edit_file import edit_file
 from .execute_command import TOOL_SCHEMA as EXECUTE_COMMAND_SCHEMA
 from .execute_command import execute_command
+from .find_replace import TOOL_SCHEMA as FIND_REPLACE_SCHEMA
+from .find_replace import find_replace
 from .get_file_info import TOOL_SCHEMA as GET_FILE_INFO_SCHEMA
 from .get_file_info import get_file_info
 from .grep import TOOL_SCHEMA as GREP_SCHEMA
 from .grep import grep, translate_grep_flags_to_rg
 from .list_directory import TOOL_SCHEMA as LIST_DIRECTORY_SCHEMA
 from .list_directory import list_directory
+from .move_file import move_file as _move_file_util
 from .read_file import TOOL_SCHEMA as READ_FILE_SCHEMA
 from .read_file import read_file
 from .read_files import TOOL_SCHEMA as READ_FILES_SCHEMA
@@ -31,10 +34,9 @@ from .write_file import write_file
 def get_all_tools() -> list[dict[str, Any]]:
     """Get all tool schemas, loading delegate tools dynamically to avoid circular imports."""
     base_tools = [
-        CREATE_DIRECTORY_SCHEMA,
-        DELETE_FILE_SCHEMA,
         EDIT_FILE_SCHEMA,
         EXECUTE_COMMAND_SCHEMA,
+        FIND_REPLACE_SCHEMA,
         GET_FILE_INFO_SCHEMA,
         GREP_SCHEMA,
         LIST_DIRECTORY_SCHEMA,
@@ -97,12 +99,11 @@ def get_create_parallel_subagents_and_execute() -> Any:
 
 
 __all__ = [
-    "create_directory",
     "create_subagent_and_execute",
     "create_parallel_subagents_and_execute",
-    "delete_file",
     "edit_file",
     "execute_command",
+    "find_replace",
     "get_file_info",
     "grep",
     "translate_grep_flags_to_rg",
@@ -115,4 +116,8 @@ __all__ = [
     "get_tool_by_name",
     "get_create_subagent_and_execute",
     "get_create_parallel_subagents_and_execute",
+    "_copy_file_util",
+    "_move_file_util",
+    "_create_directory_util",
+    "_delete_file_util",
 ]
