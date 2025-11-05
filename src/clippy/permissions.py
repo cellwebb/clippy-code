@@ -29,6 +29,7 @@ class ActionType(str, Enum):
     GET_FILE_INFO = "get_file_info"
     GREP = "grep"
     EDIT_FILE = "edit_file"
+    FIND_REPLACE = "find_replace"
     DELEGATE_TO_SUBAGENT = "delegate_to_subagent"
     RUN_PARALLEL_SUBAGENTS = "run_parallel_subagents"
 
@@ -55,6 +56,7 @@ class PermissionConfig(BaseModel):
         ActionType.CREATE_DIR,
         ActionType.EXECUTE_COMMAND,
         ActionType.EDIT_FILE,
+        ActionType.FIND_REPLACE,  # Multi-file changes require approval
         ActionType.DELEGATE_TO_SUBAGENT,  # Require approval for subagent delegation
         ActionType.RUN_PARALLEL_SUBAGENTS,  # Require approval for parallel subagent execution
         ActionType.MCP_TOOL_CALL,  # Require approval for MCP tool calls by default

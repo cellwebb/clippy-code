@@ -7,10 +7,11 @@ from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from .permissions import ActionType, PermissionManager
 
 # Import tool functions explicitly to avoid module/function conflicts
-from .tools.create_directory import create_directory
-from .tools.delete_file import delete_file
+from .tools.create_directory import create_directory as _create_directory_util
+from .tools.delete_file import delete_file as _delete_file_util
 from .tools.edit_file import edit_file
 from .tools.execute_command import execute_command
+from .tools.find_replace import find_replace
 from .tools.get_file_info import get_file_info
 from .tools.grep import grep
 from .tools.list_directory import list_directory
@@ -84,6 +85,7 @@ class ActionExecutor:
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+            "find_replace": ActionType.FIND_REPLACE,
             "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
             "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
         }
@@ -111,12 +113,8 @@ class ActionExecutor:
                     tool_input["content"],
                     tool_input.get("skip_validation", False),
                 )
-            elif tool_name == "delete_file":
-                result = delete_file(tool_input["path"])
             elif tool_name == "list_directory":
                 result = list_directory(tool_input["path"], tool_input.get("recursive", False))
-            elif tool_name == "create_directory":
-                result = create_directory(tool_input["path"])
             elif tool_name == "execute_command":
                 timeout = tool_input.get("timeout", 300)  # Default to 5 minutes
                 result = execute_command(
@@ -148,6 +146,24 @@ class ActionExecutor:
                     tool_input.get("start_pattern", ""),
                     tool_input.get("end_pattern", ""),
                 )
+            elif tool_name == "find_replace":
+                result = find_replace(
+                    tool_input["pattern"],
+                    tool_input["replacement"],
+                    tool_input["paths"],
+                    tool_input.get("regex", False),
+                    tool_input.get("case_sensitive", False),
+                    tool_input.get("dry_run", True),
+                    tool_input.get("include_patterns", ["*"]),
+                    tool_input.get("exclude_patterns", []),
+                    tool_input.get("max_file_size", 10485760),
+                    tool_input.get("backup", False),
+                )
+            elif tool_name == "create_directory":
+                result = _create_directory_util(tool_input["path"])
+            elif tool_name == "delete_file":
+                result = _delete_file_util(tool_input["path"])
+
             else:
                 logger.warning(f"Unimplemented tool: {tool_name}")
                 return False, f"Unimplemented tool: {tool_name}", None
