@@ -20,6 +20,11 @@ from pydantic_ai.messages import (
 from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.google import GoogleModel
+
+try:
+    from pydantic_ai.models.huggingface import HuggingFaceModel
+except ImportError:
+    HuggingFaceModel = None  # type: ignore
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.google import GoogleProvider
@@ -127,10 +132,15 @@ class LLMProvider:
 
         if ":" in model:
             system, _, model_id = model.partition(":")
-            provider = self._create_provider_for_system(system)
-            if provider is not None:
-                return model, provider(model_id)
-            return model, None
+            if self._should_treat_prefix_as_system():
+                system = self._normalize_system(system)
+                provider = self._create_provider_for_system(system)
+                if provider is not None:
+                    return model, provider(model_id)
+                return model, None
+
+            if system != "openai":
+                return model, None
 
         provider_kwargs: dict[str, Any] = {}
         if self.api_key is not None:
@@ -144,12 +154,24 @@ class LLMProvider:
 
         return f"openai:{model}", None
 
+    def _should_treat_prefix_as_system(self) -> bool:
+        if self.provider_config:
+            system = self.provider_config.pydantic_system
+            return system not in (None, "openai")
+        return self.base_url is None
+
+    def _normalize_system(self, system: str) -> str:
+        aliases = {
+            "hf": "huggingface",
+        }
+        return aliases.get(system, system)
+
     def _create_provider_for_system(self, system: str) -> Any | None:
         """Return a callable that builds a model for non-OpenAI systems."""
 
         if system == "anthropic":
 
-            def _builder(model_id: str) -> AnthropicModel | GoogleModel:
+            def _builder(model_id: str) -> AnthropicModel:
                 provider_kwargs: dict[str, Any] = {}
                 if self.api_key:
                     provider_kwargs["api_key"] = self.api_key
@@ -162,7 +184,7 @@ class LLMProvider:
 
         if system in {"google", "google-gla", "gemini"}:
 
-            def _builder(model_id: str) -> AnthropicModel | GoogleModel:
+            def _builder_google(model_id: str) -> GoogleModel:
                 provider_kwargs: dict[str, Any] = {}
                 if self.api_key:
                     provider_kwargs["api_key"] = self.api_key
@@ -171,7 +193,19 @@ class LLMProvider:
                 provider = GoogleProvider(**provider_kwargs)
                 return GoogleModel(model_id, provider=provider)
 
-            return _builder
+            return _builder_google
+
+        if system == "huggingface":
+            if HuggingFaceModel is None:
+                raise ImportError(
+                    "HuggingFace support requires additional dependencies. "
+                    "Install with: pip install 'pydantic-ai-slim[huggingface]'"
+                )
+
+            def _builder_huggingface(model_id: str) -> HuggingFaceModel:
+                return HuggingFaceModel(model_id)
+
+            return _builder_huggingface
 
         return None
 
@@ -267,11 +301,15 @@ def _convert_tools(tools: list[dict[str, Any]] | None) -> list[ToolDefinition]:
 
         function = tool.get("function", {})
         parameters = function.get("parameters")
+        strict_value = function.get("strict")
+        strict_flag = bool(strict_value) if strict_value is not None else False
+        description = tool.get("description") or function.get("description")
         tool_defs.append(
             ToolDefinition(
                 name=function.get("name", ""),
-                description=function.get("description"),
+                description=description,
                 parameters_json_schema=parameters or {},
+                strict=strict_flag,
             )
         )
 

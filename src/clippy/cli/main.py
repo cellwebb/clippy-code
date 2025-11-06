@@ -18,6 +18,15 @@ from .repl import run_interactive
 from .setup import load_env, setup_logging
 
 
+def _is_openai_compatible(provider: ProviderConfig | None) -> bool:
+    """Return True if the provider uses the OpenAI-compatible API surface."""
+
+    if provider is None:
+        return False
+    system = provider.pydantic_system
+    return system in (None, "openai")
+
+
 def resolve_model(
     model_input: str | None,
 ) -> tuple[str | None, str | None, str | None, ProviderConfig | None]:
@@ -36,10 +45,13 @@ def resolve_model(
     user_model, provider = get_model_config(model_input)
     if user_model:
         model_id = user_model.model_id
-        base_url = provider.base_url if provider and provider.openai_compatible else None
+        if provider and _is_openai_compatible(provider):
+            base_url = provider.base_url
+        else:
+            base_url = None
         api_key_env = provider.api_key_env if provider else None
 
-        if provider and not provider.openai_compatible:
+        if provider and not _is_openai_compatible(provider):
             system = provider.pydantic_system or provider.name
             model_id = f"{system}:{model_id}"
 
@@ -85,16 +97,25 @@ def main() -> None:
     ) = resolve_model(args.model)
 
     # Use resolved values if available, otherwise use defaults
+    base_url: str | None = None
     if resolved_model:
         # User specified a model (either name or raw ID)
         model = resolved_model
-        if resolved_base_url is not None:
+        if resolved_provider:
+            if _is_openai_compatible(resolved_provider):
+                if resolved_base_url is not None:
+                    base_url = resolved_base_url
+                elif args.base_url:
+                    base_url = args.base_url
+                else:
+                    base_url = resolved_provider.base_url or default_provider.base_url
+            else:
+                base_url = None
+        elif resolved_base_url is not None:
             base_url = resolved_base_url
         elif args.base_url:
             base_url = args.base_url
-        elif resolved_provider and not resolved_provider.openai_compatible:
-            base_url = None
-        elif ":" in model and resolved_provider is None:
+        elif ":" in model:
             base_url = None
         else:
             base_url = default_provider.base_url

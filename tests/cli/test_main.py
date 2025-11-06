@@ -20,8 +20,7 @@ def test_resolve_model_with_saved_model(monkeypatch: pytest.MonkeyPatch) -> None
     provider = SimpleNamespace(
         base_url="https://api.example.com",
         api_key_env="API_KEY",
-        openai_compatible=True,
-        pydantic_system=None,
+        pydantic_system="openai",
     )
     monkeypatch.setattr(cli_main, "get_model_config", lambda name: (model, provider))
 
@@ -36,6 +35,36 @@ def test_resolve_model_raw_id(monkeypatch: pytest.MonkeyPatch) -> None:
     resolved = cli_main.resolve_model("provider/model-x")
 
     assert resolved == ("provider/model-x", None, None, None)
+
+
+def test_resolve_model_saved_anthropic(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = SimpleNamespace(model_id="claude-sonnet")
+    provider = SimpleNamespace(
+        base_url="https://api.anthropic.com/v1",
+        api_key_env="ANTHROPIC_API_KEY",
+        pydantic_system="anthropic",
+    )
+    monkeypatch.setattr(cli_main, "get_model_config", lambda name: (model, provider))
+
+    resolved = cli_main.resolve_model("my-anthropic")
+
+    assert resolved == ("anthropic:claude-sonnet", None, "ANTHROPIC_API_KEY", provider)
+
+
+def test_resolve_model_raw_prefixed_non_openai(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli_main, "get_model_config", lambda name: (None, None))
+
+    resolved = cli_main.resolve_model("anthropic:claude-sonnet")
+
+    assert resolved == ("anthropic:claude-sonnet", None, None, None)
+
+
+def test_resolve_model_raw_hf_alias(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli_main, "get_model_config", lambda name: (None, None))
+
+    resolved = cli_main.resolve_model("hf:zai-org/GLM-4.6")
+
+    assert resolved == ("hf:zai-org/GLM-4.6", None, None, None)
 
 
 def _make_args(**overrides: Any) -> SimpleNamespace:
@@ -64,8 +93,7 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     default_provider = SimpleNamespace(
         base_url="https://default",
         api_key_env="OPENAI_API_KEY",
-        openai_compatible=True,
-        pydantic_system=None,
+        pydantic_system="openai",
     )
     monkeypatch.setattr(
         cli_main,
@@ -139,8 +167,7 @@ def test_main_missing_api_key_exits(monkeypatch: pytest.MonkeyPatch) -> None:
     default_provider = SimpleNamespace(
         base_url="https://default",
         api_key_env="OPENAI_API_KEY",
-        openai_compatible=True,
-        pydantic_system=None,
+        pydantic_system="openai",
     )
     monkeypatch.setattr(
         cli_main,
@@ -180,8 +207,7 @@ def test_main_handles_mcp_manager_failure(monkeypatch: pytest.MonkeyPatch) -> No
     default_provider = SimpleNamespace(
         base_url="https://default",
         api_key_env="OPENAI_API_KEY",
-        openai_compatible=True,
-        pydantic_system=None,
+        pydantic_system="openai",
     )
     monkeypatch.setattr(
         cli_main,

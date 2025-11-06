@@ -10,7 +10,14 @@ from pydantic_ai import ModelRequest, ModelResponse
 from pydantic_ai.messages import SystemPromptPart, TextPart, ToolCallPart, UserPromptPart
 from pydantic_ai.models import ModelRequestParameters
 
-from clippy.providers import LLMProvider, Spinner
+# Optional import for huggingface support
+try:
+    from pydantic_ai.models.huggingface import HuggingFaceModel
+except ImportError:  # pragma: no cover - optional dependency
+    HuggingFaceModel = None  # type: ignore
+
+from clippy.models import ProviderConfig
+from clippy.providers import LLMProvider, Spinner, _convert_tools
 
 
 def _openai_chat_model_stub(model: str, provider: Any | None = None) -> str:
@@ -171,3 +178,68 @@ class TestLLMProvider:
                 "function": {"name": "write_file", "arguments": '{"path": "a.txt"}'},
             }
         ]
+
+    @pytest.mark.skipif(HuggingFaceModel is None, reason="huggingface extras not installed")
+    def test_resolve_model_hf_prefix_uses_huggingface_model(self) -> None:
+        provider_config = ProviderConfig(
+            name="hf",
+            base_url=None,
+            api_key_env="HF_API_KEY",
+            description="HuggingFace",
+            pydantic_system="huggingface",
+        )
+        provider = LLMProvider(api_key="secret", provider_config=provider_config)
+
+        _, model_obj = provider._resolve_model("hf:zai-org/GLM-4.6")
+
+        assert isinstance(model_obj, HuggingFaceModel)
+
+    def test_resolve_model_openai_prefix_with_openai_provider(self) -> None:
+        provider_config = ProviderConfig(
+            name="synthetic",
+            base_url="https://api.synthetic.new/openai/v1",
+            api_key_env="SYN_API_KEY",
+            description="Synthetic",
+            pydantic_system="openai",
+        )
+        provider = LLMProvider(api_key="secret", provider_config=provider_config)
+
+        resolved, model_obj = provider._resolve_model("hf:zai-org/GLM")
+
+        assert resolved == "hf:zai-org/GLM"
+        assert model_obj is None
+
+
+class TestConvertTools:
+    def test_default_strict_false(self) -> None:
+        defs = _convert_tools(
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "write_file",
+                        "description": "Write",
+                        "parameters": {"type": "object", "properties": {}},
+                    },
+                }
+            ]
+        )
+
+        assert defs[0].strict is False
+
+    def test_respects_strict_flag(self) -> None:
+        defs = _convert_tools(
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "read_file",
+                        "description": "Read",
+                        "strict": True,
+                        "parameters": {"type": "object", "properties": {}},
+                    },
+                }
+            ]
+        )
+
+        assert defs[0].strict is True

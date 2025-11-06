@@ -17,7 +17,6 @@ class ProviderConfig:
     api_key_env: str
     description: str
     pydantic_system: str | None = None
-    openai_compatible: bool = True
 
 
 @dataclass
@@ -246,7 +245,6 @@ def _load_providers() -> dict[str, ProviderConfig]:
             api_key_env=provider_data.get("api_key_env", "OPENAI_API_KEY"),
             description=provider_data.get("description", ""),
             pydantic_system=provider_data.get("pydantic_system"),
-            openai_compatible=provider_data.get("openai_compatible", True),
         )
 
     return _providers
