@@ -10,7 +10,7 @@ from ..agent import ClippyAgent
 from ..executor import ActionExecutor
 from ..mcp.config import load_config
 from ..mcp.manager import Manager
-from ..models import get_default_model_config, get_model_config
+from ..models import ProviderConfig, get_default_model_config, get_model_config
 from ..permissions import PermissionConfig, PermissionManager
 from .oneshot import run_one_shot
 from .parser import create_parser
@@ -20,27 +20,32 @@ from .setup import load_env, setup_logging
 
 def resolve_model(
     model_input: str | None,
-) -> tuple[str | None, str | None, str | None]:
-    """Resolve a model input to (model_id, base_url, api_key_env).
+) -> tuple[str | None, str | None, str | None, ProviderConfig | None]:
+    """Resolve a model input to (model_id, base_url, api_key_env, provider).
 
     Args:
         model_input: User model name, raw model ID, or None for default
 
     Returns:
-        Tuple of (model_id, base_url, api_key_env)
-        Returns (None, None, None) if model_input is None
+        Tuple of (model_id, base_url, api_key_env, provider_config)
+        Returns (None, None, None, None) if model_input is None
     """
     if model_input is None:
-        return None, None, None
+        return None, None, None, None
 
-    # Try to look up as a user model name first
     user_model, provider = get_model_config(model_input)
-    if user_model and provider:
-        return user_model.model_id, provider.base_url, provider.api_key_env
+    if user_model:
+        model_id = user_model.model_id
+        base_url = provider.base_url if provider and provider.openai_compatible else None
+        api_key_env = provider.api_key_env if provider else None
 
-    # If not found in user models, treat as a raw model ID
-    # In this case, we need to use the default provider settings
-    return model_input, None, None
+        if provider and not provider.openai_compatible:
+            system = provider.pydantic_system or provider.name
+            model_id = f"{system}:{model_id}"
+
+        return model_id, base_url, api_key_env, provider
+
+    return model_input, None, None, None
 
 
 def main() -> None:
@@ -72,25 +77,41 @@ def main() -> None:
         sys.exit(1)
 
     # Resolve model input (handles user model names and raw model IDs)
-    resolved_model, resolved_base_url, resolved_api_key_env = resolve_model(args.model)
+    (
+        resolved_model,
+        resolved_base_url,
+        resolved_api_key_env,
+        resolved_provider,
+    ) = resolve_model(args.model)
 
     # Use resolved values if available, otherwise use defaults
     if resolved_model:
         # User specified a model (either name or raw ID)
         model = resolved_model
-        # Use resolved base_url if available, otherwise check for --base-url, otherwise use default
-        base_url = (
-            resolved_base_url
-            if resolved_base_url
-            else (args.base_url if args.base_url else default_provider.base_url)
-        )
+        if resolved_base_url is not None:
+            base_url = resolved_base_url
+        elif args.base_url:
+            base_url = args.base_url
+        elif resolved_provider and not resolved_provider.openai_compatible:
+            base_url = None
+        elif ":" in model and resolved_provider is None:
+            base_url = None
+        else:
+            base_url = default_provider.base_url
         # Use resolved api_key_env if available, otherwise use default
         api_key_env = resolved_api_key_env if resolved_api_key_env else default_provider.api_key_env
+        if resolved_provider:
+            provider_config_to_use = resolved_provider
+        elif ":" in model:
+            provider_config_to_use = None
+        else:
+            provider_config_to_use = default_provider
     else:
         # No model specified, use defaults
         model = default_model.model_id
         base_url = args.base_url if args.base_url else default_provider.base_url
         api_key_env = default_provider.api_key_env
+        provider_config_to_use = default_provider
 
     # Get API key from environment
     api_key = os.getenv(api_key_env)
@@ -139,6 +160,7 @@ def main() -> None:
         api_key=api_key,
         model=model,
         base_url=base_url,
+        provider_config=provider_config_to_use,
         mcp_manager=mcp_manager,
     )
 

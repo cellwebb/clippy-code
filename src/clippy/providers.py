@@ -1,10 +1,12 @@
 """LLM provider that uses Pydantic AI for model access."""
 
+from __future__ import annotations
+
 import json
 import sys
 import threading
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic_ai import ModelMessage, ModelRequest, ModelResponse, ToolDefinition
 from pydantic_ai.direct import model_request_sync
@@ -16,8 +18,15 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.models import ModelRequestParameters
+from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.anthropic import AnthropicProvider
+from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
+
+if TYPE_CHECKING:
+    from .models import ProviderConfig
 
 
 class Spinner:
@@ -68,10 +77,12 @@ class LLMProvider:
         self,
         api_key: str | None = None,
         base_url: str | None = None,
+        provider_config: ProviderConfig | None = None,
         **_: Any,
     ) -> None:
         self.api_key = api_key
         self.base_url = base_url
+        self.provider_config = provider_config
 
     def create_message(
         self,
@@ -115,6 +126,10 @@ class LLMProvider:
         """Resolve model identifier or instantiate a configured model."""
 
         if ":" in model:
+            system, _, model_id = model.partition(":")
+            provider = self._create_provider_for_system(system)
+            if provider is not None:
+                return model, provider(model_id)
             return model, None
 
         provider_kwargs: dict[str, Any] = {}
@@ -127,8 +142,38 @@ class LLMProvider:
             provider = OpenAIProvider(**provider_kwargs)
             return model, OpenAIChatModel(model, provider=provider)
 
-        # Default to OpenAI namespace
         return f"openai:{model}", None
+
+    def _create_provider_for_system(self, system: str) -> Any | None:
+        """Return a callable that builds a model for non-OpenAI systems."""
+
+        if system == "anthropic":
+
+            def _builder(model_id: str) -> AnthropicModel | GoogleModel:
+                provider_kwargs: dict[str, Any] = {}
+                if self.api_key:
+                    provider_kwargs["api_key"] = self.api_key
+                if self.provider_config and self.provider_config.base_url:
+                    provider_kwargs["base_url"] = self.provider_config.base_url
+                provider = AnthropicProvider(**provider_kwargs)
+                return AnthropicModel(model_id, provider=provider)
+
+            return _builder
+
+        if system in {"google", "google-gla", "gemini"}:
+
+            def _builder(model_id: str) -> AnthropicModel | GoogleModel:
+                provider_kwargs: dict[str, Any] = {}
+                if self.api_key:
+                    provider_kwargs["api_key"] = self.api_key
+                if self.provider_config and self.provider_config.base_url:
+                    provider_kwargs["base_url"] = self.provider_config.base_url
+                provider = GoogleProvider(**provider_kwargs)
+                return GoogleModel(model_id, provider=provider)
+
+            return _builder
+
+        return None
 
 
 def _convert_openai_messages(messages: list[dict[str, Any]]) -> list[ModelMessage]:

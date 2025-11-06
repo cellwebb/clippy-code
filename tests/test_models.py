@@ -64,7 +64,10 @@ def test_load_providers() -> None:
 
     # Check that common providers exist
     assert "openai" in providers
+    assert "anthropic" in providers
+    assert "custom-anthropic" in providers
     assert "cerebras" in providers
+    assert "gemini" in providers
     assert "ollama" in providers
 
     # Check structure
@@ -83,6 +86,28 @@ def test_get_provider() -> None:
     assert provider.name == "openai"
     assert provider.base_url is None  # OpenAI uses default
     assert provider.api_key_env == "OPENAI_API_KEY"
+
+
+def test_get_provider_anthropic() -> None:
+    """Ensure anthropic provider metadata loads correctly."""
+    provider = get_provider("anthropic")
+
+    assert provider is not None
+    assert provider.base_url == "https://api.anthropic.com/v1"
+    assert provider.api_key_env == "ANTHROPIC_API_KEY"
+    assert provider.pydantic_system == "anthropic"
+    assert provider.openai_compatible is False
+
+
+def test_get_provider_gemini() -> None:
+    """Ensure gemini provider metadata loads correctly."""
+    provider = get_provider("gemini")
+
+    assert provider is not None
+    assert provider.base_url == "https://generativelanguage.googleapis.com/v1beta"
+    assert provider.api_key_env == "GOOGLE_API_KEY"
+    assert provider.pydantic_system == "google-gla"
+    assert provider.openai_compatible is False
 
 
 def test_get_provider_nonexistent() -> None:

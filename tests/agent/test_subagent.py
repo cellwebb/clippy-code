@@ -57,6 +57,7 @@ class TestSubAgent:
         agent.api_key = "test_key"
         agent.base_url = "https://api.test.com"
         agent.model = "gpt-4-turbo"
+        agent.provider_config = None
         agent.console = MagicMock()
         agent.mcp_manager = MagicMock()
         return agent

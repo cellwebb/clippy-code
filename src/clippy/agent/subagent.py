@@ -137,6 +137,7 @@ class SubAgent:
         self.provider = LLMProvider(
             api_key=parent_agent.api_key,
             base_url=parent_agent.base_url,
+            provider_config=parent_agent.provider_config,
         )
 
         # Determine model to use

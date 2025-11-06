@@ -8,6 +8,20 @@ providers:
     api_key_env: OPENAI_API_KEY
     description: "OpenAI"
 
+  anthropic:
+    base_url: https://api.anthropic.com/v1
+    api_key_env: ANTHROPIC_API_KEY
+    description: "Anthropic Claude"
+    pydantic_system: anthropic
+    openai_compatible: false
+
+  custom-anthropic:
+    base_url: https://your-anthropic-proxy.example.com/v1
+    api_key_env: CUSTOM_ANTHROPIC_API_KEY
+    description: "Custom Anthropic-compatible endpoint"
+    pydantic_system: anthropic
+    openai_compatible: false
+
   cerebras:
     base_url: https://api.cerebras.ai/v1
     api_key_env: CEREBRAS_API_KEY
@@ -22,6 +36,13 @@ providers:
     base_url: https://api.groq.com/openai/v1
     api_key_env: GROQ_API_KEY
     description: "Groq"
+
+  gemini:
+    base_url: https://generativelanguage.googleapis.com/v1beta
+    api_key_env: GOOGLE_API_KEY
+    description: "Google Gemini"
+    pydantic_system: google-gla
+    openai_compatible: false
 
   lmstudio:
     base_url: http://localhost:1234/v1

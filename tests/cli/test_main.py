@@ -12,17 +12,22 @@ cli_main = import_module("clippy.cli.main")
 
 
 def test_resolve_model_none() -> None:
-    assert cli_main.resolve_model(None) == (None, None, None)
+    assert cli_main.resolve_model(None) == (None, None, None, None)
 
 
 def test_resolve_model_with_saved_model(monkeypatch: pytest.MonkeyPatch) -> None:
     model = SimpleNamespace(model_id="model-1")
-    provider = SimpleNamespace(base_url="https://api.example.com", api_key_env="API_KEY")
+    provider = SimpleNamespace(
+        base_url="https://api.example.com",
+        api_key_env="API_KEY",
+        openai_compatible=True,
+        pydantic_system=None,
+    )
     monkeypatch.setattr(cli_main, "get_model_config", lambda name: (model, provider))
 
     resolved = cli_main.resolve_model("my-model")
 
-    assert resolved == ("model-1", "https://api.example.com", "API_KEY")
+    assert resolved == ("model-1", "https://api.example.com", "API_KEY", provider)
 
 
 def test_resolve_model_raw_id(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -30,7 +35,7 @@ def test_resolve_model_raw_id(monkeypatch: pytest.MonkeyPatch) -> None:
 
     resolved = cli_main.resolve_model("provider/model-x")
 
-    assert resolved == ("provider/model-x", None, None)
+    assert resolved == ("provider/model-x", None, None, None)
 
 
 def _make_args(**overrides: Any) -> SimpleNamespace:
@@ -56,7 +61,12 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli_main, "setup_logging", lambda verbose: logged.append(verbose))
 
     default_model = SimpleNamespace(model_id="gpt-5")
-    default_provider = SimpleNamespace(base_url="https://default", api_key_env="OPENAI_API_KEY")
+    default_provider = SimpleNamespace(
+        base_url="https://default",
+        api_key_env="OPENAI_API_KEY",
+        openai_compatible=True,
+        pydantic_system=None,
+    )
     monkeypatch.setattr(
         cli_main,
         "get_default_model_config",
@@ -113,6 +123,7 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     assert created_agents[0].kwargs["api_key"] == "secret"
     assert created_agents[0].kwargs["model"] == "gpt-5"
     assert created_agents[0].kwargs["base_url"] == "https://default"
+    assert created_agents[0].kwargs["provider_config"] is default_provider
     assert run_calls["values"][1] is False
     assert run_calls["values"][0] is created_agents[0]
 
@@ -125,7 +136,12 @@ def test_main_missing_api_key_exits(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli_main, "create_parser", lambda: SimpleNamespace(parse_args=lambda: args))
 
     default_model = SimpleNamespace(model_id="gpt-5")
-    default_provider = SimpleNamespace(base_url="https://default", api_key_env="OPENAI_API_KEY")
+    default_provider = SimpleNamespace(
+        base_url="https://default",
+        api_key_env="OPENAI_API_KEY",
+        openai_compatible=True,
+        pydantic_system=None,
+    )
     monkeypatch.setattr(
         cli_main,
         "get_default_model_config",
@@ -161,7 +177,12 @@ def test_main_handles_mcp_manager_failure(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(cli_main, "setup_logging", lambda verbose: None)
 
     default_model = SimpleNamespace(model_id="gpt-5")
-    default_provider = SimpleNamespace(base_url="https://default", api_key_env="OPENAI_API_KEY")
+    default_provider = SimpleNamespace(
+        base_url="https://default",
+        api_key_env="OPENAI_API_KEY",
+        openai_compatible=True,
+        pydantic_system=None,
+    )
     monkeypatch.setattr(
         cli_main,
         "get_default_model_config",

@@ -1,5 +1,7 @@
 """AI agent with OpenAI-compatible LLM support."""
 
+from __future__ import annotations
+
 import json
 import logging
 import time
@@ -10,6 +12,7 @@ from typing import Any
 from rich.console import Console
 
 from ..executor import ActionExecutor
+from ..models import ProviderConfig
 from ..permissions import PermissionManager
 from ..providers import LLMProvider
 from .conversation import (
@@ -43,6 +46,7 @@ class ClippyAgent:
         approval_callback: Any = None,
         mcp_manager: Any = None,
         max_concurrent_subagents: int = 3,
+        provider_config: ProviderConfig | None = None,
     ) -> None:
         """
         Initialize the ClippyAgent.
@@ -53,6 +57,7 @@ class ClippyAgent:
             api_key: API key for OpenAI-compatible provider
             model: Model identifier to use (required)
             base_url: Base URL for OpenAI-compatible API (for alternate providers)
+            provider_config: Optional provider metadata (used for non-OpenAI providers)
             approval_callback: Optional callback function for approval requests
                              (used in document mode). Should accept (tool_name, tool_input)
                              and return bool (True for approve, False for deny).
@@ -66,9 +71,14 @@ class ClippyAgent:
         # Store credentials for provider recreation
         self.api_key = api_key
         self.base_url = base_url
+        self.provider_config = provider_config
 
         # Create provider (OpenAI-compatible)
-        self.provider = LLMProvider(api_key=api_key, base_url=base_url)
+        self.provider = LLMProvider(
+            api_key=api_key,
+            base_url=base_url,
+            provider_config=provider_config,
+        )
 
         # Model is now required - callers must resolve the default model
         if not model:
@@ -170,6 +180,7 @@ class ClippyAgent:
         model: str | None = None,
         base_url: str | None = None,
         api_key: str | None = None,
+        provider_config: ProviderConfig | None = None,
     ) -> tuple[bool, str]:
         """
         Switch to a different model or provider.
@@ -196,8 +207,16 @@ class ClippyAgent:
             if not new_model:
                 return False, "Cannot switch to empty model"
 
+            # Update provider config if provided
+            if provider_config is not None:
+                self.provider_config = provider_config
+
             # Create new provider with updated settings
-            self.provider = LLMProvider(api_key=new_api_key, base_url=new_base_url)
+            self.provider = LLMProvider(
+                api_key=new_api_key,
+                base_url=new_base_url,
+                provider_config=self.provider_config,
+            )
 
             # Update instance variables
             self.base_url = new_base_url
@@ -284,7 +303,11 @@ class ClippyAgent:
             self.base_url = conversation_data.get("base_url", self.base_url)
 
             # Recreate provider with restored settings
-            self.provider = LLMProvider(api_key=self.api_key, base_url=self.base_url)
+            self.provider = LLMProvider(
+                api_key=self.api_key,
+                base_url=self.base_url,
+                provider_config=self.provider_config,
+            )
 
             self.conversation_history = conversation_data.get("conversation_history", [])
 

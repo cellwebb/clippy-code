@@ -93,6 +93,8 @@ python_functions = ["test_*"]
 filterwarnings = [
     # Ignore Python 3.14 file descriptor cleanup warnings during garbage collection
     "ignore::pytest.PytestUnraisableExceptionWarning:_pytest.unraisableexception",
+    # Ignore Google GenAI deprecation warning about _UnionGenericAlias
+    "ignore::DeprecationWarning:google.genai.types",
 ]
 
 [tool.pytest_asyncio]
