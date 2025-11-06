@@ -50,6 +50,11 @@ class ClippyCommandCompleter(Completer):
                 "description": "Summarize conversation to reduce context usage",
                 "completer": None,
             },
+            "truncate": {
+                "description": "Truncate conversation to keep last N messages",
+                "completer": None,
+                "takes_arg": True,
+            },
             "providers": {
                 "description": "List available providers",
                 "completer": None,

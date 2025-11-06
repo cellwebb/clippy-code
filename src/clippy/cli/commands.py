@@ -255,9 +255,10 @@ def handle_help_command(console: Console) -> CommandResult:
             "[bold]Session Control:[/bold]\n"
             "  /help - Show this help message\n"
             "  /exit, /quit - Exit clippy-code\n"
-            "  /reset, /clear, /new - Reset conversation history (not in tab completion)\n"
+            "  /reset, /clear, /new - Reset conversation history\n"
             "  /resume [name] - Resume a saved conversation "
-            "(interactive selection if no name provided)\n\n"
+            "(interactive selection if no name provided)\n"
+            "  /truncate <count> - Truncate conversation to keep last <count> messages\n\n"
             "[bold]Session Info:[/bold]\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n\n"
@@ -1252,5 +1253,97 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
         command_args = parts[1] if len(parts) > 1 else ""
         return handle_mcp_command(agent, console, command_args)
 
+    # Truncate command
+    if command_lower.startswith("/truncate"):
+        parts = user_input.split(maxsplit=1)
+        command_args = parts[1] if len(parts) > 1 else ""
+        return handle_truncate_command(agent, console, command_args)
+
     # Not a recognized command
     return None
+
+
+def handle_truncate_command(
+    agent: ClippyAgent, console: Console, command_args: str
+) -> CommandResult:
+    """Handle /truncate command."""
+    # Parse command arguments
+    args = shlex.split(command_args) if command_args else []
+
+    # If no arguments, show usage
+    if not args:
+        console.print("[red]Usage: /truncate <count>[/red]")
+        console.print(
+            "[dim]Truncates conversation history to keep only the last <count> "
+            "messages, retaining system prompt[/dim]"
+        )
+        return "continue"
+
+    try:
+        count = int(args[0])
+        if count < 0:
+            console.print("[red]Count must be a positive integer[/red]")
+            return "continue"
+    except ValueError:
+        console.print(f"[red]Invalid count: {args[0]}[/red]")
+        console.print("[dim]Usage: /truncate <count>[/dim]")
+        return "continue"
+
+    # Get current conversation history
+    history = agent.conversation_history
+
+    # Need at least system message
+    if not history:
+        console.print("[yellow]No conversation history to truncate[/yellow]")
+        return "continue"
+
+    # Find system message (should be first)
+    system_msg = None
+    non_system_messages = []
+
+    for msg in history:
+        if msg.get("role") == "system":
+            system_msg = msg
+        else:
+            non_system_messages.append(msg)
+
+    # If no system message found, that's unexpected but we'll handle it
+    if system_msg is None and non_system_messages:
+        # Assume first message is system if it has content that looks like a system prompt
+        first_msg = history[0]
+        if first_msg.get("role") == "system" or len(first_msg.get("content", "")) > 1000:
+            system_msg = first_msg
+            non_system_messages = history[1:]
+        else:
+            # No clear system message, just keep the recent messages
+            system_msg = None
+            non_system_messages = history
+
+    # If count is 0, keep only system message
+    if count == 0:
+        if system_msg is not None:
+            agent.conversation_history = [system_msg]
+            console.print("[green]Conversation truncated to system prompt only[/green]")
+        else:
+            agent.conversation_history = []
+            console.print("[green]Conversation cleared (no system prompt retained)[/green]")
+        return "continue"
+
+    # Keep system message + last 'count' messages
+    messages_to_keep = non_system_messages[-count:] if count > 0 else []
+
+    if system_msg is not None:
+        agent.conversation_history = [system_msg] + messages_to_keep
+    else:
+        agent.conversation_history = messages_to_keep
+
+    kept_count = len(messages_to_keep)
+    removed_count = len(non_system_messages) - kept_count
+
+    console.print(
+        f"[green]Conversation truncated: {removed_count} messages removed, "
+        f"{kept_count} messages kept[/green]"
+    )
+    if system_msg is not None:
+        console.print("[dim]System prompt retained[/dim]")
+    return "continue"
