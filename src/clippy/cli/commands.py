@@ -258,7 +258,9 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /reset, /clear, /new - Reset conversation history\n"
             "  /resume [name] - Resume a saved conversation "
             "(interactive selection if no name provided)\n"
-            "  /truncate <count> <option> - Truncate conversation (keep recent by default)\n"
+            "  /truncate <count> [option] - Truncate conversation history\n"
+            "    Options: --keep-recent (default), --keep-older\n"
+            "    Examples: /truncate 5, /truncate 3 --keep-older\n"
             "[bold]Session Info:[/bold]\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n\n"
@@ -1278,7 +1280,7 @@ def handle_truncate_command(
             "[dim]  /truncate <count> (default) - Keep last <count> messages[/dim]\n"
             "[dim]  /truncate <count> --keep-recent - Keep last <count> messages[/dim]\n"
             "[dim]  /truncate <count> --keep-older - Keep first <count> non-system messages[/dim]\n"
-            "[dim]  /truncate <count> --from-start - Remove <count> messages from start[/dim]"
+            ""
         )
         return "continue"
 
@@ -1296,10 +1298,10 @@ def handle_truncate_command(
     option = "keep-recent"  # default behavior
     if len(args) > 1:
         option = args[1].lower()
-        valid_options = {"--keep-recent", "--keep-older", "--from-start"}
+        valid_options = {"--keep-recent", "--keep-older"}
         if option not in valid_options:
             console.print(f"[red]Invalid option: {args[1]}[/red]")
-            console.print("[dim]Valid options: --keep-recent, --keep-older, --from-start[/dim]")
+            console.print("[dim]Valid options: --keep-recent, --keep-older[/dim]")
             return "continue"
 
     # Get current conversation history
@@ -1394,30 +1396,7 @@ def handle_truncate_command(
             f"{len(messages_to_keep)} messages kept (older)[/green]"
         )
 
-    elif option == "--from-start":
-        # Remove 'count' messages from start of non-system messages
-        if count >= total_messages:
-            # Remove all non-system messages, keep only system prompt
-            if system_msg is not None:
-                agent.conversation_history = [system_msg]
-                console.print(f"[green]All {total_messages} messages removed from start[/green]")
-            else:
-                agent.conversation_history = []
-                console.print(f"[green]All {total_messages} messages removed[/green]")
-            return "continue"
-
-        # Skip first 'count' messages
-        remaining_messages = non_system_messages[count:]
-
-        if system_msg is not None:
-            agent.conversation_history = [system_msg] + remaining_messages
-        else:
-            agent.conversation_history = remaining_messages
-
-        console.print(
-            f"[green]{count} messages removed from start, "
-            f"{len(remaining_messages)} messages remaining[/green]"
-        )
+    ""
 
     if system_msg is not None:
         console.print("[dim]System prompt retained[/dim]")

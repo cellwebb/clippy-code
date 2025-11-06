@@ -63,7 +63,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             "  /exit, /quit - Exit clippy-code\n"
             "  /reset, /clear, /new - Reset conversation history (not in tab completion)\n"
             "  /resume [name] - Resume a saved conversation (interactive if no name)\n"
-            "  /truncate <count> <option> - Truncate conversation (keep recent by default)\n"
+            "  /truncate <count> [option] - Truncate conversation (keep recent by default)\n"
             "  /status - Show token usage and session info\n"
             "  /compact - Summarize conversation to reduce context usage\n"
             "  /providers - List available providers\n"

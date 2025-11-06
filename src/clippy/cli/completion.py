@@ -51,7 +51,7 @@ class ClippyCommandCompleter(Completer):
                 "completer": None,
             },
             "truncate": {
-                "description": "Truncate conversation to keep last N messages",
+                "description": "Truncate conversation history with options",
                 "completer": None,
                 "takes_arg": True,
             },
