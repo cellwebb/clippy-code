@@ -18,6 +18,52 @@ from .commands import handle_command
 from .completion import create_completer
 
 
+def _suggest_similar_commands(command: str) -> list[str]:
+    """
+    Suggest similar commands for a given invalid command.
+
+    Args:
+        command: The invalid command string
+
+    Returns:
+        List of suggested valid commands
+    """
+    from difflib import get_close_matches
+
+    # Extract command name (first word after /)
+    parts = command.strip().split()
+    if not parts:
+        return []
+
+    invalid_cmd = parts[0][1:].lower()  # Remove leading / and lowercase
+
+    # List of valid commands
+    valid_commands = [
+        "help",
+        "exit",
+        "quit",
+        "reset",
+        "clear",
+        "new",
+        "resume",
+        "status",
+        "compact",
+        "providers",
+        "provider",
+        "model",
+        "subagent",
+        "auto",
+        "mcp",
+        "truncate",
+    ]
+
+    # Find close matches using fuzzy matching
+    suggestions = get_close_matches(invalid_cmd, valid_commands, n=3, cutoff=0.6)
+
+    # Format suggestions with leading /
+    return [f"/{suggestion}" for suggestion in suggestions]
+
+
 def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
     """Run clippy-code in interactive mode (REPL)."""
     console = Console()
@@ -119,6 +165,17 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             if result == "break":
                 break
             elif result == "continue":
+                continue
+            elif result is None and user_input.startswith("/"):
+                # Unrecognized slash command - show error instead of sending to LLM
+                console.print(f"[red]✗ Unknown command: {user_input}[/red]")
+
+                # Try to suggest similar commands
+                command_suggestions = _suggest_similar_commands(user_input)
+                if command_suggestions:
+                    console.print(f"[dim]Did you mean: {', '.join(command_suggestions)}?[/dim]")
+
+                console.print("[dim]Type /help to see available commands[/dim]")
                 continue
 
             # Run the agent with user input

@@ -1190,6 +1190,7 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
 
     Returns:
         CommandResult if a command was handled, None if not a command
+        If input starts with "/" but is not a valid command, returns "invalid_command"
     """
     command_lower = user_input.lower()
 
