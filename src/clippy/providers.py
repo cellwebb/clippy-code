@@ -1,20 +1,23 @@
-"""OpenAI-compatible LLM provider."""
+"""LLM provider that uses Pydantic AI for model access."""
 
-import logging
+import json
 import sys
 import threading
 import time
-from typing import Any, cast
+from typing import Any
 
-from tenacity import (
-    before_sleep_log,
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
+from pydantic_ai import ModelMessage, ModelRequest, ModelResponse, ToolDefinition
+from pydantic_ai.direct import model_request_sync
+from pydantic_ai.messages import (
+    SystemPromptPart,
+    TextPart,
+    ToolCallPart,
+    ToolReturnPart,
+    UserPromptPart,
 )
-
-logger = logging.getLogger(__name__)
+from pydantic_ai.models import ModelRequestParameters
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 
 class Spinner:
@@ -53,221 +56,239 @@ class Spinner:
         if self.thread:
             self.thread.join()
 
-        # Clear the spinner line if enabled
         if self.enabled:
             sys.stdout.write("\r" + " " * (len(self.message) + 20) + "\r")
             sys.stdout.flush()
 
 
 class LLMProvider:
-    """OpenAI-compatible LLM provider.
-
-    Supports OpenAI and any OpenAI-compatible API (Cerebras, Together AI,
-    Azure OpenAI, Ollama, llama.cpp, vLLM, Groq, etc.)
-    """
+    """Adapter that routes chat completions through Pydantic AI."""
 
     def __init__(
-        self, api_key: str | None = None, base_url: str | None = None, **kwargs: Any
-    ) -> None:
-        """
-        Initialize OpenAI-compatible provider.
-
-        Args:
-            api_key: API key for authentication
-            base_url: Base URL for API (e.g., https://api.cerebras.ai/v1 for Cerebras)
-            **kwargs: Additional arguments passed to OpenAI client
-        """
-        try:
-            from openai import OpenAI
-        except ImportError:
-            raise ImportError("openai package is required. Install it with: pip install openai")
-
-        client_kwargs: dict[str, Any] = {"api_key": api_key}
-        if base_url:
-            client_kwargs["base_url"] = base_url
-
-        # Add any additional kwargs
-        client_kwargs.update(kwargs)
-
-        self.client = OpenAI(**client_kwargs)
-
-    @retry(
-        retry=retry_if_exception_type((Exception,)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-        reraise=True,
-    )
-    def _create_completion_with_retry(
         self,
-        model: str,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]] | None,
-        **kwargs: Any,
-    ) -> Any:
-        """
-        Internal method to create completion with retry logic.
-
-        Retries up to 3 times with exponential backoff for:
-        - Network errors
-        - Rate limit errors
-        - Server errors (5xx)
-        """
-        try:
-            from openai import (
-                APIConnectionError,
-                APITimeoutError,
-                AuthenticationError,
-                BadRequestError,
-                ConflictError,
-                InternalServerError,
-                NotFoundError,
-                PermissionDeniedError,
-                RateLimitError,
-                UnprocessableEntityError,
-            )
-        except ImportError:
-            raise ImportError("openai package is required. Install it with: pip install openai")
-
-        try:
-            # Call OpenAI API with streaming enabled
-            return self.client.chat.completions.create(
-                model=model,
-                messages=messages,  # type: ignore
-                tools=tools if tools else None,  # type: ignore
-                stream=True,
-                **kwargs,
-            )
-        except (APIConnectionError, APITimeoutError, RateLimitError, InternalServerError) as e:
-            logger.warning(f"API error (will retry): {type(e).__name__}: {e}")
-            raise
-        except (AuthenticationError, PermissionDeniedError) as e:
-            logger.error(f"Authentication error: {type(e).__name__}: {e}")
-            raise
-        except (NotFoundError, ConflictError, UnprocessableEntityError) as e:
-            logger.error(f"Request error: {type(e).__name__}: {e}")
-            raise
-        except BadRequestError as e:
-            logger.error(f"Bad request error: {type(e).__name__}: {e}")
-            raise
-        except Exception as e:
-            # For other errors, log and re-raise without retry
-            logger.error(f"Unexpected API error: {type(e).__name__}: {e}")
-            raise
+        api_key: str | None = None,
+        base_url: str | None = None,
+        **_: Any,
+    ) -> None:
+        self.api_key = api_key
+        self.base_url = base_url
 
     def create_message(
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         model: str = "gpt-5",
-        **kwargs: Any,
+        **_: Any,
     ) -> dict[str, Any]:
-        """
-        Create a chat completion using OpenAI format with streaming.
+        """Create a chat completion using Pydantic AI."""
 
-        Args:
-            messages: OpenAI-format messages (includes system message)
-            tools: OpenAI-format tool definitions
-            model: Model identifier
-            **kwargs: Additional provider-specific parameters
-
-        Returns:
-            Dict with keys: role, content, tool_calls, finish_reason
-
-        Raises:
-            Various OpenAI exceptions if all retries fail
-        """
-        # Create and start spinner to indicate processing
         spinner = Spinner("Thinking", enabled=sys.stdout.isatty())
         spinner.start()
 
         try:
-            # Call with retry logic
-            stream = self._create_completion_with_retry(
-                model=model,
-                messages=messages,
-                tools=tools,
-                **kwargs,
+            model_messages = _convert_openai_messages(messages)
+            tool_definitions = _convert_tools(tools)
+
+            params = ModelRequestParameters(
+                function_tools=tool_definitions,
+                allow_text_output=True,
+            )
+
+            model_identifier, model_object = self._resolve_model(model)
+            response = model_request_sync(
+                model_object or model_identifier,
+                model_messages,
+                model_request_parameters=params,
             )
         finally:
-            # Stop spinner before displaying results
             spinner.stop()
 
-        # Accumulate streaming response
-        full_content = ""
-        tool_calls_dict: dict[int, dict[str, Any]] = {}  # Track tool calls by index
-        role = "assistant"
-        finish_reason = None
-        content_started = False  # Track if we've started printing content
+        result = _convert_response_to_openai(response)
 
-        for chunk in stream:
-            if not chunk.choices:
-                continue
-
-            choice = chunk.choices[0]
-            delta = choice.delta
-
-            # Update role if present
-            if hasattr(delta, "role") and delta.role:
-                role = delta.role
-
-            # Stream text content to user in real-time
-            if hasattr(delta, "content") and delta.content:
-                # Strip leading newlines from first chunk to keep paperclip on same line
-                if not content_started:
-                    content_to_print = delta.content.lstrip("\n")
-                    # Only print prefix and set started if we have actual content
-                    if content_to_print:
-                        # Print prefix and content together
-                        print(f"\n[📎] {content_to_print}", end="", flush=True)
-                        content_started = True
-                else:
-                    print(delta.content, end="", flush=True)
-                full_content += delta.content
-
-            # Accumulate tool calls
-            if hasattr(delta, "tool_calls") and delta.tool_calls:
-                for tc_delta in delta.tool_calls:
-                    idx = tc_delta.index
-                    if idx not in tool_calls_dict:
-                        tool_calls_dict[idx] = {
-                            "id": tc_delta.id or "",
-                            "type": tc_delta.type or "function",
-                            "function": {"name": "", "arguments": ""},
-                        }
-
-                    # Update tool call fields as they arrive
-                    if tc_delta.id:
-                        tool_calls_dict[idx]["id"] = tc_delta.id
-                    if tc_delta.type:
-                        tool_calls_dict[idx]["type"] = tc_delta.type
-                    if tc_delta.function:
-                        if tc_delta.function.name:
-                            cast(dict[str, str], tool_calls_dict[idx]["function"])["name"] = (
-                                tc_delta.function.name
-                            )
-                        if tc_delta.function.arguments:
-                            cast(dict[str, str], tool_calls_dict[idx]["function"])["arguments"] += (
-                                tc_delta.function.arguments
-                            )
-
-            # Capture finish reason
-            if choice.finish_reason:
-                finish_reason = choice.finish_reason
-
-        # Print newline after streaming content (if any content was printed)
-        if full_content:
-            print()
-
-        # Convert to simple dict format
-        result: dict[str, Any] = {
-            "role": role,
-            "content": full_content if full_content else None,
-            "finish_reason": finish_reason,
-        }
-
-        # Add tool calls if present (sorted by index)
-        if tool_calls_dict:
-            result["tool_calls"] = [tool_calls_dict[i] for i in sorted(tool_calls_dict.keys())]
+        assistant_content = result.get("content")
+        if assistant_content:
+            print(f"\n[📎] {assistant_content}")
 
         return result
+
+    def _resolve_model(self, model: str) -> tuple[str, OpenAIChatModel | None]:
+        """Resolve model identifier or instantiate a configured model."""
+
+        if ":" in model:
+            return model, None
+
+        provider_kwargs: dict[str, Any] = {}
+        if self.api_key is not None:
+            provider_kwargs["api_key"] = self.api_key
+        if self.base_url is not None:
+            provider_kwargs["base_url"] = self.base_url
+
+        if provider_kwargs:
+            provider = OpenAIProvider(**provider_kwargs)
+            return model, OpenAIChatModel(model, provider=provider)
+
+        # Default to OpenAI namespace
+        return f"openai:{model}", None
+
+
+def _convert_openai_messages(messages: list[dict[str, Any]]) -> list[ModelMessage]:
+    """Convert OpenAI-style messages into Pydantic AI message objects."""
+
+    converted: list[ModelMessage] = []
+    current_parts: list[Any] = []
+
+    for message in messages:
+        role = message.get("role")
+        content = message.get("content")
+
+        if role == "system":
+            if content is not None:
+                current_parts.append(SystemPromptPart(content=_to_text(content)))
+        elif role == "user":
+            if content is not None:
+                current_parts.append(UserPromptPart(content=_to_text(content)))
+            if current_parts:
+                converted.append(ModelRequest(parts=current_parts))
+                current_parts = []
+        elif role == "assistant":
+            if current_parts:
+                converted.append(ModelRequest(parts=current_parts))
+                current_parts = []
+
+            response_parts: list[Any] = []
+
+            text = _to_text(content)
+            if text:
+                response_parts.append(TextPart(content=text))
+
+            for tool_call in message.get("tool_calls", []) or []:
+                function_data = tool_call.get("function", {})
+                args = function_data.get("arguments")
+                parsed_args: Any
+                if isinstance(args, str):
+                    try:
+                        parsed_args = json.loads(args)
+                    except json.JSONDecodeError:
+                        parsed_args = args
+                else:
+                    parsed_args = args or {}
+
+                response_parts.append(
+                    ToolCallPart(
+                        tool_name=function_data.get("name", ""),
+                        args=parsed_args,
+                        tool_call_id=tool_call.get("id"),
+                    )
+                )
+
+            if response_parts:
+                converted.append(ModelResponse(parts=response_parts))
+        elif role == "tool":
+            if current_parts:
+                converted.append(ModelRequest(parts=current_parts))
+                current_parts = []
+
+            tool_name = message.get("name", "")
+            tool_call_id = message.get("tool_call_id") or ""
+            tool_content = _safe_json_loads(content)
+            converted.append(
+                ModelRequest(
+                    parts=[
+                        ToolReturnPart(
+                            tool_name=tool_name,
+                            content=tool_content,
+                            tool_call_id=tool_call_id,
+                        )
+                    ]
+                )
+            )
+
+    if current_parts:
+        converted.append(ModelRequest(parts=current_parts))
+
+    return converted
+
+
+def _convert_tools(tools: list[dict[str, Any]] | None) -> list[ToolDefinition]:
+    """Convert OpenAI tool definitions into Pydantic AI tool definitions."""
+
+    tool_defs: list[ToolDefinition] = []
+    if not tools:
+        return tool_defs
+
+    for tool in tools:
+        if tool.get("type") != "function":
+            continue
+
+        function = tool.get("function", {})
+        parameters = function.get("parameters")
+        tool_defs.append(
+            ToolDefinition(
+                name=function.get("name", ""),
+                description=function.get("description"),
+                parameters_json_schema=parameters or {},
+            )
+        )
+
+    return tool_defs
+
+
+def _convert_response_to_openai(response: ModelResponse) -> dict[str, Any]:
+    """Convert a Pydantic AI model response back to OpenAI-style message dict."""
+
+    content_chunks: list[str] = []
+    tool_calls: list[dict[str, Any]] = []
+
+    for part in response.parts:
+        if isinstance(part, TextPart):
+            if part.content:
+                content_chunks.append(part.content)
+        elif isinstance(part, ToolCallPart):
+            arguments = part.args if part.args is not None else {}
+            arguments_str = arguments if isinstance(arguments, str) else json.dumps(arguments)
+            tool_calls.append(
+                {
+                    "id": part.tool_call_id or "",
+                    "type": "function",
+                    "function": {
+                        "name": part.tool_name,
+                        "arguments": arguments_str,
+                    },
+                }
+            )
+
+    content = "".join(content_chunks) if content_chunks else None
+
+    result: dict[str, Any] = {
+        "role": "assistant",
+        "content": content,
+        "finish_reason": None,
+    }
+
+    if tool_calls:
+        result["tool_calls"] = tool_calls
+
+    return result
+
+
+def _to_text(content: Any) -> str:
+    """Convert message content to a plain string."""
+
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(segment.get("text", "") for segment in content if isinstance(segment, dict))
+    if content is None:
+        return ""
+    return str(content)
+
+
+def _safe_json_loads(content: Any) -> Any:
+    """Attempt to JSON-decode tool output content when appropriate."""
+
+    if isinstance(content, str):
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            return content
+    return content

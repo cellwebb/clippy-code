@@ -28,6 +28,8 @@ class UserModelConfig:
     description: str
     is_default: bool = False
     compaction_threshold: int | None = None  # Token threshold for auto compaction
+    context_window: int | None = None
+    max_tokens: int | None = None
 
 
 class UserModelManager:
