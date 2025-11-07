@@ -111,8 +111,9 @@ class LLMProvider:
             )
 
             model_identifier, model_object = self._resolve_model(model)
+            target_model = model_object or self._default_provider_identifier(model_identifier)
             response = model_request_sync(
-                model_object or model_identifier,
+                target_model,
                 model_messages,
                 model_request_parameters=params,
             )
@@ -138,6 +139,18 @@ class LLMProvider:
                 if provider is not None:
                     return model, provider(model_id)
                 return model, None
+
+            # For OpenAI-compatible providers, prefixed models (like hf:...) should
+            # still use the custom provider settings
+            if system != "openai" and self._is_openai_system():
+                if self.api_key is not None or self.base_url is not None:
+                    kwargs: dict[str, Any] = {}
+                    if self.api_key is not None:
+                        kwargs["api_key"] = self.api_key
+                    if self.base_url is not None:
+                        kwargs["base_url"] = self.base_url
+                    provider = OpenAIProvider(**kwargs)
+                    return model, OpenAIChatModel(model, provider=provider)
 
             if system != "openai":
                 return model, None
@@ -165,6 +178,28 @@ class LLMProvider:
             "hf": "huggingface",
         }
         return aliases.get(system, system)
+
+    def _default_provider_identifier(self, model_identifier: str) -> str:
+        """Ensure prefixed models use the correct provider hint when needed."""
+
+        if not self._is_openai_system():
+            return model_identifier
+
+        if model_identifier.startswith("openai:"):
+            return model_identifier
+
+        if ":" in model_identifier:
+            prefix, _, _ = model_identifier.partition(":")
+            if prefix != "openai":
+                return f"openai:{model_identifier}"
+
+        return model_identifier
+
+    def _is_openai_system(self) -> bool:
+        if self.provider_config:
+            system = self.provider_config.pydantic_system
+            return system in (None, "openai")
+        return True
 
     def _create_provider_for_system(self, system: str) -> Any | None:
         """Return a callable that builds a model for non-OpenAI systems."""

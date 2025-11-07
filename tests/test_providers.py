@@ -179,6 +179,43 @@ class TestLLMProvider:
             }
         ]
 
+    def test_create_message_prefixed_model_uses_openai_provider(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        provider_config = ProviderConfig(
+            name="synthetic",
+            base_url="https://api.synthetic.new/openai/v1",
+            api_key_env="SYN_API_KEY",
+            description="Synthetic",
+            pydantic_system="openai",
+        )
+        provider = LLMProvider(api_key="secret", provider_config=provider_config)
+
+        captured: dict[str, Any] = {}
+
+        def fake_model_request_sync(
+            model_identifier: Any,
+            *args: Any,
+            model_request_parameters: ModelRequestParameters | None = None,
+            **kwargs: Any,
+        ) -> ModelResponse:
+            captured["model"] = model_identifier
+            assert model_request_parameters is not None
+            return ModelResponse(parts=[TextPart(content="ok")])
+
+        monkeypatch.setattr("clippy.providers.model_request_sync", fake_model_request_sync)
+
+        provider.create_message(
+            messages=[{"role": "user", "content": "ping"}],
+            model="hf:zai-org/GLM",
+        )
+
+        # With the fix, prefixed models now use OpenAIChatModel with custom provider
+        from pydantic_ai.models.openai import OpenAIChatModel
+
+        assert isinstance(captured["model"], OpenAIChatModel)
+        assert captured["model"].model_name == "hf:zai-org/GLM"
+
     @pytest.mark.skipif(HuggingFaceModel is None, reason="huggingface extras not installed")
     def test_resolve_model_hf_prefix_uses_huggingface_model(self) -> None:
         provider_config = ProviderConfig(
@@ -207,7 +244,11 @@ class TestLLMProvider:
         resolved, model_obj = provider._resolve_model("hf:zai-org/GLM")
 
         assert resolved == "hf:zai-org/GLM"
-        assert model_obj is None
+        # With the fix, model_obj should now be an OpenAIChatModel, not None
+        from pydantic_ai.models.openai import OpenAIChatModel
+
+        assert isinstance(model_obj, OpenAIChatModel)
+        assert model_obj.model_name == "hf:zai-org/GLM"
 
 
 class TestConvertTools:
