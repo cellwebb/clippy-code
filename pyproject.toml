@@ -4,7 +4,7 @@ version = "4.1.0"
 description = "A powerful CLI coding agent powered by OpenAI-compatible LLMs"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "Your Name", email = "your.email@example.com" }]
+authors = [{ name = "Cell Webb", email = "cellwebb@users.noreply.github.com" }]
 requires-python = ">=3.10"
 keywords = ["ai", "cli", "coding-agent", "openai", "llm", "developer-tools", "cerebras", "ollama"]
 classifiers = [
