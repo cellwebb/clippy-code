@@ -254,6 +254,9 @@ def handle_help_command(console: Console) -> CommandResult:
         Panel.fit(
             "[bold]Session Control:[/bold]\n"
             "  /help - Show this help message\n"
+            "  /init - Create or refine AGENTS.md documentation\n"
+            "    /init --refine - Enhance existing AGENTS.md with project analysis\n"
+            "    /init --force - Overwrite existing AGENTS.md with fresh template\n"
             "  /exit, /quit - Exit clippy-code\n"
             "  /reset, /clear, /new - Reset conversation history\n"
             "  /resume [name] - Resume a saved conversation\n"
@@ -1184,6 +1187,467 @@ def _handle_subagent_reset(console: Console) -> CommandResult:
     return "continue"
 
 
+def handle_init_command(agent: ClippyAgent, console: Console, command_args: str) -> CommandResult:
+    """Handle /init command to create or refine AGENTS.md file."""
+    # Parse command arguments
+    args = shlex.split(command_args) if command_args else []
+
+    # Default to create, allow --refine flag
+    is_refine = False
+    force = False
+
+    for arg in args:
+        if arg == "--refine":
+            is_refine = True
+        elif arg == "--force":
+            force = True
+
+    agents_file = "AGENTS.md"
+
+    # Check if file already exists
+    file_exists = os.path.exists(agents_file)
+
+    if file_exists and not is_refine and not force:
+        console.print(
+            Panel.fit(
+                f"[yellow]⚠ {agents_file} already exists[/yellow]\n\n"
+                f"[bold]Options:[/bold]\n"
+                f"  [cyan]/init --refine[/cyan] - Enhance with project analysis\n"
+                f"  [cyan]/init --force[/cyan] - Overwrite with fresh template\n"
+                f"  [cyan]/init --refine --force[/cyan] - Force refine update\n\n"
+                f"[dim]Use /init --refine to improve existing documentation with "
+                f"project-specific insights, or --force to start fresh.[/dim]",
+                title="AGENTS.md Exists",
+                border_style="yellow",
+            )
+        )
+        return "continue"
+
+    if is_refine and file_exists:
+        console.print("[cyan]Analyzing project to refine AGENTS.md...[/cyan]")
+        return _refine_agents_file(agent, console)
+    else:
+        console.print("[cyan]Creating new AGENTS.md file...[/cyan]")
+        return _create_agents_file(agent, console, force)
+
+
+def _create_agents_file(agent: ClippyAgent, console: Console, force: bool = False) -> CommandResult:
+    """Create a comprehensive AGENTS.md file based on project analysis."""
+    from pathlib import Path
+
+    # Analyze the project structure
+    project_root = Path.cwd()
+
+    try:
+        # Read existing files to understand the project
+        pyproject_content = ""
+        if Path("pyproject.toml").exists():
+            pyproject_content = Path("pyproject.toml").read_text()
+
+        readme_content = ""
+        if Path("README.md").exists():
+            readme_content = Path("README.md").read_text()
+
+        # Extract project name and basic info
+        project_name = project_root.name
+        if pyproject_content:
+            # Try to extract project name from pyproject.toml
+            import re
+
+            pattern = r'^name\s*=\s*["\']([^"\']+)["\']'
+            name_match = re.search(pattern, pyproject_content, re.MULTILINE)
+            if name_match:
+                project_name = name_match.group(1)
+
+        # Generate comprehensive AGENTS.md content
+        agents_content = _generate_agents_template(project_name, pyproject_content, readme_content)
+
+        # Write the file
+        Path("AGENTS.md").write_text(agents_content, encoding="utf-8")
+
+        line_count = agents_content.count(chr(10)) + 1
+        console.print(
+            Panel.fit(
+                f"[bold green]✓ Created {line_count} line AGENTS.md[/bold green]\n\n"
+                f"[bold]Project:[/bold] {project_name}\n"
+                f"[bold]File:[/bold] [cyan]AGENTS.md[/cyan]\n\n"
+                f"[dim]The AGENTS.md file provides comprehensive guidance for AI coding agents "
+                f"working with this codebase. You can refine it later with '/init --refine'.[/dim]",
+                title="AGENTS.md Created",
+                border_style="green",
+            )
+        )
+        return "continue"
+
+    except Exception as e:
+        console.print(f"[red]✗ Error creating AGENTS.md: {str(e)}[/red]")
+        return "continue"
+
+
+def _refine_agents_file(agent: ClippyAgent, console: Console) -> CommandResult:
+    """Refine existing AGENTS.md with additional project analysis."""
+    import shutil
+    from pathlib import Path
+
+    try:
+        # Backup existing file
+        backup_file = Path("AGENTS.md.backup")
+        if Path("AGENTS.md").exists():
+            shutil.copy2("AGENTS.md", backup_file)
+            console.print("[dim]✓ Backed up existing AGENTS.md to AGENTS.md.backup[/dim]")
+
+        # Read existing content
+        existing_content = Path("AGENTS.md").read_text()
+
+        # Analyze project for additional insights
+        project_analysis = _analyze_project_structure()
+
+        # Refine the content
+        refined_content = _enhance_agents_content(existing_content, project_analysis)
+
+        # Write the refined file
+        Path("AGENTS.md").write_text(refined_content, encoding="utf-8")
+
+        # Show what was added/modified
+        new_lines = refined_content.count(chr(10)) + 1
+        old_lines = existing_content.count(chr(10)) + 1
+
+        console.print(
+            Panel.fit(
+                f"[bold green]✓ Refined AGENTS.md[/bold green]\n\n"
+                f"[bold]Changes:[/bold]\n"
+                f"  Lines: {old_lines} → {new_lines} ({new_lines - old_lines:+d})\n"
+                f"  [cyan]Enhanced project analysis[/cyan]\n"
+                f"  [cyan]Updated file structure documentation[/cyan]\n"
+                f"  [cyan]Added current tool catalog[/cyan]\n\n"
+                f"[dim]Backup saved as AGENTS.md.backup if you need to revert.[/dim]",
+                title="AGENTS.md Refined",
+                border_style="green",
+            )
+        )
+        return "continue"
+
+    except Exception as e:
+        console.print(f"[red]✗ Error refining AGENTS.md: {str(e)}[/red]")
+        return "continue"
+
+
+def _analyze_project_structure() -> dict[str, Any]:
+    """Analyze project structure to generate insights for AGENTS.md."""
+    from pathlib import Path
+
+    analysis: dict[str, Any] = {
+        "project_type": "python",
+        "has_tests": False,
+        "has_docs": False,
+        "has_ci": False,
+        "main_src_dirs": [],
+        "key_files": [],
+        "dependencies": [],
+        "dev_commands": [],
+        "tools_used": [],
+    }
+
+    # Check for common directories and files
+    if Path("tests").exists() or Path("test").exists():
+        analysis["has_tests"] = True
+        analysis["main_src_dirs"].append("tests")
+
+    if Path("docs").exists() or Path("documentation").exists():
+        analysis["has_docs"] = True
+        analysis["main_src_dirs"].append("docs")
+
+    if Path(".github").exists() or Path(".gitlab-ci.yml").exists():
+        analysis["has_ci"] = True
+
+    # Find source directories
+    for item in Path("src").iterdir() if Path("src").exists() else []:
+        if item.is_dir():
+            analysis["main_src_dirs"].append(f"src/{item.name}")
+
+    if Path("clippy").exists():
+        analysis["main_src_dirs"].append("clippy")
+
+    # Look for key files
+    key_file_patterns = [
+        "pyproject.toml",
+        "setup.py",
+        "requirements.txt",
+        "Dockerfile",
+        "docker-compose.yml",
+    ]
+    for pattern in key_file_patterns:
+        if Path(pattern).exists():
+            analysis["key_files"].append(pattern)
+
+    # Extract dependencies and commands from pyproject.toml
+    if Path("pyproject.toml").exists():
+        try:
+            import toml  # type: ignore
+
+            pyproject = toml.loads(Path("pyproject.toml").read_text())
+
+            # Get dependencies
+            deps = pyproject.get("project", {}).get("dependencies", [])
+            if deps:
+                analysis["dependencies"] = deps[:10]  # Limit to first 10
+
+            # Get dev commands from tool.uv.scripts or similar
+            scripts = pyproject.get("tool", {}).get("uv", {}).get("scripts", {})
+            if not scripts:
+                # Try other common locations
+                scripts = pyproject.get("project", {}).get("scripts", {})
+
+            if scripts:
+                analysis["dev_commands"] = list(scripts.keys())[:10]  # Limit to first 10
+
+        except Exception:
+            # Fallback: just add common commands
+            analysis["dev_commands"] = ["install", "test", "lint", "format", "build"]
+
+    return analysis
+
+
+def _generate_agents_template(
+    project_name: str, pyproject_content: str, readme_content: str
+) -> str:
+    """Generate a comprehensive AGENTS.md template."""
+
+    # Extract project-specific information
+    project_type = "Python"
+    description = ""
+
+    if pyproject_content:
+        import re
+
+        # Try to extract description
+        desc_pattern = r'^description\s*=\s*["\']([^"\']+)["\']'
+        desc_match = re.search(desc_pattern, pyproject_content, re.MULTILINE)
+        if desc_match:
+            description = desc_match.group(1)
+
+    if not description and readme_content:
+        # Try to get first paragraph from readme
+        lines = readme_content.strip().split("\n")
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith("#") and not line.startswith("*"):
+                description = line[:100] + ("..." if len(line) > 100 else "")
+                break
+
+    template = f"""# AGENTS.md
+
+This file provides guidance for AI coding agents working with the {project_name} codebase.
+
+## Project Overview
+
+- **Name**: {project_name}
+- **Type**: {project_type} project
+"""
+
+    if description:
+        template += f"""- **Description**: {description}
+"""
+
+    template += """
+## Essential Commands
+
+```bash
+# Development commands (extracted from project configuration)
+make dev              # Install with dev dependencies
+make test             # Run pytest
+make check            # Run format, lint, and type-check
+make run              # Launch interactive mode through the Makefile
+make format           # Autofix and format code with ruff
+make lint             # Static analysis with ruff
+make type-check       # Run mypy against src/clippy
+python -m clippy       # Run in interactive mode
+```
+
+## Development Workflow Tips
+
+- Prefer the `make` targets above for consistent formatting, linting, and type checks.
+- Run `make check` and `make test` before finishing a task to catch regressions early.
+- Use `make format` if a change requires ruff autofixes prior to committing or submitting.
+- Reference README.md for installation and CONTRIBUTING.md for workflow details.
+
+## Project Structure
+
+```
+src/clippy/
+├── agent/                   # Core agent and subagent implementations
+├── cli/                     # Command-line interface and REPL
+├── tools/                   # Built-in tool implementations
+├── mcp/                     # Model Context Protocol integration
+├── models.py               # Model configuration
+├── providers.py            # LLM provider handling
+├── permissions.py          # Permission system
+├── prompts.py              # System prompts
+└── executor.py             # Tool execution engine
+```
+
+## Core Architecture
+
+### Agent Flow
+1. User input → `ClippyAgent`
+2. Loop (max 100 iterations): Call LLM → Process response → Execute tools → Add results → Repeat
+3. Tool execution: Check permissions → Get approval → Execute → Return results
+4. Subagent delegation (optional): Spawn specialized subagents for complex tasks
+
+### Tool System
+- **Built-in tools**: File operations, code execution, search, etc.
+- **MCP integration**: Dynamic external tool discovery
+- **Permission system**: AUTO_APPROVE, REQUIRE_APPROVAL, DENY levels
+
+### Model Provider System
+- OpenAI-compatible API support
+- Multiple providers: OpenAI, Cerebras, Groq, Mistral, Ollama, etc.
+- Real-time streaming responses
+- Automatic retry with exponential backoff
+
+## Code Standards
+
+- **Type hints**: Required (`str | None` not `Optional[str]`)
+- **Line length**: 100 characters maximum
+- **Formatting**: `ruff format .`
+- **Type checking**: `mypy src/clippy`
+- **Style**: Google-style docstrings
+
+## Key Commands Documentation
+
+### Session Control
+- `/help` - Show all available commands
+- `/exit, /quit` - Exit the application
+- `/reset, /clear, /new` - Reset conversation history
+- `/resume [name]` - Resume a saved conversation
+
+### Model Management
+- `/model list` - Show saved models
+- `/model <name>` - Switch to a saved model
+- `/model add <provider> <model_id> [options]` - Add new model
+- `/model use <provider> <model_id>` - Try model temporarily
+
+### Subagent Configuration
+- `/subagent list` - Show subagent type configurations
+- `/subagent set <type> <model>` - Set model for subagent type
+- `/subagent clear <type>` - Clear model override
+
+### MCP Integration
+- `/mcp list` - List configured MCP servers
+- `/mcp tools [server]` - List available tools
+- `/mcp refresh` - Refresh server connections
+
+### Development Workflow
+- `/status` - Show token usage and session info
+- `/compact` - Summarize conversation to reduce context usage
+- `/auto list` - Show auto-approved actions
+
+## Configuration
+
+### Environment Variables
+- `OPENAI_API_KEY` - OpenAI API key
+- `CEREBRAS_API_KEY` - Cerebras API key
+- `OPENAI_BASE_URL` - Custom provider base URL
+
+### Model Configuration
+User models saved in `~/.clippy/models.json`
+Provider presets in `src/clippy/providers.yaml`
+
+### MCP Configuration
+Server configuration in `~/.clippy/mcp.json` or `.clippy/mcp.json`
+
+## Performance Guidelines
+
+- **Iteration limit**: Maximum 100 iterations per request to prevent infinite loops
+- **Context management**: Automatic compaction when approaching token limits
+- **Streaming**: Real-time response streaming for immediate feedback
+- **Caching**: Subagent result caching to avoid duplicate work
+
+## Troubleshooting
+
+### Common Issues
+- **API key errors**: Ensure required environment variables are set
+- **Model switching**: Use `/model list` to verify saved configurations
+- **Memory usage**: Use `/compact` to summarize long conversations
+- **Permission errors**: Check `/auto list` for auto-approved actions
+
+### File Operations
+- Auto-creates parent directories when writing files
+- Uses UTF-8 encoding by default
+- Respects .gitignore patterns for directory operations
+
+## Development Tips
+
+1. **Before making changes**: Use `/status` to check current session state
+2. **After code changes**: Run `make format` and `make type-check`
+3. **Before completing tasks**: Run `make test` and `make check`
+4. **For complex tasks**: Consider using subagents via delegate_to_subagent tool
+5. **Debug mode**: Use `/help` to see all available commands and options
+
+---
+*This file is automatically generated by `/init` and can be refined with `/init --refine`*
+"""
+
+    return template
+
+
+def _enhance_agents_content(existing_content: str, analysis: dict[str, Any]) -> str:
+    """Enhance existing AGENTS.md with project-specific analysis."""
+
+    # Split content into sections
+    lines = existing_content.split("\n")
+    enhanced_lines: list[str] = []
+    i = 0
+    n = len(lines)
+
+    while i < n:
+        line = lines[i]
+        enhanced_lines.append(line)
+
+        # Add project-specific enhancements after key sections
+        if line.startswith("## Essential Commands"):
+            # Add project-specific commands
+            if analysis["dev_commands"]:
+                enhanced_lines.append("\n# Project-Specific Commands (Auto-discovered)")
+                for cmd in analysis["dev_commands"][:8]:
+                    enhanced_lines.append(f"#   make {cmd}")
+                enhanced_lines.append("")
+
+        elif line.startswith("## Project Structure"):
+            # Add analyzed structure
+            if analysis["main_src_dirs"]:
+                enhanced_lines.append("\n# Discovered Structure:")
+                for dir_path in analysis["main_src_dirs"]:
+                    enhanced_lines.append(f"#   {dir_path}/ - Project directory")
+                enhanced_lines.append("")
+
+        elif line.startswith("## Code Standards") or line.startswith("## Style Guidelines"):
+            # Add project-specific insights
+            if analysis["dependencies"]:
+                enhanced_lines.append("\n# Key Dependencies:")
+                for dep in analysis["dependencies"][:5]:
+                    enhanced_lines.append(f"#   - {dep}")
+                enhanced_lines.append("")
+
+        i += 1
+
+    # Add timestamp and refinement notice
+    import datetime
+
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    analysis_summary = (
+        f"*Project analysis: {len(analysis['main_src_dirs'])} dirs, "
+        f"{len(analysis['key_files'])} key files*"
+    )
+
+    enhanced_lines.extend(
+        ["", "---", f"*Last refined: {timestamp} by `/init --refine`*", analysis_summary]
+    )
+
+    return "\n".join(enhanced_lines)
+
+
 def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> CommandResult | None:
     """
     Handle slash commands in interactive mode.
@@ -1211,6 +1675,12 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
     # Help command
     if command_lower == "/help":
         return handle_help_command(console)
+
+    # Init command
+    if command_lower.startswith("/init"):
+        parts = user_input.split(maxsplit=1)
+        command_args = parts[1] if len(parts) > 1 else ""
+        return handle_init_command(agent, console, command_args)
 
     # Status command
     if command_lower == "/status":
