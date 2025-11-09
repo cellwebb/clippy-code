@@ -124,7 +124,9 @@ class LLMProvider:
 
         assistant_content = result.get("content")
         if assistant_content:
-            print(f"\n[📎] {assistant_content}")
+            # Remove leading newlines that cause emoji to appear on separate line
+            cleaned_content = assistant_content.lstrip('\n')
+            print(f"\n[📎] {cleaned_content}")
 
         return result
 
