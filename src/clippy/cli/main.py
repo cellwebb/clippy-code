@@ -189,10 +189,23 @@ def main() -> None:
     if args.prompt:
         # One-shot mode - user provided a prompt
         prompt = " ".join(args.prompt)
-        run_one_shot(agent, prompt, args.yes)
+        # Handle --yolo flag (overrides --yes)
+        auto_approve_all = args.yolo or args.yes
+        if args.yolo:
+            # Set yolo mode on agent for one-shot mode
+            agent.yolo_mode = True
+            console.print(
+                "[bold red]🔥 YOLO MODE ENABLED - All actions will be auto-approved! 🔥[/bold red]"
+            )
+        run_one_shot(agent, prompt, auto_approve_all)
     else:
         # Interactive mode - no prompt provided, start REPL
-        run_interactive(agent, args.yes)
+        # Handle --yolo flag (overrides --yes)
+        auto_approve = args.yolo or args.yes
+        if args.yolo:
+            # Set yolo mode on agent for interactive mode
+            agent.yolo_mode = True
+        run_interactive(agent, auto_approve)
 
 
 if __name__ == "__main__":

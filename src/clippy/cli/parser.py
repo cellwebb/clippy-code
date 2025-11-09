@@ -24,6 +24,12 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--yolo",
+        action="store_true",
+        help="YOLO mode - auto-approve everything without any prompts (use with extreme caution!)",
+    )
+
+    parser.add_argument(
         "--model",
         type=str,
         help="Model to use (e.g., gpt-5, llama3.1-8b for Cerebras)",

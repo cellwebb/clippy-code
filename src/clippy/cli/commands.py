@@ -289,7 +289,8 @@ def handle_help_command(console: Console) -> CommandResult:
             "[bold]Permissions:[/bold]\n"
             "  /auto list - List auto-approved actions\n"
             "  /auto revoke <action> - Revoke auto-approval for an action\n"
-            "  /auto clear - Clear all auto-approvals\n\n"
+            "  /auto clear - Clear all auto-approvals\n"
+            "  /yolo - Toggle YOLO mode (auto-approve ALL actions)\n\n"
             "[bold]MCP Servers:[/bold]\n"
             "  /mcp list - List configured MCP servers\n"
             "  /mcp tools [server] - List tools available from MCP servers\n"
@@ -1732,8 +1733,52 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
         command_args = parts[1] if len(parts) > 1 else ""
         return handle_truncate_command(agent, console, command_args)
 
+    # YOLO command
+    if command_lower == "/yolo":
+        return handle_yolo_command(agent, console)
+
     # Not a recognized command
     return None
+
+
+def handle_yolo_command(agent: ClippyAgent, console: Console) -> CommandResult:
+    """Handle /yolo command to toggle YOLO mode."""
+    # Toggle yolo mode
+    current_yolo = getattr(agent, "yolo_mode", False)
+    new_yolo = not current_yolo
+
+    # Set yolo mode on agent
+    agent.yolo_mode = new_yolo
+
+    if new_yolo:
+        console.print(
+            Panel.fit(
+                "[bold red]🔥 YOLO MODE ACTIVATED! 🔥[/bold red]\n\n"
+                "[bold yellow]⚠ WARNING: All actions will be auto-approved "
+                "without prompts![/bold yellow]\n\n"
+                "[bold]What this means:[/bold]\n"
+                "  • Every tool execution will be approved automatically\n"
+                "  • No confirmation prompts for any operations\n"
+                "  • File writes, deletes, and executes run without approval\n"
+                "  • MCP tools run without trust checks\n\n"
+                "[bold dim]Use /yolo again to disable YOLO mode\n"
+                "Use with extreme caution - you're in charge! 📎[/bold dim]",
+                title="YOLO Mode",
+                border_style="red",
+            )
+        )
+    else:
+        console.print(
+            Panel.fit(
+                "[bold green]✓ YOLO Mode Disabled[/bold green]\n\n"
+                "[dim]Normal permission checks have been restored.\n"
+                "Actions will require approval again.[/dim]",
+                title="Safety Restored",
+                border_style="green",
+            )
+        )
+
+    return "continue"
 
 
 def handle_truncate_command(

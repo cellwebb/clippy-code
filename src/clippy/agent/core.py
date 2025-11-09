@@ -92,6 +92,7 @@ class ClippyAgent:
         self.interrupted = False
         self.approval_callback = approval_callback
         self.mcp_manager = mcp_manager
+        self.yolo_mode = False  # YOLO mode flag
 
         # Initialize subagent manager
         self.subagent_manager = SubAgentManager(

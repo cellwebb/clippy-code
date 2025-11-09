@@ -55,6 +55,7 @@ def _suggest_similar_commands(command: str) -> list[str]:
         "auto",
         "mcp",
         "truncate",
+        "yolo",
     ]
 
     # Find close matches using fuzzy matching
@@ -102,6 +103,16 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
     else:
         provider_info = " (OpenAI)"
 
+    # Check if YOLO mode is active and add visual indicator
+    yolo_indicator = ""
+    if getattr(agent, "yolo_mode", False):
+        yolo_indicator = (
+            "\n[bold red]🔥 YOLO MODE IS ACTIVE - ALL ACTIONS AUTO-APPROVED! 🔥[/bold red]\n"
+        )
+        border_style = "red"
+    else:
+        border_style = "green"
+
     console.print(
         Panel.fit(
             "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
@@ -132,7 +143,8 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             "[bold]Permissions:[/bold]\n"
             "  /auto list - List auto-approved actions\n"
             "  /auto revoke <action> - Revoke auto-approval for an action\n"
-            "  /auto clear - Clear all auto-approvals\n\n"
+            "  /auto clear - Clear all auto-approvals\n"
+            "  /yolo - Toggle YOLO mode (auto-approve ALL actions)\n\n"
             "[bold]MCP Servers:[/bold]\n"
             "  /mcp list - List configured MCP servers\n"
             "  /mcp tools [server] - List tools available from MCP servers\n"
@@ -148,14 +160,22 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             "[bold]Usage:[/bold]\n"
             "  Type your request and press Enter\n"
             "  Ctrl+C or double-ESC - Interrupt execution",
-            border_style="green",
+            border_style=border_style,
         )
     )
 
+    # Show YOLO mode indicator if active
+    if yolo_indicator:
+        console.print(yolo_indicator)
+
     while True:
         try:
-            # Get user input
-            user_input = session.prompt("\n[You] ➜ ").strip()
+            # Get user input with YOLO mode indicator in prompt
+            prompt_text = "\n[You] ➜ "
+            if getattr(agent, "yolo_mode", False):
+                prompt_text = "\n[🔥 YOLO You] ➜ "
+
+            user_input = session.prompt(prompt_text).strip()
 
             if not user_input:
                 continue

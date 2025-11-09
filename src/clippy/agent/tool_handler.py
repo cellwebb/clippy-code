@@ -142,6 +142,15 @@ def handle_tool_use(
     Returns:
         True if the tool was executed successfully, False otherwise
     """
+    # Check for YOLO mode (override everything)
+    yolo_mode = False
+    if parent_agent is not None and hasattr(parent_agent, "yolo_mode"):
+        yolo_mode = parent_agent.yolo_mode
+
+    # In YOLO mode, everything is auto-approved
+    if yolo_mode:
+        auto_approve_all = True
+
     # Map tool names to action types
     action_map = {
         "read_file": ActionType.READ_FILE,

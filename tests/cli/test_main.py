@@ -71,6 +71,7 @@ def _make_args(**overrides: Any) -> SimpleNamespace:
     defaults = {
         "prompt": [],
         "yes": False,
+        "yolo": False,
         "verbose": False,
         "model": None,
         "base_url": None,

@@ -55,6 +55,10 @@ class ClippyCommandCompleter(Completer):
                 "completer": None,
                 "takes_arg": True,
             },
+            "yolo": {
+                "description": "Toggle YOLO mode (auto-approve ALL actions)",
+                "completer": None,
+            },
             "providers": {
                 "description": "List available providers",
                 "completer": None,
