@@ -27,6 +27,8 @@ from .read_files import TOOL_SCHEMA as READ_FILES_SCHEMA
 from .read_files import read_files
 from .search_files import TOOL_SCHEMA as SEARCH_FILES_SCHEMA
 from .search_files import search_files
+from .think import TOOL_SCHEMA as THINK_SCHEMA
+from .think import think
 from .write_file import TOOL_SCHEMA as WRITE_FILE_SCHEMA
 from .write_file import write_file
 
@@ -43,6 +45,7 @@ def get_all_tools() -> list[dict[str, Any]]:
         READ_FILE_SCHEMA,
         READ_FILES_SCHEMA,
         SEARCH_FILES_SCHEMA,
+        THINK_SCHEMA,
         WRITE_FILE_SCHEMA,
     ]
 
@@ -111,6 +114,7 @@ __all__ = [
     "read_file",
     "read_files",
     "search_files",
+    "think",
     "write_file",
     "TOOLS",
     "get_tool_by_name",

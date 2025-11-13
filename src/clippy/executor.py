@@ -18,6 +18,7 @@ from .tools.list_directory import list_directory
 from .tools.read_file import read_file
 from .tools.read_files import read_files
 from .tools.search_files import search_files
+from .tools.think import think
 from .tools.write_file import write_file
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,7 @@ class ActionExecutor:
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
             "find_replace": ActionType.FIND_REPLACE,
+            "think": ActionType.THINK,
             "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
             "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
         }
@@ -163,6 +165,8 @@ class ActionExecutor:
                 result = _create_directory_util(tool_input["path"])
             elif tool_name == "delete_file":
                 result = _delete_file_util(tool_input["path"])
+            elif tool_name == "think":
+                result = think(tool_input["thought"])
 
             else:
                 logger.warning(f"Unimplemented tool: {tool_name}")

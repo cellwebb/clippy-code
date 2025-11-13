@@ -30,6 +30,7 @@ class ActionType(str, Enum):
     GREP = "grep"
     EDIT_FILE = "edit_file"
     FIND_REPLACE = "find_replace"
+    THINK = "think"
     DELEGATE_TO_SUBAGENT = "delegate_to_subagent"
     RUN_PARALLEL_SUBAGENTS = "run_parallel_subagents"
 
@@ -48,6 +49,7 @@ class PermissionConfig(BaseModel):
         ActionType.SEARCH_FILES,
         ActionType.GET_FILE_INFO,
         ActionType.GREP,
+        ActionType.THINK,  # Auto-approve thinking - it's just internal reasoning
         ActionType.MCP_LIST_TOOLS,  # Auto-approve MCP tool listing
     }
     require_approval: set[ActionType] = {
