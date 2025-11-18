@@ -9,111 +9,23 @@
 
 clippy-code is an AI-powered development assistant that works with any OpenAI-compatible API provider. It features robust permission controls, streaming responses, and multiple interface modes for different workflows.
 
-## 📚 Use Cases & Examples
-
-### 🚀 Real-World Scenarios
-
-#### Web Development
-```bash
-# Create a new Flask project with validation
-clippy "Create a Flask app with routes, templates, and config files"
-
-# Fix syntax errors in your code
-clippy "Find and fix Python syntax errors in my Flask app"
-
-# Update package.json with validation
-clippy "Add express dependency and update scripts in package.json"
-```
-
-#### Data Science
-```bash
-# Create a data analysis notebook
-clippy "Create a Jupyter notebook for data analysis with pandas and matplotlib"
-
-# Validate and update CSV processing script
-clippy "Update my data processing script to handle missing values"
-```
-
-#### CLI Tool Development  
-```bash
-# Create a command-line tool
-clippy "Build a Python CLI tool with argparse and man page"
-
-# Validate and fix configuration files
-clippy "Ensure my YAML config is valid and add missing sections"
-```
-
-#### DevOps & Automation
-```bash
-# Create Kubernetes manifests
-clippy "Generate Kubernetes deployment, service, and configmap files"
-
-# Validate Dockerfile and CI/CD configs
-clippy "Check my Dockerfile for best practices and fix issues"
-```
-
-#### API Development
-```bash
-# Create REST API endpoints
-clippy "Build FastAPI endpoints with models, CRUD operations, and validation"
-
-# Generate API documentation
-clippy "Create OpenAPI spec and API documentation for my service"
-```
-
-### 💡 Pro Tips
-
-#### File Validation Examples
-```bash
-# The enhanced write_file automatically validates syntax:
-clippy "Create a valid Python file with functions and docstrings"
-clippy "Generate a proper JSON configuration file"
-clippy "Write a valid HTML page with semantic structure"
-
-# Skip validation when needed:
-clippy "Write a minified JavaScript file (skip_validation=True)"
-clippy "Create a binary data file (skip_validation=True)"
-```
-
-#### Error Prevention
-```bash
-# Binary files are automatically detected and rejected with guidance:
-# ✅ "File validation failed: Binary file .png detected - use skip_validation=True"
-
-# Large files skip validation for performance:
-# ✅ "File too large for validation (skipped)"
-
-# Syntax errors caught before writing:
-# ✅ "File validation failed: Python syntax error: expected ':' at line 5"
-```
-
-#### Interactive Mode Power
-```bash
-# Start interactive REPL for complex tasks
-clippy
-
-# In REPL, use slash commands:
-/help                    # Show available tools and help
-/model list             # List saved model configurations
-/model add <model>       # Save a new model configuration
-/mcp list               # Show MCP server status
-/auto <action_type>     # Auto-approve specific action types
-```
-
-#### Advanced Subagent Workflows
-```bash
-# Parallel development tasks
-clippy "Use subagents to: 1) Review all Python files for security issues, 2) Generate unit tests for utils.py, 3) Refactor the database module"
-
-# Specialized agents for different tasks
-clippy "Use the code_review subagent to check my code for best practices"
-clippy "Use the testing subagent to create comprehensive test coverage"
-clippy "Use the documentation subagent to generate API docs from my code"
-```
-
-## Quick Start
+## 🚀 Quick Start
 
 ### Installation
+
+#### Option 1: UVX (Recommended - Run Without Installation)
+
+```bash
+# Run directly without installation
+uvx clippy-code "create a hello world python script"
+
+# Start interactive mode
+uvx clippy-code
+
+# Note: First run may be slower as it downloads and caches the tool
+```
+
+#### Option 2: UV Tool Install
 
 ```bash
 # Install uv if you haven't already
@@ -121,19 +33,6 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install clippy-code from PyPI
 uv tool install clippy-code
-```
-
-#### Install from source
-
-```bash
-git clone https://github.com/cellwebb/clippy-code.git
-cd clippy-code
-
-# Install with dev dependencies (recommended for contributors)
-make dev
-
-# Or install without dev extras
-make install
 ```
 
 ### Setup API Keys
@@ -144,25 +43,31 @@ clippy-code supports multiple LLM providers through OpenAI-compatible APIs:
 # OpenAI (default)
 echo "OPENAI_API_KEY=your_api_key_here" > .env
 
-# Mistral
+# Or choose from many supported providers:
 echo "MISTRAL_API_KEY=your_api_key_here" > .env
-
-# Cerebras
 echo "CEREBRAS_API_KEY=your_api_key_here" > .env
-
-# Groq
 echo "GROQ_API_KEY=your_api_key_here" > .env
-
-# For local models like Ollama, you typically don't need an API key
-# Just set the base URL:
-export OPENAI_BASE_URL=http://localhost:11434/v1
 ```
 
-### MCP Configuration
+### Basic Usage
 
-clippy-code can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
+```bash
+# One-shot mode - execute a single task
+clippy "create a hello world python script"
 
-To use MCP servers, create an `mcp.json` configuration file in your project root or home directory:
+# Interactive mode - REPL-style conversations
+clippy
+
+# Specify a model
+clippy --model gpt-4 "refactor main.py to use async/await"
+
+# Auto-approve all actions (use with caution!)
+clippy -y "write unit tests for utils.py"
+```
+
+## 🔧 MCP Integration (Optional)
+
+clippy-code can dynamically discover and use tools from MCP (Model Context Protocol) servers. To use MCP servers, create an `mcp.json` configuration file:
 
 ```json
 {
@@ -180,85 +85,14 @@ To use MCP servers, create an `mcp.json` configuration file in your project root
 }
 ```
 
-See [MCP_DOCUMENTATION.md](MCP_DOCUMENTATION.md) for detailed information about MCP configuration and usage.
-
 MCP tools will automatically be available in interactive mode, with appropriate approval prompts to maintain safety.
-See [Setup API Keys](#setup-api-keys) for provider configuration details.
-
-### Basic Usage
-
-```bash
-# One-shot mode - execute a single task
-clippy "create a hello world python script"
-
-# Interactive mode - REPL-style conversations (starts when no prompt given)
-clippy
-
-# Specify a model
-clippy --model gpt-5 "refactor main.py to use async/await"
-
-# Auto-approve all actions (use with caution!)
-clippy -y "write unit tests for utils.py"
-
-# Document mode - rich TUI interface
-clippy -d
-```
-
-### Common Workflows
-
-#### 🛠️ File Operations with Validation
-```bash
-# Create files with automatic syntax validation
-clippy "Create a config.yaml file with database settings"
-
-# Edit existing files safely
-clippy "Fix the Python import errors in main.py"
-
-# Search and replace across files
-clippy "Find all TODO comments and create GitHub issues"
-```
-
-#### 🔄 Refactoring & Code Quality
-```bash
-# Refactor with subagents
-clippy "Use the refactor subagent to improve code quality in the authentication module"
-
-# Code review
-clippy "Use the code_review subagent to review my changes before commit"
-
-# Add tests
-clippy "Use the testing subagent to generate unit tests for the user service"
-```
-
-#### 📦 Project Setup & Maintenance
-```bash
-# Initialize new project
-clippy "Create a new Python project structure with setup.py, requirements.txt, and tests"
-
-# Dependency management
-clippy "Update package.json with the latest security patches"
-
-# Documentation generation
-clippy "Generate README and API documentation from the codebase"
-```
-
-### Development Workflow
-
-Use the provided `Makefile` for common development tasks:
-
-```bash
-make dev          # Install with development dependencies
-make check        # Format, lint, and type-check
-make test         # Run the test suite
-make run          # Launch clippy-code in interactive mode
-```
 
 ## Key Features
 
 ### 🌐 **Supported Providers**
 
-- **Mistral** • **OpenAI** • **Cerebras** • **Chutes.ai** • **Groq** • **LM Studio** • **MiniMax**
-- **Ollama** • **OpenRouter** • **Synthetic.new** • **Together AI** • **Z.AI**
+- **Chutes.ai** • **Cerebras** • **Groq** • **LM Studio** • **MiniMax** • **Mistral**
+- **Ollama** • **OpenAI** • **OpenRouter** • **Synthetic.new** • **Together AI** • **Z.AI**
 
 ### 🛡️ **Safety-First Design**
 
@@ -484,30 +318,32 @@ Testing philosophy:
 
 clippy-code has access to these tools with **smart file validation**:
 
-| Tool               | Description                                       | Auto-Approved | Validation Features |
-| ------------------ | ------------------------------------------------- | ------------- | ------------------ |
-| `read_file`        | Read file contents                                | ✅            | - |
-| `write_file`       | **Write files with syntax validation**              | ❌            | **✅ Python, JSON, YAML, XML, HTML, CSS, JS, TS, Markdown, Dockerfile** |
-| `delete_file`      | Delete files                                      | ❌            | - |
-| `list_directory`   | List directory contents                           | ✅            | - |
-| `create_directory` | Create directories                                | ❌            | - |
-| `execute_command`  | Run shell commands                                | ❌            | - |
-| `search_files`     | Search with glob patterns                         | ✅            | - |
-| `get_file_info`    | Get file metadata                                 | ✅            | - |
-| `read_files`       | Read multiple files at once                       | ✅            | - |
-| `grep`             | Search patterns in files                          | ✅            | - |
-| `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            | - |
+| Tool               | Description                                       | Auto-Approved | Validation Features                                                     |
+| ------------------ | ------------------------------------------------- | ------------- | ----------------------------------------------------------------------- |
+| `read_file`        | Read file contents                                | ✅            | -                                                                       |
+| `write_file`       | **Write files with syntax validation**            | ❌            | **✅ Python, JSON, YAML, XML, HTML, CSS, JS, TS, Markdown, Dockerfile** |
+| `delete_file`      | Delete files                                      | ❌            | -                                                                       |
+| `list_directory`   | List directory contents                           | ✅            | -                                                                       |
+| `create_directory` | Create directories                                | ❌            | -                                                                       |
+| `execute_command`  | Run shell commands                                | ❌            | -                                                                       |
+| `search_files`     | Search with glob patterns                         | ✅            | -                                                                       |
+| `get_file_info`    | Get file metadata                                 | ✅            | -                                                                       |
+| `read_files`       | Read multiple files at once                       | ✅            | -                                                                       |
+| `grep`             | Search patterns in files                          | ✅            | -                                                                       |
+| `edit_file`        | Edit files by line (insert/replace/delete/append) | ❌            | -                                                                       |
 
 #### 🔥 Enhanced write_file Features
+
 - **🛡️ Syntax Validation**: Automatic validation for 12+ file types
 - **🚫 Binary Detection**: Prevents binary files from being written as text
-- **⚡ Performance Smart**: Large files (>1MB) skip validation automatically  
+- **⚡ Performance Smart**: Large files (>1MB) skip validation automatically
 - **💡 Helpful Errors**: Specific error messages with actionable guidance
 - **🔧 Override Option**: `skip_validation=True` for binary files or intentional syntax errors
 
 **Supported File Types:**
+
 - 🐍 **Python**: AST syntax checking with detailed error messages
-- 📄 **JSON/YAML**: Structure validation with line numbers on errors  
+- 📄 **JSON/YAML**: Structure validation with line numbers on errors
 - 🌐 **HTML/CSS**: Tag balancing and syntax checking
 - 📱 **JavaScript/TypeScript**: Node.js-based validation when available
 - 📝 **Markdown**: Link and header validation
@@ -515,28 +351,6 @@ clippy-code has access to these tools with **smart file validation**:
 - 📦 **XML**: Well-formedness checking
 
 For detailed information about MCP integration, see [docs/MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md).
-
-clippy-code can dynamically discover and use tools from MCP (Model Context Protocol) servers. MCP enables external services to expose tools that can be used by the agent without requiring changes to the core codebase.
-
-To use MCP servers, create an `mcp.json` configuration file in your home directory (`~/.clippy/mcp.json`) or project directory (`.clippy/mcp.json`):
-
-```json
-{
-  "mcp_servers": {
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp", "--api-key", "${CTX7_API_KEY}"]
-    },
-    "perplexity-ask": {
-      "command": "npx",
-      "args": ["-y", "server-perplexity-ask"],
-      "env": { "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}" }
-    }
-  }
-}
-```
-
-MCP tools will automatically be available in interactive mode, with appropriate approval prompts to maintain safety.
 
 ## Design Principles
 
