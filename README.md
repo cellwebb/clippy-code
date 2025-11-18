@@ -44,6 +44,7 @@ clippy-code supports multiple LLM providers through OpenAI-compatible APIs:
 echo "OPENAI_API_KEY=your_api_key_here" > .env
 
 # Or choose from many supported providers:
+echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
 echo "MISTRAL_API_KEY=your_api_key_here" > .env
 echo "CEREBRAS_API_KEY=your_api_key_here" > .env
 echo "GROQ_API_KEY=your_api_key_here" > .env
@@ -91,8 +92,8 @@ MCP tools will automatically be available in interactive mode, with appropriate 
 
 ### 🌐 **Supported Providers**
 
-- **Chutes.ai** • **Cerebras** • **Groq** • **LM Studio** • **MiniMax** • **Mistral**
-- **Ollama** • **OpenAI** • **OpenRouter** • **Synthetic.new** • **Together AI** • **Z.AI**
+- **Anthropic** • **Chutes** • **Cerebras** • **Gemini** • **Groq** • **LM Studio** • **MiniMax**
+- **Mistral** • **Ollama** • **OpenAI** • **OpenRouter** • **Synthetic.new** • **Together AI** • **Z.AI**
 
 ### 🛡️ **Safety-First Design**
 
@@ -221,14 +222,14 @@ src/clippy/
 
 ### Environment Variables
 
-- Provider-specific API keys: `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `CEREBRAS_API_KEY`, `GROQ_API_KEY`, etc.
+- Provider-specific API keys: `ANTHROPIC_API_KEY`, `CHUTES_API_KEY`, `CEREBRAS_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, etc.
 - `OPENAI_BASE_URL` - Optional base URL override
 
 ### Provider-Based Model System
 
 clippy-code uses a flexible provider-based system. Instead of maintaining a fixed list of models, you:
 
-1. **Choose from available providers** (defined in `providers.yaml`): Mistral, OpenAI, Cerebras, Ollama, Together AI, Groq, DeepSeek, ZAI
+1. **Choose from available providers** (defined in `providers.yaml`): Anthropic, Chutes, Cerebras, Gemini, Groq, LM Studio, MiniMax, Mistral, Ollama, OpenAI, OpenRouter, Synthetic, Together AI, Z.AI
 2. **Save your favorite model configurations** using `/model add`
 3. **Switch between saved models** anytime with `/model <name>`
 
