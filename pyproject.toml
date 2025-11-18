@@ -1,6 +1,6 @@
 [project]
 name = "clippy-code"
-version = "4.4.2"
+version = "4.4.3"
 description = "A powerful CLI coding agent powered by OpenAI-compatible LLMs"
 readme = "README.md"
 license = { text = "MIT" }
@@ -37,6 +37,7 @@ dependencies = [
     "tiktoken>=0.12.0",
     "tenacity>=9.1.2",
     "questionary>=2.0.1",
+    "huggingface-hub==1.0.0",
 
     "pathspec>=0.12.1",
 ]
