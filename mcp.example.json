@@ -10,10 +10,6 @@
       "env": {
         "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
       }
-    },
-    "sequential-thinking": {
-      "command": "npx",
-      "args": ["-y", "mcp-sequential-thinking"]
     }
   }
 }
