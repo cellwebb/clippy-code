@@ -295,6 +295,7 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /auto clear - Clear all auto-approvals\n"
             "  /yolo - Toggle YOLO mode (auto-approve ALL actions)\n\n"
             "[bold]MCP Servers:[/bold]\n"
+            "  /mcp help - Show comprehensive MCP server management help\n"
             "  /mcp list - List configured MCP servers\n"
             "  /mcp tools [server] - List tools available from MCP servers\n"
             "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
@@ -1179,13 +1180,17 @@ def handle_mcp_command(agent: ClippyAgent, console: Console, command_args: str) 
     if not command_args:
         console.print("[red]Usage: /mcp <command>[/red]")
         console.print(
-            "[dim]Available commands: list, tools, refresh, allow, revoke, enable, disable[/dim]"
+            "[dim]Available commands: help, list, tools, refresh, allow, revoke, enable, disable[/dim]"
         )
         return "continue"
 
     parts = command_args.strip().split(maxsplit=1)
     subcommand = parts[0].lower()
     subcommand_args = parts[1] if len(parts) > 1 else ""
+
+    if subcommand == "help":
+        _handle_mcp_help(console)
+        return "continue"
 
     # Get MCP manager from agent
     mcp_manager = getattr(agent, "mcp_manager", None)
@@ -1217,6 +1222,104 @@ def handle_mcp_command(agent: ClippyAgent, console: Console, command_args: str) 
     return "continue"
 
 
+def _handle_mcp_help(console: Console) -> None:
+    """Handle /mcp help command with comprehensive MCP documentation."""
+    console.print(
+        Panel.fit(
+            "[bold]MCP (Model Context Protocol) Server Management[/bold]\n\n"
+            "[bold]Configuration Management:[/bold]\n"
+            "  /mcp help - Show this comprehensive help message\n"
+            "  /mcp list - List configured MCP servers and their status\n"
+            "  /mcp tools [server] - List tools available from MCP servers\n\n"
+            "[bold]Server Operations:[/bold]\n"
+            "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
+            "  /mcp enable <server> - Enable a disabled MCP server\n"
+            "  /mcp disable <server> - Disable an enabled MCP server\n\n"
+            "[bold]Trust Management:[/bold]\n"
+            "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
+            "  /mcp revoke <server> - Revoke trust for an MCP server\n\n"
+            "[bold cyan]─── Adding/Editing MCP Servers ───[/bold cyan]\n\n"
+            "[bold]Configuration File Location:[/bold]\n"
+            "  • Global: [cyan]~/.clippy/mcp.json[/cyan]\n"
+            "  • Project: [cyan].clippy/mcp.json[/cyan]\n\n"
+            "[bold]MCP Configuration Format:[/bold]\n"
+            "[dim]```json\n"
+            "{\n"
+            "  \"mcp_servers\": {\n"
+            "    \"server-name\": {\n"
+            "      \"command\": \"command-to-run\",\n"
+            "      \"args\": [\"arg1\", \"arg2\", \"...\"],\n"
+            "      \"env\": {\n"
+            "        \"VAR_NAME\": \"value\",\n"
+            "        \"API_KEY\": \"${ENV_VAR}\"\n"
+            "      }\n"
+            "    }\n"
+            "  }\n"
+            "}\n"
+            "```[/dim]\n\n"
+            "[bold]Common MCP Server Examples:[/bold]\n\n"
+            "[cyan]Context7 (Upstash Vector Search):[/cyan]\n"
+            "[dim]```json\n"
+            "\"context7\": {\n"
+            "  \"command\": \"npx\",\n"
+            "  \"args\": [\"-y\", \"@upstash/context7-mcp\", \"--api-key\", \"${CTX7_API_KEY}\"]\n"
+            "}\n"
+            "```[/dim]\n\n"
+            "[cyan]Fetch (Web Content):[/cyan]\n"
+            "[dim]```json\n"
+            "\"fetch\": {\n"
+            "  \"command\": \"uvx\",\n"
+            "  \"args\": [\"mcp-server-fetch\"]\n"
+            "}\n"
+            "```[/dim]\n\n"
+            "[cyan]GitHub (Git Operations):[/cyan]\n"
+            "[dim]```json\n"
+            "\"github\": {\n"
+            "  \"command\": \"uvx\",\n"
+            "  \"args\": [\"mcp-server-github\", \"--personal-access-token\", \"${GITHUB_PERSONAL_ACCESS_TOKEN}\"]\n"
+            "}\n"
+            "```[/dim]\n\n"
+            "[cyan]Filesystem (Extended File Operations):[/cyan]\n"
+            "[dim]```json\n"
+            "\"filesystem\": {\n"
+            "  \"command\": \"npx\",\n"
+            "  \"args\": [\"-y\", \"@modelcontextprotocol/server-filesystem\", \"/path/to/allowed/directory\"]\n"
+            "}\n"
+            "```[/dim]\n\n"
+            "[bold]Environment Variables:[/bold]\n"
+            "  • Use [cyan]${VAR_NAME}[/cyan] syntax to reference environment variables\n"
+            "  • API keys and secrets should be stored as environment variables\n"
+            "  • Example: [cyan]\"${OPENAI_API_KEY}\"[/cyan] or [cyan]\"${GITHUB_TOKEN}\"[/cyan]\n\n"
+            "[bold]Adding New Servers:[/bold]\n"
+            "  1. Choose a location: global ([cyan]~/.clippy/mcp.json[/cyan]) or project ([cyan].clippy/mcp.json[/cyan])\n"
+            "  2. Add server configuration to the [cyan]\"mcp_servers\"[/cyan] object\n"
+            "  3. Set required environment variables\n"
+            "  4. Run [cyan]/mcp refresh[/cyan] to discover and connect\n"
+            "  5. Use [cyan]/mcp allow <server>[/cyan] to trust the server\n\n"
+            "[bold]Removing/Disabling Servers:[/bold]\n"
+            "  • [cyan]/mcp disable <server>[/cyan] - Temporarily disable (reversible)\n"
+            "  • Remove from config file - Permanently delete\n"
+            "  • Use [cyan]/mcp refresh[/cyan] after config changes\n\n"
+            "[bold]Security Notes:[/bold]\n"
+            "  • MCP servers run external commands - trust only known servers\n"
+            "  • Use [cyan]/mcp allow <server>[/cyan] to mark servers as trusted\n"
+            "  • Review server commands and arguments before allowing\n"
+            "  • Store API keys in environment variables, not config files\n\n"
+            "[bold]Troubleshooting:[/bold]\n"
+            "  • [cyan]/mcp list[/cyan] - Check server connection status\n"
+            "  • [cyan]/mcp refresh[/cyan] - Reconnect failed servers\n"
+            "  • Check environment variables are set correctly\n"
+            "  • Verify the MCP server tool is installed and accessible\n"
+            "  • Use [cyan]/mcp tools <server>[/cyan] to verify tools are loading\n\n"
+            "[bold]Examples:[/bold]\n"
+            "  [cyan]/mcp list[/cyan] - Show all configured servers\n"
+            "  [cyan]/mcp tools context7[/cyan] - Show Context7 tools\n"
+            "  [cyan]/mcp allow github[/cyan] - Trust GitHub server for this session\n"
+            "  [cyan]/mcp disable fetch[/cyan] - Disable fetch server temporarily",
+            title="MCP Server Management Help",
+            border_style="blue",
+        )
+    )
 def _handle_mcp_list(mcp_manager: Any, console: Console) -> None:
     """Handle /mcp list command."""
     servers = mcp_manager.list_servers()
@@ -1286,7 +1389,7 @@ def _handle_mcp_refresh(mcp_manager: Any, console: Console) -> None:
         mcp_manager.start()
         console.print("[green]✓ MCP servers refreshed[/green]")
     except Exception as e:
-        console.print(f"[red]✗ Error refreshing MCP servers: {escape(str(e))}[/red]")
+        console.print(f"[red]✗ Error refreshing MCP servers: {str(e)}[/red]")
 
 
 def _handle_mcp_allow(mcp_manager: Any, console: Console, server_arg: str) -> None:

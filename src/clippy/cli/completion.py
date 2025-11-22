@@ -90,7 +90,7 @@ class ClippyCommandCompleter(Completer):
             self.base_commands["mcp"] = {
                 "description": "MCP server management",
                 "completer": self._create_mcp_completer(),
-                "subcommands": ["list", "tools", "refresh", "allow", "revoke", "enable", "disable"],
+                "subcommands": ["help", "list", "tools", "refresh", "allow", "revoke", "enable", "disable"],
             }
 
     def _create_provider_completer(self) -> WordCompleter:
@@ -577,6 +577,7 @@ class ClippyCommandCompleter(Completer):
             ("auto", "list"): "List auto-approved actions",
             ("auto", "revoke"): "Revoke auto-approval for action",
             ("auto", "clear"): "Clear all auto-approvals",
+            ("mcp", "help"): "Show comprehensive MCP server management help",
             ("mcp", "list"): "List configured MCP servers",
             ("mcp", "tools"): "List MCP tools",
             ("mcp", "refresh"): "Refresh MCP connections",
