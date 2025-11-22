@@ -747,7 +747,7 @@ def _handle_model_help(console: Console) -> CommandResult:
     """Handle /model help command with comprehensive model documentation."""
     console.print(
         Panel.fit(
-            "[bold cyan]─── Model Management Help ───[/bold cyan]\n\n"
+            "[bold cyan]--- Model Management Help ---[/bold cyan]\n\n"
             "[bold]Model Operations:[/bold]\n"
             "  /model list - Show your saved models\n"
             "  /model <name> - Switch to a saved model\n"
@@ -756,23 +756,24 @@ def _handle_model_help(console: Console) -> CommandResult:
             "[bold]Adding Models:[/bold]\n"
             "  /model add <provider> <model_id> [options] - Add a new model\n"
             "    Options: --name <name>, --default, --threshold <tokens>\n"
-            "    Example: /model add openai gpt-5 --name \"gpt-5\" --default\n"
-            "    Example: /model add cerebras qwen-3-coder-480b --name \"q3c\" --threshold 80000\n\n"
+            '    Example: /model add openai gpt-5 --name "gpt-5" --default\n'
+            '    Example: /model add cerebras qwen-3-coder-480b --name "q3c"\n'
+            "             --threshold 80000\n\n"
             "[bold]Removing & Updating Models:[/bold]\n"
             "  /model remove <name> - Remove a saved model\n"
             "  /model default <name> - Set model as default\n"
             "  /model threshold <name> <tokens> - Set compaction threshold\n"
             "    Example: /model threshold gpt-4o 80000\n"
             "    Example: /model remove old-model\n\n"
-            "[bold cyan]─── Adding Models ───[/bold cyan]\n\n"
+            "[bold cyan]--- Adding Models ---[/bold cyan]\n\n"
             "[bold]Basic Model Addition:[/bold]\n"
             "[dim]```bash\n"
             "/model add <provider> <model_id>\n"
             "```[/dim]\n\n"
             "[bold]With Custom Name:[/bold]\n"
             "[dim]```bash\n"
-            "/model add openai gpt-5 --name \"gpt-5\"\n"
-            "/model add cerebras qwen-3-coder-480b --name \"q3c\"\n"
+            '/model add openai gpt-5 --name "gpt-5"\n'
+            '/model add cerebras qwen-3-coder-480b --name "q3c"\n'
             "```[/dim]\n\n"
             "[bold]Set as Default:[/bold]\n"
             "[dim]```bash\n"
@@ -789,7 +790,7 @@ def _handle_model_help(console: Console) -> CommandResult:
             "[dim]```bash\n"
             '/model add cerebras qwen-3-coder-480b --name "q3c" --default --threshold 100000\n'
             "```[/dim]\n\n"
-            "[bold cyan]─── Managing Models ───[/bold cyan]\n\n"
+            "[bold cyan]--- Managing Models ---[/bold cyan]\n\n"
             "[bold]List Available Models:[/bold]\n"
             "[dim]```bash\n"
             "/model list\n"
@@ -806,7 +807,7 @@ def _handle_model_help(console: Console) -> CommandResult:
             "/model use openai gpt-5\n"
             "# This doesn't save the model, just uses it for current session\n"
             "```[/dim]\n\n"
-            "[bold cyan]─── Updating Models ───[/bold cyan]\n\n"
+            "[bold cyan]--- Updating Models ---[/bold cyan]\n\n"
             "[bold]Change Default Model:[/bold]\n"
             "[dim]```bash\n"
             "/model default new-default-model\n"
@@ -817,13 +818,13 @@ def _handle_model_help(console: Console) -> CommandResult:
             "# Model will compact when reaching 80k tokens\n"
             "# Useful for models with larger context windows\n"
             "```[/dim]\n\n"
-            "[bold cyan]─── Removing Models ───[/bold cyan]\n\n"
+            "[bold cyan]--- Removing Models ---[/bold cyan]\n\n"
             "[bold]Remove Specific Model:[/bold]\n"
             "[dim]```bash\n"
             "/model remove old-model\n"
             "/model remove unused-model\n"
             "```[/dim]\n\n"
-            "[bold cyan]─── Available Providers ───[/bold cyan]\n\n"
+            "[bold cyan]--- Available Providers ---[/bold cyan]\n\n"
             "[bold]Built-in Providers:[/bold]\n"
             "  • openai - OpenAI API (gpt-4o, gpt-5, etc.)\n"
             "  • cerebras - Cerebras AI (qwen-3-coder-480b, llama-3.1-8b)\n"
@@ -837,7 +838,7 @@ def _handle_model_help(console: Console) -> CommandResult:
             "/providers              # List all available providers\n"
             "/provider <name>        # Show provider details\n"
             "```[/dim]\n\n"
-            "[bold cyan]─── Configuration Files ───[/bold cyan]\n\n"
+            "[bold cyan]--- Configuration Files ---[/bold cyan]\n\n"
             "[bold]Model Storage:[/bold]\n"
             "  • User models: [cyan]~/.clippy/models.json[/cyan]\n"
             "  • Built-in providers: [cyan]src/clippy/providers.yaml[/cyan]\n\n"
@@ -845,7 +846,7 @@ def _handle_model_help(console: Console) -> CommandResult:
             "  • Set in environment variables\n"
             "  • Examples: OPENAI_API_KEY, CEREBRAS_API_KEY\n"
             "  • Check provider details: /provider <name>\n\n"
-            "[bold cyan]─── Examples & Workflows ───[/bold cyan]\n\n"
+            "[bold cyan]--- Examples & Workflows ---[/bold cyan]\n\n"
             "[bold]Quick Start with GPT-5:[/bold]\n"
             "[dim]```bash\n"
             '/model add openai gpt-5 --name "gpt-5" --default\n'
@@ -859,14 +860,14 @@ def _handle_model_help(console: Console) -> CommandResult:
             "```[/dim]\n\n"
             "[bold]Setup Multi-Provider Workflow:[/bold]\n"
             "[dim]```bash\n"
-            '# Add fast model for quick tasks\n'
+            "# Add fast model for quick tasks\n"
             '/model add groq llama-3.1-70b-versatile --name "fast"\n'
-            '# Add powerful model for complex tasks\n'
+            "# Add powerful model for complex tasks\n"
             '/model add openai gpt-5 --name "powerful" --default\n'
-            '# Add coding specialist\n'
+            "# Add coding specialist\n"
             '/model add cerebras qwen-3-coder-480b --name "coder" --threshold 100000\n'
             "```[/dim]\n\n"
-            "[bold cyan]─── Troubleshooting ───[/bold cyan]\n\n"
+            "[bold cyan]--- Troubleshooting ---[/bold cyan]\n\n"
             "[bold]Model Not Found:[/bold]\n"
             "  • Check spelling: /model list\n"
             "  • Verify provider name: /providers\n"
@@ -879,7 +880,8 @@ def _handle_model_help(console: Console) -> CommandResult:
             "  • Check provider status\n"
             "  • Verify model ID exists\n"
             "  • Try using /model use <provider> <model_id> to test\n\n"
-            "[bold dim]💡 Tip: Use /model use to test models before saving them permanently![/bold dim]",
+            "[bold dim]💡 Tip: Use /model use to test models before "
+            "saving them permanently![/bold dim]",
             title="Model Management Help",
             border_style="blue",
         )
@@ -971,7 +973,9 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
 
     if not args:
         console.print("[red]Usage: /model <command> [args][/red]")
-        console.print("[dim]Commands: help, list, add, remove, default, threshold, use, <name>[/dim]")
+        console.print(
+            "[dim]Commands: help, list, add, remove, default, threshold, use, <name>[/dim]"
+        )
         return "continue"
 
     subcommand = args[0].lower()
@@ -1329,7 +1333,8 @@ def handle_mcp_command(agent: ClippyAgent, console: Console, command_args: str) 
     if not command_args:
         console.print("[red]Usage: /mcp <command>[/red]")
         console.print(
-            "[dim]Available commands: help, list, tools, refresh, allow, revoke, enable, disable[/dim]"
+            "[dim]Available commands: help, list, tools, refresh, allow, revoke,\n"
+            "         enable, disable[/dim]"
         )
         return "continue"
 
@@ -1387,20 +1392,20 @@ def _handle_mcp_help(console: Console) -> None:
             "[bold]Trust Management:[/bold]\n"
             "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
             "  /mcp revoke <server> - Revoke trust for an MCP server\n\n"
-            "[bold cyan]─── Adding/Editing MCP Servers ───[/bold cyan]\n\n"
+            "[bold cyan]--- Adding/Editing MCP Servers ---[/bold cyan]\n\n"
             "[bold]Configuration File Location:[/bold]\n"
             "  • Global: [cyan]~/.clippy/mcp.json[/cyan]\n"
             "  • Project: [cyan].clippy/mcp.json[/cyan]\n\n"
             "[bold]MCP Configuration Format:[/bold]\n"
             "[dim]```json\n"
             "{\n"
-            "  \"mcp_servers\": {\n"
-            "    \"server-name\": {\n"
-            "      \"command\": \"command-to-run\",\n"
-            "      \"args\": [\"arg1\", \"arg2\", \"...\"],\n"
-            "      \"env\": {\n"
-            "        \"VAR_NAME\": \"value\",\n"
-            "        \"API_KEY\": \"${ENV_VAR}\"\n"
+            '  "mcp_servers": {\n'
+            '    "server-name": {\n'
+            '      "command": "command-to-run",\n'
+            '      "args": ["arg1", "arg2", "..."],\n'
+            '      "env": {\n'
+            '        "VAR_NAME": "value",\n'
+            '        "API_KEY": "${ENV_VAR}"\n'
             "      }\n"
             "    }\n"
             "  }\n"
@@ -1409,39 +1414,43 @@ def _handle_mcp_help(console: Console) -> None:
             "[bold]Common MCP Server Examples:[/bold]\n\n"
             "[cyan]Context7 (Upstash Vector Search):[/cyan]\n"
             "[dim]```json\n"
-            "\"context7\": {\n"
-            "  \"command\": \"npx\",\n"
-            "  \"args\": [\"-y\", \"@upstash/context7-mcp\", \"--api-key\", \"${CTX7_API_KEY}\"]\n"
+            '"context7": {\n'
+            '  "command": "npx",\n'
+            '  "args": ["-y", "@upstash/context7-mcp", "--api-key", "${CTX7_API_KEY}"]\n'
             "}\n"
             "```[/dim]\n\n"
             "[cyan]Fetch (Web Content):[/cyan]\n"
             "[dim]```json\n"
-            "\"fetch\": {\n"
-            "  \"command\": \"uvx\",\n"
-            "  \"args\": [\"mcp-server-fetch\"]\n"
+            '"fetch": {\n'
+            '  "command": "uvx",\n'
+            '  "args": ["mcp-server-fetch"]\n'
             "}\n"
             "```[/dim]\n\n"
             "[cyan]GitHub (Git Operations):[/cyan]\n"
             "[dim]```json\n"
-            "\"github\": {\n"
-            "  \"command\": \"uvx\",\n"
-            "  \"args\": [\"mcp-server-github\", \"--personal-access-token\", \"${GITHUB_PERSONAL_ACCESS_TOKEN}\"]\n"
+            '"github": {\n'
+            '  "command": "uvx",\n'
+            '  "args": ["mcp-server-github", "--personal-access-token",\n'
+            '            "${GITHUB_PERSONAL_ACCESS_TOKEN}"]\n'
             "}\n"
             "```[/dim]\n\n"
             "[cyan]Filesystem (Extended File Operations):[/cyan]\n"
             "[dim]```json\n"
-            "\"filesystem\": {\n"
-            "  \"command\": \"npx\",\n"
-            "  \"args\": [\"-y\", \"@modelcontextprotocol/server-filesystem\", \"/path/to/allowed/directory\"]\n"
+            '"filesystem": {\n'
+            '  "command": "npx",\n'
+            '  "args": ["-y", "@modelcontextprotocol/server-filesystem",\n'
+            '            "/path/to/allowed/directory"]\n'
             "}\n"
             "```[/dim]\n\n"
             "[bold]Environment Variables:[/bold]\n"
             "  • Use [cyan]${VAR_NAME}[/cyan] syntax to reference environment variables\n"
             "  • API keys and secrets should be stored as environment variables\n"
-            "  • Example: [cyan]\"${OPENAI_API_KEY}\"[/cyan] or [cyan]\"${GITHUB_TOKEN}\"[/cyan]\n\n"
+            '  • Example: [cyan]"${OPENAI_API_KEY}"[/cyan]\n'
+            '             or [cyan]"${GITHUB_TOKEN}"[/cyan]\n\n'
             "[bold]Adding New Servers:[/bold]\n"
-            "  1. Choose a location: global ([cyan]~/.clippy/mcp.json[/cyan]) or project ([cyan].clippy/mcp.json[/cyan])\n"
-            "  2. Add server configuration to the [cyan]\"mcp_servers\"[/cyan] object\n"
+            "  1. Choose a location: global ([cyan]~/.clippy/mcp.json[/cyan])\n"
+            "     or project ([cyan].clippy/mcp.json[/cyan])\n"
+            '  2. Add server configuration to the [cyan]"mcp_servers"[/cyan] object\n'
             "  3. Set required environment variables\n"
             "  4. Run [cyan]/mcp refresh[/cyan] to discover and connect\n"
             "  5. Use [cyan]/mcp allow <server>[/cyan] to trust the server\n\n"
@@ -1469,6 +1478,8 @@ def _handle_mcp_help(console: Console) -> None:
             border_style="blue",
         )
     )
+
+
 def _handle_mcp_list(mcp_manager: Any, console: Console) -> None:
     """Handle /mcp list command."""
     servers = mcp_manager.list_servers()
@@ -2441,7 +2452,9 @@ def handle_truncate_command(
             f"{len(messages_to_keep)} messages kept (older)[/green]"
         )
 
-    ""
+    else:
+        console.print(f"[red]Invalid option: {option}[/red]")
+        return "continue"
 
     if system_msg is not None:
         console.print("[dim]System prompt retained[/dim]")

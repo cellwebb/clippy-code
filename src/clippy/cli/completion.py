@@ -90,7 +90,16 @@ class ClippyCommandCompleter(Completer):
             self.base_commands["mcp"] = {
                 "description": "MCP server management",
                 "completer": self._create_mcp_completer(),
-                "subcommands": ["help", "list", "tools", "refresh", "allow", "revoke", "enable", "disable"],
+                "subcommands": [
+                    "help",
+                    "list",
+                    "tools",
+                    "refresh",
+                    "allow",
+                    "revoke",
+                    "enable",
+                    "disable",
+                ],
             }
 
     def _create_provider_completer(self) -> WordCompleter:
