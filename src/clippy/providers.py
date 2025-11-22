@@ -21,10 +21,7 @@ from pydantic_ai.models import ModelRequestParameters
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.google import GoogleModel
 
-try:
-    from pydantic_ai.models.huggingface import HuggingFaceModel
-except ImportError:
-    HuggingFaceModel = None  # type: ignore
+# HuggingFace support removed - no one uses it! 📎
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.anthropic import AnthropicProvider
 from pydantic_ai.providers.google import GoogleProvider
@@ -176,9 +173,7 @@ class LLMProvider:
         return self.base_url is None
 
     def _normalize_system(self, system: str) -> str:
-        aliases = {
-            "hf": "huggingface",
-        }
+        aliases: dict[str, str] = {}
         return aliases.get(system, system)
 
     def _default_provider_identifier(self, model_identifier: str) -> str:
@@ -232,18 +227,7 @@ class LLMProvider:
 
             return _builder_google
 
-        if system == "huggingface":
-            if HuggingFaceModel is None:
-                raise ImportError(
-                    "HuggingFace support requires additional dependencies. "
-                    "Install with: pip install 'pydantic-ai-slim[huggingface]'"
-                )
-
-            def _builder_huggingface(model_id: str) -> HuggingFaceModel:
-                return HuggingFaceModel(model_id)
-
-            return _builder_huggingface
-
+        # HuggingFace support removed - no one uses it! 📎
         return None
 
 

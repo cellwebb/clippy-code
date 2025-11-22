@@ -474,7 +474,6 @@ name = "clippy-code"
 version = "4.4.3"
 source = { editable = "." }
 dependencies = [
-    { name = "huggingface-hub" },
     { name = "mcp" },
     { name = "openai" },
     { name = "pathspec" },
@@ -502,7 +501,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "huggingface-hub", specifier = "==1.0.0" },
     { name = "mcp", specifier = ">=1.18.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.18.2" },
     { name = "openai", specifier = ">=2.5.0" },

@@ -601,13 +601,16 @@ def reload_model_manager() -> UserModelManager:
     return get_user_manager()
 
 
-def get_model_compaction_threshold(name_or_id: str) -> int | None:
+def get_model_compaction_threshold(name_or_id: str, preferred_model_name: str | None = None) -> int | None:
     """Get the compaction threshold for a specific model.
 
     Looks up by saved model name first (case-insensitive), then by model_id.
+    If multiple models have the same model_id, prefers the preferred_model_name if provided,
+    otherwise prefers the highest threshold among models with thresholds.
 
     Args:
         name_or_id: Saved model name or underlying provider model_id
+        preferred_model_name: Preferred saved model name when multiple models share the same model_id
 
     Returns:
         Compaction threshold in tokens, or None if not set
@@ -621,10 +624,30 @@ def get_model_compaction_threshold(name_or_id: str) -> int | None:
 
     # Fallback: try to find by model_id (case-insensitive)
     lookup = name_or_id.lower()
+    matches = []
     for m in user_manager.list_models():
         if m.model_id.lower() == lookup:
-            return m.compaction_threshold
+            matches.append(m)
 
+    if not matches:
+        return None
+    
+    # If we have a preferred model name, try to find it first
+    if preferred_model_name:
+        preferred_lower = preferred_model_name.lower()
+        for m in matches:
+            if m.name.lower() == preferred_lower:
+                return m.compaction_threshold
+    
+    # Find all models that have thresholds
+    models_with_thresholds = [m for m in matches if m.compaction_threshold is not None]
+    
+    if models_with_thresholds:
+        # Return the highest threshold (most conservative)
+        max_model = max(models_with_thresholds, key=lambda m: m.compaction_threshold or 0)
+        return max_model.compaction_threshold
+    
+    # If no model has a threshold, return None
     return None
 
 

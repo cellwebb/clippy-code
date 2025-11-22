@@ -10,12 +10,7 @@ from pydantic_ai import ModelRequest, ModelResponse
 from pydantic_ai.messages import SystemPromptPart, TextPart, ToolCallPart, UserPromptPart
 from pydantic_ai.models import ModelRequestParameters
 
-# Optional import for huggingface support
-try:
-    from pydantic_ai.models.huggingface import HuggingFaceModel
-except ImportError:  # pragma: no cover - optional dependency
-    HuggingFaceModel = None  # type: ignore
-
+# HuggingFace support removed - no one uses it! 📎
 from clippy.models import ProviderConfig
 from clippy.providers import LLMProvider, Spinner, _convert_tools
 
@@ -216,20 +211,26 @@ class TestLLMProvider:
         assert isinstance(captured["model"], OpenAIChatModel)
         assert captured["model"].model_name == "hf:zai-org/GLM"
 
-    @pytest.mark.skipif(HuggingFaceModel is None, reason="huggingface extras not installed")
-    def test_resolve_model_hf_prefix_uses_huggingface_model(self) -> None:
+    def test_resolve_model_hf_prefix_fails_gracefully(self) -> None:
+        """Test that hf: prefix now works like any other OpenAI-compatible provider."""
         provider_config = ProviderConfig(
-            name="hf",
-            base_url=None,
-            api_key_env="HF_API_KEY",
-            description="HuggingFace",
-            pydantic_system="huggingface",
+            name="synthetic",
+            base_url="https://api.synthetic.new/openai/v1",
+            api_key_env="SYN_API_KEY",
+            description="Synthetic",
+            pydantic_system="openai",
         )
         provider = LLMProvider(api_key="secret", provider_config=provider_config)
 
-        _, model_obj = provider._resolve_model("hf:zai-org/GLM-4.6")
+        # hf: prefix should now work as OpenAI-compatible
+        resolved, model_obj = provider._resolve_model("hf:zai-org/GLM-4.6")
 
-        assert isinstance(model_obj, HuggingFaceModel)
+        assert resolved == "hf:zai-org/GLM-4.6"
+        # Should be OpenAIChatModel, not HuggingFaceModel
+        from pydantic_ai.models.openai import OpenAIChatModel
+
+        assert isinstance(model_obj, OpenAIChatModel)
+        assert model_obj.model_name == "hf:zai-org/GLM-4.6"
 
     def test_resolve_model_openai_prefix_with_openai_provider(self) -> None:
         provider_config = ProviderConfig(

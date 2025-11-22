@@ -253,7 +253,7 @@ Configure which model each subagent type uses with the `/subagent` command:
 # Set a specific model for a subagent type
 /subagent set fast_general gpt-3.5-turbo
 /subagent set power_analysis claude-3-opus-20240229
-/subagent set code_review hf:zai-org/GLM-4.6
+/subagent set code_review openai:gpt-4o
 
 # Clear model override (revert to inheriting from parent)
 /subagent clear fast_general

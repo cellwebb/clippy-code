@@ -1,94 +1,76 @@
-# Provider configurations for LLM services
-# Each provider defines the infrastructure (base URL, API key, description)
-# Users can combine any provider with any model name through the model management system
-
 providers:
   openai:
-    base_url: null  # null = use default OpenAI endpoint
+    base_url: null
     api_key_env: OPENAI_API_KEY
-    description: "OpenAI"
+    description: OpenAI
     pydantic_system: openai
-
   anthropic:
     base_url: https://api.anthropic.com/v1
     api_key_env: ANTHROPIC_API_KEY
-    description: "Anthropic Claude"
+    description: Anthropic Claude
     pydantic_system: anthropic
-
   custom-anthropic:
     base_url: https://your-anthropic-proxy.example.com/v1
     api_key_env: CUSTOM_ANTHROPIC_API_KEY
-    description: "Custom Anthropic-compatible endpoint"
+    description: Custom Anthropic-compatible endpoint
     pydantic_system: anthropic
-
   cerebras:
     base_url: https://api.cerebras.ai/v1
     api_key_env: CEREBRAS_API_KEY
-    description: "Cerebras"
+    description: Cerebras
     pydantic_system: openai
-
   chutes:
     base_url: https://llm.chutes.ai/v1
     api_key_env: CHUTES_API_KEY
-    description: "Chutes.ai"
+    description: Chutes.ai
     pydantic_system: openai
-
   groq:
     base_url: https://api.groq.com/openai/v1
     api_key_env: GROQ_API_KEY
-    description: "Groq"
+    description: Groq
     pydantic_system: openai
-
   gemini:
     base_url: https://generativelanguage.googleapis.com/v1beta
     api_key_env: GOOGLE_API_KEY
-    description: "Google Gemini"
+    description: Google Gemini
     pydantic_system: google-gla
-
   lmstudio:
     base_url: http://localhost:1234/v1
-    api_key_env: LMSTUDIO_API_KEY # Usually not needed, can be "lmstudio" or empty
-    description: "LM Studio (local)"
+    api_key_env: LMSTUDIO_API_KEY
+    description: LM Studio (local)
     pydantic_system: openai
-
   minimax:
     base_url: https://api.minimax.io/v1
     api_key_env: MINIMAX_API_KEY
-    description: "MiniMax"
+    description: MiniMax
     pydantic_system: openai
-
   mistral:
     base_url: https://api.mistral.ai/v1
     api_key_env: MISTRAL_API_KEY
-    description: "Mistral"
+    description: Mistral
     pydantic_system: openai
-
   ollama:
     base_url: http://localhost:11434/v1
-    api_key_env: OLLAMA_API_KEY  # Usually not needed, can be "ollama" or empty
-    description: "Ollama (local)"
+    api_key_env: OLLAMA_API_KEY
+    description: Ollama (local)
     pydantic_system: openai
-
   openrouter:
     base_url: https://openrouter.ai/api/v1
     api_key_env: OPENROUTER_API_KEY
-    description: "OpenRouter"
+    description: OpenRouter
     pydantic_system: openai
-
   synthetic:
     base_url: https://api.synthetic.new/openai/v1
     api_key_env: SYNTHETIC_API_KEY
-    description: "Synthetic.new"
+    description: Synthetic.new
     pydantic_system: openai
-
   together:
     base_url: https://api.together.xyz/v1
     api_key_env: TOGETHER_API_KEY
-    description: "Together AI"
+    description: Together AI
     pydantic_system: openai
-
   zai:
     base_url: https://api.z.ai/api/coding/paas/v4/
     api_key_env: ZAI_API_KEY
-    description: "Z.AI coding plan"
+    description: Z.AI coding plan
     pydantic_system: openai

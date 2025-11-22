@@ -114,19 +114,20 @@ def test_handle_compact_command(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_handle_providers_and_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     console = DummyConsole()
-    monkeypatch.setattr(commands, "list_available_providers", lambda: [])
+    agent = SimpleNamespace()  # Add dummy agent for new signature
+    monkeypatch.setattr(commands, "list_providers_by_source", lambda: {"built_in": [], "user": []})
     commands.handle_providers_command(console)
     assert any("No providers" in str(msg) for msg in console.messages)
 
-    providers = [("openai", "Default OpenAI provider")]
-    monkeypatch.setattr(commands, "list_available_providers", lambda: providers)
+    providers = {"built_in": [("openai", "Default OpenAI provider")], "user": []}
+    monkeypatch.setattr(commands, "list_providers_by_source", lambda: providers)
     console.messages.clear()
     commands.handle_providers_command(console)
     assert any("openai" in str(msg) for msg in console.messages)
 
     monkeypatch.setattr(commands, "get_provider", lambda name: None)
     console.messages.clear()
-    commands.handle_provider_command(console, "unknown")
+    commands.handle_provider_command(agent, console, "unknown")
     assert any("Unknown provider" in str(msg) for msg in console.messages)
 
     provider = SimpleNamespace(
@@ -138,7 +139,7 @@ def test_handle_providers_and_provider(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(commands, "get_provider", lambda name: provider)
     monkeypatch.setenv("CEREBRAS_API_KEY", "secret")
     console.messages.clear()
-    commands.handle_provider_command(console, "cerebras")
+    commands.handle_provider_command(agent, console, "cerebras")
     assert any("CEREBRAS_API_KEY" in str(msg) for msg in console.messages)
 
 

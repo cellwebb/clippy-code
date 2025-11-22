@@ -64,9 +64,9 @@ class ClippyCommandCompleter(Completer):
                 "completer": None,
             },
             "provider": {
-                "description": "Show provider details",
+                "description": "Provider management",
                 "completer": self._create_provider_completer(),
-                "takes_arg": True,
+                "subcommands": ["list", "add"],
             },
             "model": {
                 "description": "Model management",
@@ -456,12 +456,41 @@ class ClippyCommandCompleter(Completer):
 
                         return completions
             elif len(words) <= 2:
+                # Complete subcommand names and provider names for /provider command
                 # Complete subcommand names AND model names for /model command
                 subcommand_prefix = words[1] if len(words) > 1 else ""
                 completions = []
 
+                # For /provider command, show subcommands first, then provider names
+                if command == "provider":
+                    # Show subcommands first
+                    for subcommand in command_info["subcommands"]:
+                        if subcommand.startswith(subcommand_prefix):
+                            completions.append(
+                                Completion(
+                                    text=subcommand,
+                                    display=subcommand,
+                                    display_meta=self._get_subcommand_description(
+                                        command, subcommand
+                                    ),
+                                    start_position=-len(subcommand_prefix),
+                                )
+                            )
+
+                    # Show provider names for direct lookup capability
+                    providers = list_available_providers()
+                    for provider_name, provider_desc in providers:
+                        if provider_name.startswith(subcommand_prefix):
+                            completions.append(
+                                Completion(
+                                    text=provider_name,
+                                    display=provider_name,
+                                    display_meta=provider_desc,
+                                    start_position=-len(subcommand_prefix),
+                                )
+                            )
                 # For /model command, show subcommands first, then models
-                if command == "model":
+                elif command == "model":
                     # Show subcommands first with clear prioritization
                     subcommand_completions = []
                     for subcommand in command_info["subcommands"]:
@@ -543,6 +572,8 @@ class ClippyCommandCompleter(Completer):
             ("model", "use"): "Try a model without saving",
             ("model", "load"): "Load model (same as direct switch)",
             ("model", "threshold"): "Set compaction threshold",
+            ("provider", "list"): "List available providers",
+            ("provider", "add"): "Add a new provider (interactive wizard)",
             ("auto", "list"): "List auto-approved actions",
             ("auto", "revoke"): "Revoke auto-approval for action",
             ("auto", "clear"): "Clear all auto-approvals",
