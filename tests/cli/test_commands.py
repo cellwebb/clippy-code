@@ -242,14 +242,14 @@ def test_handle_model_add_remove_and_switch(monkeypatch: pytest.MonkeyPatch) -> 
 def test_handle_model_help_command(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test the /model help command functionality."""
     console = DummyConsole()
-    
+
     # Test that model help returns continue
     result = commands._handle_model_help(console)
     assert result == "continue"
-    
+
     # Verify key help content is present
     messages_text = str(console.messages)
-    
+
     # Check for main help sections
     assert "Model Management Help" in messages_text
     assert "Model Operations" in messages_text
@@ -259,7 +259,7 @@ def test_handle_model_help_command(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Configuration Files" in messages_text
     assert "Examples & Workflows" in messages_text
     assert "Troubleshooting" in messages_text
-    
+
     # Check for specific commands are documented
     assert "/model list" in messages_text
     assert "/model add" in messages_text
@@ -267,23 +267,23 @@ def test_handle_model_help_command(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "/model default" in messages_text
     assert "/model use" in messages_text
     assert "/model threshold" in messages_text
-    
+
     # Check for provider examples
     assert "openai" in messages_text
     assert "cerebras" in messages_text
     assert "groq" in messages_text
     assert "mistral" in messages_text
     assert "ollama" in messages_text
-    
+
     # Check for configuration file locations
     assert "~/.clippy/models.json" in messages_text
     assert "src/clippy/providers.yaml" in messages_text
-    
+
     # Check for examples and workflow sections
     assert "Quick Start with GPT-5" in messages_text
     assert "Try Different Models Without Saving" in messages_text
     assert "Setup Multi-Provider Workflow" in messages_text
-    
+
     # Check for troubleshooting content
     assert "Model Not Found" in messages_text
     assert "API Key Issues" in messages_text
@@ -293,16 +293,16 @@ def test_handle_model_command_with_help_subcommand(monkeypatch: pytest.MonkeyPat
     """Test that /model help subcommand is properly routed to the help function."""
     console = DummyConsole()
     agent = SimpleNamespace(model="gpt-5", base_url=None)
-    
+
     # Test direct help command
     result = commands.handle_model_command(agent, console, "help")
     assert result == "continue"
-    
+
     # Test help command with different case
     console.messages.clear()
     result = commands.handle_model_command(agent, console, "HELP")
     assert result == "continue"
-    
+
     # Test help command is routed to _handle_model_help
     assert any("Model Management Help" in str(msg) for msg in console.messages)
 
@@ -311,104 +311,106 @@ def test_handle_model_command_lists_help_prominently(monkeypatch: pytest.MonkeyP
     """Test that /model command shows help prominently in suggested commands."""
     console = DummyConsole()
     agent = SimpleNamespace(model="gpt-5", base_url=None)
-    
+
     # Mock empty models list
     monkeypatch.setattr(commands, "list_available_models", lambda: [])
     commands.handle_model_command(agent, console, "")
-    
-    # Verify help is listed first in available commands
-    messages_text = str(console.messages)
-    
+
     # The messages come as a list with one element (the full panel)
     full_message = str(console.messages[0])
-    
+
     # Find the "Available Commands:" section and check what comes after it
     available_commands_index = full_message.find("Available Commands:")
     assert available_commands_index != -1, "Should have Available Commands section"
-    
+
     # Extract the text after "Available Commands:"
     after_commands = full_message[available_commands_index:]
-    
+
     # Check that "/model help" appears right after "Available Commands:"
     # and before any other /model command
-    lines = after_commands.split('\n')
-    
+    lines = after_commands.split("\n")
+
     # Find the first /model line after Available Commands
     first_model_line = None
     for line in lines:
         line = line.strip()
-        if line.startswith('/model'):
+        if line.startswith("/model"):
             first_model_line = line
             break
-    
-    assert first_model_line is not None, "Should find at least one /model command"
-    assert "/model help" in first_model_line, f"First command should be help, got: '{first_model_line}'"
-    
 
-def test_handle_model_command_with_existing_models_lists_help_prominently(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert first_model_line is not None, "Should find at least one /model command"
+    assert "/model help" in first_model_line, (
+        f"First command should be help, got: '{first_model_line}'"
+    )
+
+
+def test_handle_model_command_with_existing_models_lists_help_prominently(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test that /model command shows help prominently when models exist."""
     console = DummyConsole()
     agent = SimpleNamespace(model="gpt-5", base_url=None)
-    
+
     # Mock existing models list
     monkeypatch.setattr(
-        commands,
-        "list_available_models", 
-        lambda: [("gpt-5", "OpenAI GPT-5", True)]
+        commands, "list_available_models", lambda: [("gpt-5", "OpenAI GPT-5", True)]
     )
     commands.handle_model_command(agent, console, "")
-    
+
     # Verify help is still listed first in available commands
     full_message = str(console.messages[0])
-    
+
     # Find the "Available Commands:" section and check what comes after it
     available_commands_index = full_message.find("Available Commands:")
     assert available_commands_index != -1, "Should have Available Commands section"
-    
+
     # Extract the text after "Available Commands:"
     after_commands = full_message[available_commands_index:]
-    
+
     # Check that "/model help" appears right after "Available Commands:"
-    lines = after_commands.split('\n')
-    
+    lines = after_commands.split("\n")
+
     # Find the first /model line after Available Commands
     first_model_line = None
     for line in lines:
         line = line.strip()
-        if line.startswith('/model'):
+        if line.startswith("/model"):
             first_model_line = line
             break
-    
+
     assert first_model_line is not None, "Should find at least one /model command"
-    assert "/model help" in first_model_line, f"First command should be help, got: '{first_model_line}'"
+    assert "/model help" in first_model_line, (
+        f"First command should be help, got: '{first_model_line}'"
+    )
 
 
 def test_handle_model_command_error_message_includes_help(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that error messages include help in suggested commands."""
     console = DummyConsole()
     agent = SimpleNamespace(model="gpt-5", base_url=None)
-    
+
     # Test invalid command error includes help
     commands.handle_model_command(agent, console, "   ")  # Empty/space-only args
     messages_text = str(console.messages)
     # The usage error message should mention that "help" is one of the available commands
     assert "help" in messages_text.lower()
-    
+
     # Test malformed quotes error includes help
     console.messages.clear()
     commands.handle_model_command(agent, console, '"unterminated')
     messages_text = str(console.messages)
-    # Should show error parsing, and the error message should mention available commands including help
+    # Should show error parsing, and the error message should mention
+    # available commands including help
     assert "help" in messages_text.lower() or "Error parsing arguments" in messages_text
 
 
 def test_main_help_includes_model_help_command(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that the main /help command includes /model help."""
     console = DummyConsole()
-    
+
     commands.handle_help_command(console)
     messages_text = str(console.messages)
-    
+
     # Verify main help includes the model help command
     assert "/model help" in messages_text
     assert "comprehensive model management help" in messages_text.lower()
