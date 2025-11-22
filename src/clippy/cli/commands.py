@@ -270,6 +270,7 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /compact - Summarize conversation to reduce context usage\n\n"
             "[bold]Model Management:[/bold]\n"
             "  /model - List available subcommands and models\n"
+            "  /model help - Show comprehensive model management help\n"
             "  /model list - Show your saved models\n"
             "  /model <name> - Switch to a saved model\n"
             "  /model load <name> - Load model (same as direct switch)\n"
@@ -742,6 +743,150 @@ def _save_provider_config(
         return False, f"Failed to save provider configuration: {str(e)}"
 
 
+def _handle_model_help(console: Console) -> CommandResult:
+    """Handle /model help command with comprehensive model documentation."""
+    console.print(
+        Panel.fit(
+            "[bold cyan]─── Model Management Help ───[/bold cyan]\n\n"
+            "[bold]Model Operations:[/bold]\n"
+            "  /model list - Show your saved models\n"
+            "  /model <name> - Switch to a saved model\n"
+            "  /model load <name> - Load model (same as direct switch)\n"
+            "  /model use <provider> <model_id> - Try a model without saving\n\n"
+            "[bold]Adding Models:[/bold]\n"
+            "  /model add <provider> <model_id> [options] - Add a new model\n"
+            "    Options: --name <name>, --default, --threshold <tokens>\n"
+            "    Example: /model add openai gpt-5 --name \"gpt-5\" --default\n"
+            "    Example: /model add cerebras qwen-3-coder-480b --name \"q3c\" --threshold 80000\n\n"
+            "[bold]Removing & Updating Models:[/bold]\n"
+            "  /model remove <name> - Remove a saved model\n"
+            "  /model default <name> - Set model as default\n"
+            "  /model threshold <name> <tokens> - Set compaction threshold\n"
+            "    Example: /model threshold gpt-4o 80000\n"
+            "    Example: /model remove old-model\n\n"
+            "[bold cyan]─── Adding Models ───[/bold cyan]\n\n"
+            "[bold]Basic Model Addition:[/bold]\n"
+            "[dim]```bash\n"
+            "/model add <provider> <model_id>\n"
+            "```[/dim]\n\n"
+            "[bold]With Custom Name:[/bold]\n"
+            "[dim]```bash\n"
+            "/model add openai gpt-5 --name \"gpt-5\"\n"
+            "/model add cerebras qwen-3-coder-480b --name \"q3c\"\n"
+            "```[/dim]\n\n"
+            "[bold]Set as Default:[/bold]\n"
+            "[dim]```bash\n"
+            "/model add openai gpt-5 --default\n"
+            "# Or set default after adding:\n"
+            "/model default gpt-5\n"
+            "```[/dim]\n\n"
+            "[bold]With Compaction Threshold:[/bold]\n"
+            "[dim]```bash\n"
+            "/model add openai gpt-5 --threshold 80000\n"
+            "# This will compact conversation at 80,000 tokens instead of default\n"
+            "```[/dim]\n\n"
+            "[bold]All Options Combined:[/bold]\n"
+            "[dim]```bash\n"
+            '/model add cerebras qwen-3-coder-480b --name "q3c" --default --threshold 100000\n'
+            "```[/dim]\n\n"
+            "[bold cyan]─── Managing Models ───[/bold cyan]\n\n"
+            "[bold]List Available Models:[/bold]\n"
+            "[dim]```bash\n"
+            "/model list\n"
+            "/model        # Same as list\n"
+            "```[/dim]\n\n"
+            "[bold]Switch Between Models:[/bold]\n"
+            "[dim]```bash\n"
+            "/model gpt-5\n"
+            "/model load gpt-5     # Same as above\n"
+            "```[/dim]\n\n"
+            "[bold]Try Models Temporarily:[/bold]\n"
+            "[dim]```bash\n"
+            "/model use ollama llama3.2:latest\n"
+            "/model use openai gpt-5\n"
+            "# This doesn't save the model, just uses it for current session\n"
+            "```[/dim]\n\n"
+            "[bold cyan]─── Updating Models ───[/bold cyan]\n\n"
+            "[bold]Change Default Model:[/bold]\n"
+            "[dim]```bash\n"
+            "/model default new-default-model\n"
+            "```[/dim]\n\n"
+            "[bold]Set Compaction Threshold:[/bold]\n"
+            "[dim]```bash\n"
+            "/model threshold gpt-4o 80000\n"
+            "# Model will compact when reaching 80k tokens\n"
+            "# Useful for models with larger context windows\n"
+            "```[/dim]\n\n"
+            "[bold cyan]─── Removing Models ───[/bold cyan]\n\n"
+            "[bold]Remove Specific Model:[/bold]\n"
+            "[dim]```bash\n"
+            "/model remove old-model\n"
+            "/model remove unused-model\n"
+            "```[/dim]\n\n"
+            "[bold cyan]─── Available Providers ───[/bold cyan]\n\n"
+            "[bold]Built-in Providers:[/bold]\n"
+            "  • openai - OpenAI API (gpt-4o, gpt-5, etc.)\n"
+            "  • cerebras - Cerebras AI (qwen-3-coder-480b, llama-3.1-8b)\n"
+            "  • groq - Groq AI (llama-3.1-70b-versatile, mixtral-8x7b)\n"
+            "  • mistral - Mistral AI (mistral-large, codestral)\n"
+            "  • together - Together AI (models for various tasks)\n"
+            "  • deepseek - DeepSeek AI (deepseek-coder, deepseek-chat)\n"
+            "  • ollama - Local Ollama instance (no API key needed)\n\n"
+            "[bold]View All Providers:[/bold]\n"
+            "[dim]```bash\n"
+            "/providers              # List all available providers\n"
+            "/provider <name>        # Show provider details\n"
+            "```[/dim]\n\n"
+            "[bold cyan]─── Configuration Files ───[/bold cyan]\n\n"
+            "[bold]Model Storage:[/bold]\n"
+            "  • User models: [cyan]~/.clippy/models.json[/cyan]\n"
+            "  • Built-in providers: [cyan]src/clippy/providers.yaml[/cyan]\n\n"
+            "[bold]API Keys:[/bold]\n"
+            "  • Set in environment variables\n"
+            "  • Examples: OPENAI_API_KEY, CEREBRAS_API_KEY\n"
+            "  • Check provider details: /provider <name>\n\n"
+            "[bold cyan]─── Examples & Workflows ───[/bold cyan]\n\n"
+            "[bold]Quick Start with GPT-5:[/bold]\n"
+            "[dim]```bash\n"
+            '/model add openai gpt-5 --name "gpt-5" --default\n'
+            "/model gpt-5     # Start using it\n"
+            "```[/dim]\n\n"
+            "[bold]Try Different Models Without Saving:[/bold]\n"
+            "[dim]```bash\n"
+            "/model use cerebras qwen-3-coder-480b    # Try Cerebras\n"
+            "/model use ollama llama3.2:latest        # Try local Ollama\n"
+            "/model gpt-5                            # Switch back to saved model\n"
+            "```[/dim]\n\n"
+            "[bold]Setup Multi-Provider Workflow:[/bold]\n"
+            "[dim]```bash\n"
+            '# Add fast model for quick tasks\n'
+            '/model add groq llama-3.1-70b-versatile --name "fast"\n'
+            '# Add powerful model for complex tasks\n'
+            '/model add openai gpt-5 --name "powerful" --default\n'
+            '# Add coding specialist\n'
+            '/model add cerebras qwen-3-coder-480b --name "coder" --threshold 100000\n'
+            "```[/dim]\n\n"
+            "[bold cyan]─── Troubleshooting ───[/bold cyan]\n\n"
+            "[bold]Model Not Found:[/bold]\n"
+            "  • Check spelling: /model list\n"
+            "  • Verify provider name: /providers\n"
+            "  • Confirm model ID with provider\n\n"
+            "[bold]API Key Issues:[/bold]\n"
+            "  • Check environment variable is set\n"
+            "  • Verify with: /provider <name>\n"
+            "  • Set: export PROVIDER_API_KEY=your_key\n\n"
+            "[bold]Model Fails to Load:[/bold]\n"
+            "  • Check provider status\n"
+            "  • Verify model ID exists\n"
+            "  • Try using /model use <provider> <model_id> to test\n\n"
+            "[bold dim]💡 Tip: Use /model use to test models before saving them permanently![/bold dim]",
+            title="Model Management Help",
+            border_style="blue",
+        )
+    )
+    return "continue"
+
+
 def handle_model_command(agent: ClippyAgent, console: Console, command_args: str) -> CommandResult:
     """Handle /model commands."""
     if not command_args or command_args.lower() == "list":
@@ -756,6 +901,7 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
                     '  /model add openai gpt-5 --name "gpt-5" --default\n'
                     '  /model add cerebras qwen-3-coder-480b --name "q3c"[/dim]\n\n'
                     "[bold]Available Commands:[/bold]\n"
+                    "  /model help - Show comprehensive model management help\n"
                     "  /model list - Show your saved models\n"
                     "  /model <name> - Switch to a saved model\n"
                     "  /model load <name> - Load model (same as direct switch)\n"
@@ -795,6 +941,7 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
                 "[bold]Your Saved Models:[/bold]\n\n" + "\n".join(model_lines) + f"\n\n"
                 f"[bold]Current:[/bold] {current_model} ({current_provider})\n\n"
                 "[bold]Available Commands:[/bold]\n"
+                "  /model help - Show comprehensive model management help\n"
                 "  /model list - Show your saved models\n"
                 "  /model <name> - Switch to a saved model\n"
                 "  /model load <name> - Load model (same as direct switch)\n"
@@ -824,12 +971,14 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
 
     if not args:
         console.print("[red]Usage: /model <command> [args][/red]")
-        console.print("[dim]Commands: list, add, remove, default, use, <name>[/dim]")
+        console.print("[dim]Commands: help, list, add, remove, default, threshold, use, <name>[/dim]")
         return "continue"
 
     subcommand = args[0].lower()
 
-    if subcommand == "add":
+    if subcommand == "help":
+        return _handle_model_help(console)
+    elif subcommand == "add":
         return _handle_model_add(console, args[1:])
     elif subcommand == "remove":
         return _handle_model_remove(console, args[1:])
