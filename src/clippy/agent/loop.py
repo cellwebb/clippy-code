@@ -85,7 +85,7 @@ def run_agent_loop(
         )
         if compacted:
             logger.info(f"Auto-compaction triggered: {compact_message}")
-            console.print(f"[cyan]Auto-compacted conversation: {compact_message}[/cyan]")
+            _display_auto_compaction_notification(console, compact_stats)
 
         # Get current tools (built-in + MCP)
         tools = tool_catalog.get_all_tools(mcp_manager)
@@ -234,3 +234,38 @@ def run_agent_loop(
         )
     )
     return "Maximum iterations reached. Task may be incomplete."
+
+
+def _display_auto_compaction_notification(console: Any, stats: dict[str, Any]) -> None:
+    """
+    Display a subtle but informative auto-compaction notification.
+
+    Shows before/after token counts and message reductions in a compact format
+    that's visible but doesn't interrupt the conversation flow.
+
+    Args:
+        console: Rich console for output
+        stats: Compaction statistics from check_and_auto_compact
+    """
+    if not stats:
+        return
+
+    before_tokens = stats.get("before_tokens", 0)
+    after_tokens = stats.get("after_tokens", 0)
+    reduction_percent = stats.get("reduction_percent", 0)
+    messages_before = stats.get("messages_before", 0)
+    messages_after = stats.get("messages_after", 0)
+    messages_summarized = stats.get("messages_summarized", 0)
+
+    # Format the numbers with commas for readability
+    before_str = f"{before_tokens:,}"
+    after_str = f"{after_tokens:,}"
+
+    # Create a subtle, one-line notification with key information
+    console.print(
+        f"[dim]🔄 auto-compacted:[/dim] "
+        f"[cyan]{before_str}[/cyan]→[cyan]{after_str}[/cyan] tokens "
+        f"([green]{reduction_percent:.1f}%[/green] saved) • "
+        f"[dim]{messages_before}→{messages_after}[/dim] messages "
+        f"([dim]{messages_summarized}[/dim] summarized)"
+    )

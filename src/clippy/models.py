@@ -33,6 +33,178 @@ class UserModelConfig:
     max_tokens: int | None = None
 
 
+class UserProviderManager:
+    """Manages user-defined provider configurations."""
+
+    def __init__(self, config_dir: Path | None = None) -> None:
+        """Initialize the user provider manager.
+
+        Args:
+            config_dir: Directory to store user configurations. Defaults to ~/.clippy
+        """
+        if config_dir is None:
+            config_dir = Path.home() / ".clippy"
+
+        self.config_dir = config_dir
+        self.providers_file = config_dir / "providers.json"
+        self.config_dir.mkdir(exist_ok=True)
+
+        # Ensure the providers file exists
+        self._ensure_providers_file()
+
+    def _ensure_providers_file(self) -> None:
+        """Create provider configuration file if none exists."""
+        if not self.providers_file.exists():
+            empty_config: dict[str, Any] = {"providers": {}}
+            self._save_providers(empty_config)
+
+    def _load_providers(self) -> dict[str, Any]:
+        """Load user providers from JSON file."""
+        try:
+            with open(self.providers_file) as f:
+                data: dict[str, Any] = json.load(f)
+                return data
+        except (FileNotFoundError, json.JSONDecodeError):
+            # If file doesn't exist or is corrupted, create empty
+            empty_config: dict[str, Any] = {"providers": {}}
+            self._save_providers(empty_config)
+            return empty_config
+
+    def _save_providers(self, data: dict[str, Any]) -> None:
+        """Save user providers to JSON file."""
+        with open(self.providers_file, "w") as f:
+            json.dump(data, f, indent=2)
+
+    def list_providers(self) -> dict[str, dict[str, Any]]:
+        """Get all user-defined providers."""
+        data = self._load_providers()
+        providers = data.get("providers", {})
+        # Type cast to ensure correct return type
+        return providers if isinstance(providers, dict) else {}
+
+    def get_provider(self, name: str) -> dict[str, Any] | None:
+        """Get a specific user provider by name (case-insensitive)."""
+        name_lower = name.lower()
+        providers = self.list_providers()
+
+        for provider_name, provider_data in providers.items():
+            if provider_name.lower() == name_lower:
+                return provider_data
+        return None
+
+    def add_provider(
+        self,
+        name: str,
+        base_url: str | None,
+        api_key_env: str,
+        description: str,
+        pydantic_system: str | None = None,
+    ) -> tuple[bool, str]:
+        """Add a new user provider.
+
+        Args:
+            name: Provider name
+            base_url: Base URL for the provider
+            api_key_env: Environment variable for API key
+            description: Provider description
+            pydantic_system: Pydantic system type
+
+        Returns:
+            Tuple of (success, message)
+        """
+        # Check if provider already exists
+        if self.get_provider(name):
+            return False, f"Provider '{name}' already exists"
+
+        # Load current providers
+        data = self._load_providers()
+
+        # Add new provider
+        new_provider = {
+            "base_url": base_url,
+            "api_key_env": api_key_env,
+            "description": description,
+            "pydantic_system": pydantic_system,
+        }
+        data["providers"][name] = new_provider
+
+        # Save and return
+        self._save_providers(data)
+        return True, f"Added provider '{name}'"
+
+    def remove_provider(self, name: str) -> tuple[bool, str]:
+        """Remove a user provider."""
+        data = self._load_providers()
+        providers = data.get("providers", {})
+
+        name_lower = name.lower()
+        # Find the provider to remove (case-insensitive)
+        provider_to_remove = None
+        for provider_name in providers:
+            if provider_name.lower() == name_lower:
+                provider_to_remove = provider_name
+                break
+
+        if not provider_to_remove:
+            return False, f"Provider '{name}' not found"
+
+        del providers[provider_to_remove]
+        data["providers"] = providers
+        self._save_providers(data)
+        return True, f"Removed provider '{provider_to_remove}'"
+
+    def update_provider(
+        self,
+        name: str,
+        base_url: str | None = None,
+        api_key_env: str | None = None,
+        description: str | None = None,
+        pydantic_system: str | None = None,
+    ) -> tuple[bool, str]:
+        """Update an existing user provider.
+
+        Args:
+            name: Provider name to update
+            base_url: New base URL (optional)
+            api_key_env: New API key env variable (optional)
+            description: New description (optional)
+            pydantic_system: New pydantic system (optional)
+
+        Returns:
+            Tuple of (success, message)
+        """
+        provider = self.get_provider(name)
+        if not provider:
+            return False, f"Provider '{name}' not found"
+
+        # Load current providers
+        data = self._load_providers()
+
+        # Find the actual provider name (case-insensitive match)
+        actual_name = None
+        for provider_name in data["providers"]:
+            if provider_name.lower() == name.lower():
+                actual_name = provider_name
+                break
+
+        if not actual_name:
+            return False, f"Provider '{name}' not found"
+
+        # Update fields if provided
+        if base_url is not None:
+            data["providers"][actual_name]["base_url"] = base_url
+        if api_key_env is not None:
+            data["providers"][actual_name]["api_key_env"] = api_key_env
+        if description is not None:
+            data["providers"][actual_name]["description"] = description
+        if pydantic_system is not None:
+            data["providers"][actual_name]["pydantic_system"] = pydantic_system
+
+        # Save and return
+        self._save_providers(data)
+        return True, f"Updated provider '{actual_name}'"
+
+
 class UserModelManager:
     """Manages user-defined model configurations."""
 
@@ -224,21 +396,47 @@ class UserModelManager:
 # Global instances
 _providers: dict[str, ProviderConfig] = {}
 _user_manager: UserModelManager | None = None
+_user_provider_manager: UserProviderManager | None = None
+
+
+def get_user_provider_manager() -> UserProviderManager:
+    """Get the user provider manager instance."""
+    global _user_provider_manager
+    if _user_provider_manager is None:
+        _user_provider_manager = UserProviderManager()
+    return _user_provider_manager
 
 
 def _load_providers() -> dict[str, ProviderConfig]:
-    """Load provider configurations from YAML file."""
+    """Load provider configurations from both built-in YAML and user JSON files.
+
+    User providers take precedence over built-in providers in case of name conflicts.
+    """
     global _providers
 
     if _providers:
         return _providers
 
+    # Load built-in providers from YAML
     yaml_path = Path(__file__).parent / "providers.yaml"
-
     with open(yaml_path) as f:
-        config = yaml.safe_load(f)
+        built_in_config = yaml.safe_load(f)
 
-    for provider_name, provider_data in config["providers"].items():
+    # First, load built-in providers
+    for provider_name, provider_data in built_in_config["providers"].items():
+        _providers[provider_name] = ProviderConfig(
+            name=provider_name,
+            base_url=provider_data.get("base_url"),
+            api_key_env=provider_data.get("api_key_env", "OPENAI_API_KEY"),
+            description=provider_data.get("description", ""),
+            pydantic_system=provider_data.get("pydantic_system"),
+        )
+
+    # Then, load and merge user providers (these override built-in ones)
+    user_manager = get_user_provider_manager()
+    user_providers = user_manager.list_providers()
+
+    for provider_name, provider_data in user_providers.items():
         _providers[provider_name] = ProviderConfig(
             name=provider_name,
             base_url=provider_data.get("base_url"),
@@ -325,6 +523,84 @@ def list_available_providers() -> list[tuple[str, str]]:
     return [(provider.name, provider.description) for provider in providers.values()]
 
 
+def list_providers_by_source() -> dict[str, list[tuple[str, str]]]:
+    """Get list of providers separated by source (built-in vs user-defined).
+
+    Returns:
+        Dictionary with keys 'built_in' and 'user' containing lists of (name, description)
+    """
+    result: dict[str, list[tuple[str, str]]] = {"built_in": [], "user": []}
+
+    # Get built-in providers from YAML
+    yaml_path = Path(__file__).parent / "providers.yaml"
+    with open(yaml_path) as f:
+        built_in_config = yaml.safe_load(f)
+
+    for provider_name, provider_data in built_in_config["providers"].items():
+        result["built_in"].append((provider_name, provider_data.get("description", "")))
+
+    # Get user providers from JSON
+    user_manager = get_user_provider_manager()
+    user_providers = user_manager.list_providers()
+
+    for provider_name, provider_data in user_providers.items():
+        result["user"].append((provider_name, provider_data.get("description", "")))
+
+    return result
+
+
+def is_user_provider(name: str) -> bool:
+    """Check if a provider is user-defined.
+
+    Args:
+        name: Provider name to check
+
+    Returns:
+        True if provider is user-defined, False if built-in
+    """
+    # Load built-in providers
+    yaml_path = Path(__file__).parent / "providers.yaml"
+    with open(yaml_path) as f:
+        built_in_config = yaml.safe_load(f)
+
+    # If it's in built-in config, it's not user-defined
+    if name in built_in_config["providers"]:
+        return False
+
+    # Otherwise, check if it exists in user providers
+    user_manager = get_user_provider_manager()
+    return user_manager.get_provider(name) is not None
+
+
+def reload_providers() -> dict[str, ProviderConfig]:
+    """Reload provider configurations from both built-in and user sources.
+
+    This should be called after modifying provider configurations to ensure
+    the latest configuration is loaded.
+
+    Returns:
+        Dictionary of provider configurations
+    """
+    global _providers, _user_provider_manager
+    _providers.clear()  # Clear the cache
+    _user_provider_manager = None  # Clear user provider manager cache
+    return _load_providers()
+
+
+def reload_model_manager() -> UserModelManager:
+    """Reload the user model manager to clear the cache and get fresh data.
+
+    This should be called after modifying model configurations to ensure
+    the latest configuration is loaded.
+
+    Returns:
+        Fresh UserModelManager instance
+    """
+    global _user_manager
+    _user_manager = None  # Clear the cache
+    return get_user_manager()
+
+
 def get_model_compaction_threshold(name_or_id: str) -> int | None:
     """Get the compaction threshold for a specific model.
 
@@ -363,4 +639,9 @@ def set_model_compaction_threshold(name: str, threshold: int | None) -> tuple[bo
         Tuple of (success, message)
     """
     user_manager = get_user_manager()
-    return user_manager.set_compaction_threshold(name, threshold)
+    result = user_manager.set_compaction_threshold(name, threshold)
+
+    # Reload the model manager cache to ensure the change takes effect immediately
+    reload_model_manager()
+
+    return result
