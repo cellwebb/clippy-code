@@ -87,6 +87,12 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
             # First ESC - just record the time
             last_esc_time["time"] = current_time
 
+    @kb.add("c-j")
+    def _(event: Any) -> None:
+        """Handle Ctrl+J to insert a new line (fallback for Shift+Enter)."""
+        buffer = event.app.current_buffer
+        buffer.insert_text("\n")
+
     # Create history file
     history_file = Path.home() / ".clippy_history"
     session: PromptSession[str] = PromptSession(
@@ -94,6 +100,8 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
         auto_suggest=AutoSuggestFromHistory(),
         key_bindings=kb,
         completer=create_completer(agent),
+        # multiline=False,
+        # wrap_lines=True,
     )
 
     # Get current model and provider info
@@ -132,12 +140,13 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
     welcome_content = (
         f"{clippy_ascii}\n\n"
         "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
-        "Just type your request and press Enter to chat with Clippy!\n\n"
+        "Just type your request and press Enter to chat with Clippy!\n"
         "[bold]Essential Commands:[/bold]\n"
         "  /help - Show all available commands\n"
         "  /model - Show and switch between models\n"
         "  /exit, /quit - Exit clippy-code\n"
         "  /reset, /clear, /new - Start fresh conversation\n\n"
+        "[bold]Tip:[/bold] Use [bold]Ctrl+J[/bold] to insert new lines for multi-line input.\n\n"
         f"[bold]Current Model:[/bold] [cyan]{current_model}[/cyan]{provider_info}\n\n"
     )
     
