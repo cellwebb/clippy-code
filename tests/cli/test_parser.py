@@ -6,11 +6,11 @@ from collections.abc import Sequence
 
 import pytest
 
-from clippy.cli.parser import create_parser
+from clippy.cli.parser import create_parser, parse_args
 
 
 def _parse(args: Sequence[str]):
-    return create_parser().parse_args(args)
+    return parse_args(args)
 
 
 def test_parser_defaults() -> None:

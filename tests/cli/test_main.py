@@ -75,6 +75,8 @@ def _make_args(**overrides: Any) -> SimpleNamespace:
         "verbose": False,
         "model": None,
         "base_url": None,
+        "config": None,
+        "command": None,  # Add command attribute to match parser output
     }
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
@@ -85,7 +87,8 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli_main, "load_env", lambda: None)
 
     args = _make_args(verbose=True)
-    monkeypatch.setattr(cli_main, "create_parser", lambda: SimpleNamespace(parse_args=lambda: args))
+    # Mock parse_args to return our test args instead of parsing sys.argv
+    monkeypatch.setattr(cli_main, "parse_args", lambda argv: args)
 
     logged: list[bool] = []
     monkeypatch.setattr(cli_main, "setup_logging", lambda verbose: logged.append(verbose))
@@ -128,6 +131,10 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
         def __init__(self, **kwargs: Any) -> None:
             self.kwargs = kwargs
             created_agents.append(self)
+            
+        def run(self, prompt: str, auto_approve_all: bool = False) -> None:
+            """Mock run method for testing."""
+            pass
 
     monkeypatch.setattr(cli_main, "ClippyAgent", StubAgent)
 
@@ -162,7 +169,8 @@ def test_main_missing_api_key_exits(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(cli_main, "load_env", lambda: None)
 
     args = _make_args(prompt=["do", "something"])
-    monkeypatch.setattr(cli_main, "create_parser", lambda: SimpleNamespace(parse_args=lambda: args))
+    # Mock parse_args to return our test args
+    monkeypatch.setattr(cli_main, "parse_args", lambda argv: args)
 
     default_model = SimpleNamespace(model_id="gpt-5")
     default_provider = SimpleNamespace(
@@ -201,7 +209,8 @@ def test_main_handles_mcp_manager_failure(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(cli_main, "load_env", lambda: None)
 
     args = _make_args(prompt=["hello"])
-    monkeypatch.setattr(cli_main, "create_parser", lambda: SimpleNamespace(parse_args=lambda: args))
+    # Mock parse_args to return our test args
+    monkeypatch.setattr(cli_main, "parse_args", lambda argv: args)
     monkeypatch.setattr(cli_main, "setup_logging", lambda verbose: None)
 
     default_model = SimpleNamespace(model_id="gpt-5")
