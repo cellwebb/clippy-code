@@ -185,7 +185,12 @@ def handle_tool_use(
 
     if action_type is None:
         add_tool_result(
-            conversation_history, tool_use_id, False, f"Unknown tool: {tool_name}", None
+            conversation_history,
+            tool_use_id,
+            False,
+            f"Unknown tool: {tool_name}",
+            None,
+            tool_name,
         )
         return False
 
@@ -216,7 +221,9 @@ def handle_tool_use(
     if permission_manager.config.is_denied(action_type):
         logger.warning(f"Action denied by policy: {tool_name} ({action_type})")
         console.print("[bold red]✗ Action denied by policy[/bold red]")
-        add_tool_result(conversation_history, tool_use_id, False, "Action denied by policy", None)
+        add_tool_result(
+            conversation_history, tool_use_id, False, "Action denied by policy", None, tool_name
+        )
         return False
 
     # Track whether user explicitly approved (to bypass trust check for MCP tools)
@@ -238,7 +245,12 @@ def handle_tool_use(
             logger.info(f"User rejected tool execution: {tool_name}")
             console.print("[bold yellow]⊘ Action rejected by user[/bold yellow]")
             add_tool_result(
-                conversation_history, tool_use_id, False, "Action rejected by user", None
+                conversation_history,
+                tool_use_id,
+                False,
+                "Action rejected by user",
+                None,
+                tool_name,
             )
             return False
         logger.info(f"User approved tool execution: {tool_name}")
@@ -329,7 +341,7 @@ def handle_tool_use(
             console.print(f"[bold red]✗ {escape(message)}[/bold red]")
 
     # Add result to conversation
-    add_tool_result(conversation_history, tool_use_id, success, message, result)
+    add_tool_result(conversation_history, tool_use_id, success, message, result, tool_name)
 
     # Save conversation automatically after each tool execution
     if parent_agent is not None:
@@ -444,6 +456,7 @@ def add_tool_result(
     success: bool,
     message: str,
     result: Any,
+    tool_name: str | None = None,
 ) -> None:
     """
     Add a tool result to the conversation history.
@@ -469,6 +482,7 @@ def add_tool_result(
     conversation_history.append(
         {
             "role": "tool",
+            "name": tool_name or "",
             "tool_call_id": tool_use_id,
             "content": content,
         }

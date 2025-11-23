@@ -74,6 +74,7 @@ def test_handle_tool_use_auto_approved_success(console: DummyConsole) -> None:
     assert executor.calls == [("read_file", {"path": "readme.md"}, False)]
     assert len(history) == 1
     assert history[0]["tool_call_id"] == "tool-1"
+    assert history[0]["name"] == "read_file"
     assert "Read file" in history[0]["content"]
     assert "file contents" in history[0]["content"]
 
