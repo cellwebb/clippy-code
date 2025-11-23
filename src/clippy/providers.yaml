@@ -74,3 +74,8 @@ providers:
     api_key_env: ZAI_API_KEY
     description: Z.AI coding plan
     pydantic_system: openai
+  claude-code:
+    base_url: null
+    api_key_env: CLAUDE_CODE_ACCESS_TOKEN
+    description: Claude Code (OAuth)
+    pydantic_system: anthropic

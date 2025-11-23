@@ -13,7 +13,7 @@ from ..mcp.manager import Manager
 from ..models import ProviderConfig, get_default_model_config, get_model_config
 from ..permissions import PermissionConfig, PermissionManager
 from .oneshot import run_one_shot
-from .parser import create_parser
+from .parser import create_parser, parse_args
 from .repl import run_interactive
 from .setup import load_env, setup_logging
 
@@ -72,9 +72,21 @@ def main() -> None:
     # Load environment variables
     load_env()
 
-    # Parse arguments
-    parser = create_parser()
-    args = parser.parse_args()
+    # Parse arguments with special handling for prompts vs subcommands
+    # Use sys.argv[1:] to get command line arguments
+    import sys
+    argv = sys.argv[1:]
+    args = parse_args(argv)
+
+    # Handle auth commands
+    if args.command == "auth":
+        from .auth_cli import auth
+        auth(quiet=args.quiet, log_level=args.log_level)
+        return
+    elif args.command == "auth-status":
+        from .auth_cli import status
+        status()
+        return
 
     # Setup logging
     setup_logging(verbose=args.verbose)

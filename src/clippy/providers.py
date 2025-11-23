@@ -31,6 +31,26 @@ if TYPE_CHECKING:
     from .models import ProviderConfig
 
 
+class ClaudeCodeOAuthProvider(AnthropicProvider):
+    """Custom Anthropic provider for Claude Code OAuth authentication.
+    
+    This provider uses the special OAuth token and headers required for Claude Code subscriptions.
+    It automatically handles the exact system message requirement and proper authentication headers.
+    """
+    
+    def __init__(self, api_key: str | None = None, base_url: str | None = None, **kwargs: Any) -> None:
+        # Claude Code OAuth always uses the standard Anthropic API
+        super().__init__(api_key=api_key, base_url=base_url or "https://api.anthropic.com", **kwargs)
+        
+    def _make_request(self, *args: Any, **kwargs: Any) -> Any:
+        """Override to add Claude Code specific headers."""
+        # Add the special anthropic-beta header for OAuth
+        if "headers" not in kwargs:
+            kwargs["headers"] = {}
+        kwargs["headers"]["anthropic-beta"] = "oauth-2025-04-20"
+        return super()._make_request(*args, **kwargs)
+
+
 class Spinner:
     """A simple terminal spinner for indicating loading status."""
 
@@ -99,7 +119,8 @@ class LLMProvider:
         spinner.start()
 
         try:
-            model_messages = _convert_openai_messages(messages)
+            provider_system = self.provider_config.pydantic_system if self.provider_config else None
+            model_messages = _convert_openai_messages(messages, provider_system)
             tool_definitions = _convert_tools(tools)
 
             params = ModelRequestParameters(
@@ -173,7 +194,9 @@ class LLMProvider:
         return self.base_url is None
 
     def _normalize_system(self, system: str) -> str:
-        aliases: dict[str, str] = {}
+        aliases: dict[str, str] = {
+            "claude-code": "anthropic",
+        }
         return aliases.get(system, system)
 
     def _default_provider_identifier(self, model_identifier: str) -> str:
@@ -201,7 +224,7 @@ class LLMProvider:
     def _create_provider_for_system(self, system: str) -> Any | None:
         """Return a callable that builds a model for non-OpenAI systems."""
 
-        if system == "anthropic":
+        if system in {"anthropic", "claude-code"}:
 
             def _builder(model_id: str) -> AnthropicModel:
                 provider_kwargs: dict[str, Any] = {}
@@ -209,7 +232,14 @@ class LLMProvider:
                     provider_kwargs["api_key"] = self.api_key
                 if self.provider_config and self.provider_config.base_url:
                     provider_kwargs["base_url"] = self.provider_config.base_url
-                provider = AnthropicProvider(**provider_kwargs)
+                
+                # Special handling for Claude Code OAuth
+                if system == "claude-code":
+                    # Use custom provider class for Claude Code OAuth
+                    provider = ClaudeCodeOAuthProvider(**provider_kwargs)
+                else:
+                    provider = AnthropicProvider(**provider_kwargs)
+                    
                 return AnthropicModel(model_id, provider=provider)
 
             return _builder
@@ -231,11 +261,12 @@ class LLMProvider:
         return None
 
 
-def _convert_openai_messages(messages: list[dict[str, Any]]) -> list[ModelMessage]:
+def _convert_openai_messages(messages: list[dict[str, Any]], provider_system: str | None = None) -> list[ModelMessage]:
     """Convert OpenAI-style messages into Pydantic AI message objects."""
 
     converted: list[ModelMessage] = []
     current_parts: list[Any] = []
+    system_instructions = ""
 
     for message in messages:
         role = message.get("role")
@@ -243,10 +274,18 @@ def _convert_openai_messages(messages: list[dict[str, Any]]) -> list[ModelMessag
 
         if role == "system":
             if content is not None:
-                current_parts.append(SystemPromptPart(content=_to_text(content)))
+                system_instructions = _to_text(content)
+                # For Claude Code, we don't add SystemPromptPart here - we'll handle it specially
+                if provider_system != "claude-code":
+                    current_parts.append(SystemPromptPart(content=system_instructions))
         elif role == "user":
             if content is not None:
-                current_parts.append(UserPromptPart(content=_to_text(content)))
+                user_content = _to_text(content)
+                # For Claude Code, prepend system instructions to first user message
+                if provider_system == "claude-code" and system_instructions:
+                    user_content = f"{system_instructions}\n\n{user_content}"
+                    system_instructions = ""  # Clear after using once
+                current_parts.append(UserPromptPart(content=user_content))
             if current_parts:
                 converted.append(ModelRequest(parts=current_parts))
                 current_parts = []
