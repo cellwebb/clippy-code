@@ -22,7 +22,10 @@ TOOL_SCHEMA = {
                 },
                 "recursive": {
                     "type": "boolean",
-                    "description": "Whether to list recursively. When enabled, respects .gitignore patterns and skips ignored directories.",
+                    "description": (
+                        "Whether to list recursively. When enabled, respects .gitignore "
+                        "patterns and skips ignored directories."
+                    ),
                 },
             },
             "required": ["path"],
@@ -54,8 +57,6 @@ def list_directory(path: str, recursive: bool) -> tuple[bool, str, Any]:
         if not os.path.isdir(path):
             return False, f"Path is not a directory: {path}", None
 
-        
-        
         if recursive:
             # Load .gitignore patterns
             gitignore_spec = load_gitignore(path)
