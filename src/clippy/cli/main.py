@@ -17,12 +17,6 @@ from .parser import create_parser, parse_args
 from .repl import run_interactive
 from .setup import load_env, setup_logging
 
-# Import vaporwave UI if available
-try:
-    from ..ui.vaporwave_app import run_vaporwave_clippy
-    VAPORWAVE_AVAILABLE = True
-except ImportError:
-    VAPORWAVE_AVAILABLE = False
 
 
 def _is_openai_compatible(provider: ProviderConfig | None) -> bool:
@@ -205,30 +199,7 @@ def main() -> None:
     )
 
     # Determine mode
-    if args.dream:
-        # Vaporwave dream mode
-        if VAPORWAVE_AVAILABLE:
-            console.print(
-                "[bold magenta]🌃 ENTERING VAPORWAVE DREAM MODE... 【美的】[/bold magenta]"
-            )
-            # Handle auto-approve flags for vaporwave mode
-            if args.yolo:
-                agent.yolo_mode = True
-                console.print(
-                    "[bold red]🔥 YOLO MODE ENABLED - All actions will be auto-approved! 🔥[/bold red]"
-                )
-            elif args.yes:
-                agent.permission_manager.config.auto_approve_all = True
-
-            # Launch vaporwave TUI
-            run_vaporwave_clippy(agent)
-        else:
-            console.print(
-                "[bold red]Error:[/bold red] Vaporwave mode requires Textual. "
-                "Please install with: pip install textual"
-            )
-            sys.exit(1)
-    elif args.prompt:
+    if args.prompt:
         # One-shot mode - user provided a prompt
         prompt = " ".join(args.prompt)
         # Handle --yolo flag (overrides --yes)

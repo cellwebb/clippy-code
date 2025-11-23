@@ -49,13 +49,7 @@ def create_parser() -> argparse.ArgumentParser:
         help="Enable verbose logging (shows retry attempts and API errors)",
     )
 
-    parser.add_argument(
-        "-d",
-        "--dream",
-        action="store_true",
-        help="Launch in vaporwave dream mode - nostalgic 90s/2000s TUI interface",
-    )
-
+    
     # Add subcommands after general options
     subparsers = parser.add_subparsers(dest="command", help="Available commands", required=False)
     
@@ -104,7 +98,7 @@ def parse_args(argv):
         args.model = None
         args.base_url = None
         args.config = None
-        args.dream = False
+        
         args.command = None
         return args
     
@@ -123,7 +117,7 @@ def parse_args(argv):
         parser.add_argument("--base-url", type=str)
         parser.add_argument("--config", type=str)
         parser.add_argument("-v", "--verbose", action="store_true")
-        parser.add_argument("-d", "--dream", action="store_true")
+        
         parser.add_argument("prompt", nargs="*")
         
         args = parser.parse_args(argv)
