@@ -73,7 +73,8 @@ def test_load_stored_token_missing_file() -> None:
     """Test loading token when file doesn't exist."""
     with tempfile.TemporaryDirectory() as tmpdir:
         # Patch the storage path to use temp directory
-        with patch("clippy.oauth.claude_code.get_token_storage_path") as mock_path:
+        with patch("clippy.oauth.claude_code.get_token_storage_path") as mock_path, \
+             patch.dict(os.environ, {"CLAUDE_CODE_ACCESS_TOKEN": ""}, clear=True):
             mock_path.return_value = Path(tmpdir) / ".env"
             
             token = load_stored_token()
@@ -86,7 +87,8 @@ def test_load_stored_token_empty_file() -> None:
         env_file = Path(tmpdir) / ".env"
         env_file.write_text("")
         
-        with patch("clippy.oauth.claude_code.get_token_storage_path") as mock_path:
+        with patch("clippy.oauth.claude_code.get_token_storage_path") as mock_path, \
+             patch.dict(os.environ, {"CLAUDE_CODE_ACCESS_TOKEN": ""}, clear=True):
             mock_path.return_value = env_file
             
             token = load_stored_token()
