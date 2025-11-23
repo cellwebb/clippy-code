@@ -3,7 +3,8 @@ CRT Display Widget - Retro monitor effects with scanlines and curvature 【モ�
 """
 
 import random
-from typing import Any, Callable, Generator
+from collections.abc import Callable, Generator
+from typing import Any
 
 from rich.console import RenderableType
 from rich.text import Text

@@ -131,6 +131,52 @@ def get_tool_schema() -> dict[str, Any]:
                             ),
                             "default": True,
                         },
+                        "stuck_detection": {
+                            "type": "object",
+                            "description": (
+                                "Configuration for detecting and handling stuck subagents"
+                            ),
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "description": "Enable stuck subagent detection",
+                                    "default": False,
+                                },
+                                "stuck_timeout": {
+                                    "type": "number",
+                                    "description": (
+                                        "How long without progress before considering "
+                                        "stuck (seconds)"
+                                    ),
+                                    "default": 120,
+                                },
+                                "heartbeat_timeout": {
+                                    "type": "number",
+                                    "description": (
+                                        "How long without heartbeat before considering "
+                                        "stuck (seconds)"
+                                    ),
+                                    "default": 60,
+                                },
+                                "overall_timeout": {
+                                    "type": "number",
+                                    "description": (
+                                        "Overall timeout for parallel execution (seconds)"
+                                    ),
+                                    "default": 600,
+                                },
+                                "auto_terminate": {
+                                    "type": "boolean",
+                                    "description": "Automatically terminate stuck subagents",
+                                    "default": True,
+                                },
+                                "check_interval": {
+                                    "type": "number",
+                                    "description": "Progress check interval (seconds)",
+                                    "default": 10,
+                                },
+                            },
+                        },
                     },
                     "required": ["subagents"],
                 },
@@ -227,6 +273,7 @@ def create_parallel_subagents_and_execute(
     max_concurrent: int = 3,
     fail_fast: bool = False,
     aggregate_results: bool = True,
+    stuck_detection: dict[str, Any] | None = None,
 ) -> tuple[bool, str, Any]:
     """
     Create and execute multiple subagents in parallel with the given parameters.
@@ -309,13 +356,29 @@ def create_parallel_subagents_and_execute(
             subagent_instances.append(subagent)
             logger.info(f"Created subagent '{config.name}' for task: {config.task[:50]}...")
 
+        # Configure stuck detection if enabled
+        stuck_detection_config = None
+        if stuck_detection and stuck_detection.get("enabled", False):
+            from ..agent.subagent_monitor import StuckDetectionConfig
+
+            stuck_detection_config = StuckDetectionConfig(
+                stuck_timeout=stuck_detection.get("stuck_timeout", 120),
+                heartbeat_timeout=stuck_detection.get("heartbeat_timeout", 60),
+                overall_timeout=stuck_detection.get("overall_timeout", 600),
+                auto_terminate=stuck_detection.get("auto_terminate", True),
+                check_interval=stuck_detection.get("check_interval", 10),
+            )
+            logger.info("Stuck detection enabled for parallel execution")
+
         # Execute subagents in parallel
         logger.info(
             f"Running {len(subagent_instances)} subagents in parallel "
             f"(max_concurrent={max_concurrent})"
         )
         results = parent_agent.subagent_manager.run_parallel(
-            subagent_instances, max_concurrent=max_concurrent
+            subagent_instances,
+            max_concurrent=max_concurrent,
+            stuck_detection_config=stuck_detection_config,
         )
 
         # Analyze results
@@ -334,10 +397,41 @@ def create_parallel_subagents_and_execute(
             )
             logger.info(message)
 
+        # Count different failure types
+        stuck_count = 0
+        timeout_count = 0
+        exception_count = 0
+
+        for result in results:
+            if not result.success:
+                if result.metadata:
+                    failure_reason = getattr(result.metadata, "failure_reason", "unknown")
+                else:
+                    failure_reason = "unknown"
+                if failure_reason == "stuck":
+                    stuck_count += 1
+                elif failure_reason == "timeout":
+                    timeout_count += 1
+                elif failure_reason in ["exception", "cancelled"]:
+                    exception_count += 1
+
         # Aggregate results if requested
         if aggregate_results:
             summary = _aggregate_results(results)
             message += f"\n\n{summary}"
+
+            # Add stuck detection info if enabled
+            if stuck_detection_config:
+                message += "\n\n📈 Parallel Execution Details:"
+                message += f"\n   • Stuck subagents detected: {stuck_count}"
+                message += f"\n   • Timeout failures: {timeout_count}"
+                message += f"\n   • Exception failures: {exception_count}"
+                if stuck_count > 0:
+                    message += (
+                        f"\n   ⚠️  {stuck_count} subagent(s) were stuck and terminated to "
+                        f"preserve completed work"
+                    )
+
             result = {
                 "individual_results": [
                     {
@@ -348,13 +442,20 @@ def create_parallel_subagents_and_execute(
                         "error": result.error,
                         "execution_time": result.execution_time,
                         "iterations_used": result.iterations_used,
+                        "failure_reason": (
+                            result.metadata.get("failure_reason") if result.metadata else None
+                        ),
                     }
                     for i, result in enumerate(results)
                 ],
                 "summary": summary,
                 "total_successful": successful_count,
                 "total_failed": failed_count,
+                "total_stuck": stuck_count,
+                "total_timeout": timeout_count,
+                "total_exception": exception_count,
                 "total_execution_time": sum(r.execution_time for r in results),
+                "stuck_detection_enabled": stuck_detection_config is not None,
             }
         else:
             result = results

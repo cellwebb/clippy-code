@@ -2,11 +2,13 @@
 
 import asyncio
 import logging
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any
 
 from ..executor import ActionExecutor
 from ..permissions import PermissionManager
+from .subagent_monitor import StuckDetectionConfig, SubagentMonitor
 
 if TYPE_CHECKING:
     from .core import ClippyAgent
@@ -158,14 +160,18 @@ class SubAgentManager:
         return results
 
     def run_parallel(
-        self, subagents: list[SubAgent], max_concurrent: int | None = None
+        self,
+        subagents: list[SubAgent],
+        max_concurrent: int | None = None,
+        stuck_detection_config: StuckDetectionConfig | None = None,
     ) -> list[Any]:
         """
-        Run multiple subagents in parallel.
+        Run multiple subagents in parallel with stuck detection and recovery.
 
         Args:
             subagents: List of subagents to run
             max_concurrent: Maximum concurrent subagents (overrides instance default)
+            stuck_detection_config: Configuration for stuck subagent detection
 
         Returns:
             List of results in the same order as input
@@ -177,54 +183,184 @@ class SubAgentManager:
         if len(subagents) < max_workers:
             max_workers = len(subagents)
 
-        logger.info(
-            f"Running {len(subagents)} subagents in parallel with max {max_workers} concurrent"
-        )
+        # Use stuck detection if configured
+        use_monitoring = stuck_detection_config is not None
+        monitor: SubagentMonitor | None = None
+
+        if use_monitoring:
+            monitor = SubagentMonitor(stuck_detection_config)
+            logger.info(
+                f"Running {len(subagents)} subagents in parallel with stuck detection "
+                f"(max {max_workers} concurrent)"
+            )
+        else:
+            logger.info(
+                f"Running {len(subagents)} subagents in parallel with max {max_workers} concurrent"
+            )
 
         # Use ThreadPoolExecutor for parallel execution
         results: list[Any] = [None] * len(subagents)  # Pre-allocate results list
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all subagent tasks
-            future_to_index = {}
-            for i, subagent in enumerate(subagents):
-                logger.info(f"Submitting subagent '{subagent.config.name}' for parallel execution")
-                future = executor.submit(subagent.run)
-                future_to_index[future] = i
+            # Start monitoring if enabled
+            if use_monitoring and monitor:
+                # Set monitor for each subagent (if they support heartbeat)
+                for subagent in subagents:
+                    if hasattr(subagent, "set_monitor"):
+                        subagent.set_monitor(monitor)
 
-            # Collect results as they complete
-            for future in as_completed(future_to_index):
-                index = future_to_index[future]
-                subagent = subagents[index]
+                monitor.start_monitoring(subagents)
 
-                try:
-                    result = future.result()
-                    results[index] = result
-                    logger.info(f"Subagent '{subagent.config.name}' completed: {result.success}")
-                except Exception as e:
-                    logger.error(f"Subagent '{subagent.config.name}' failed with exception: {e}")
-
-                    results[index] = SubAgentResult(
-                        success=False,
-                        output="",
-                        error=f"Subagent execution failed: {str(e)}",
-                        iterations_used=0,
-                        execution_time=0.0,
-                        metadata={
-                            "subagent_name": subagent.config.name,
-                            "subagent_type": subagent.config.subagent_type,
-                            "failure_reason": "exception",
-                        },
+            try:
+                # Submit all subagent tasks
+                future_to_index = {}
+                for i, subagent in enumerate(subagents):
+                    logger.info(
+                        f"Submitting subagent '{subagent.config.name}' for parallel execution"
                     )
+                    future = executor.submit(subagent.run)
+                    future_to_index[future] = i
 
-                # Move from active to completed
+                # Collect results as they complete with timeout for stuck detection
+                if use_monitoring and monitor and stuck_detection_config:
+                    # Use a shorter timeout with monitoring to check for stuck subagents
+                    collection_start_time = time.time()
+                    max_collection_time = stuck_detection_config.overall_timeout
+
+                    completed_futures: set[Any] = set()
+                    while len(completed_futures) < len(future_to_index):
+                        # Check overall timeout
+                        if time.time() - collection_start_time > max_collection_time:
+                            logger.warning("Parallel execution exceeded overall timeout")
+                            # Cancel remaining futures
+                            for future in set(future_to_index.keys()) - completed_futures:
+                                future.cancel()
+                            break
+
+                        # Wait for at least future to complete or timeout check
+                        try:
+                            completed = as_completed(
+                                set(future_to_index.keys()) - completed_futures,
+                                timeout=30.0,  # Check every 30 seconds
+                            )
+                            for future in completed:
+                                index = future_to_index[future]
+                                subagent = subagents[index]
+
+                                try:
+                                    result = future.result()
+                                    results[index] = result
+                                    logger.info(
+                                        f"Subagent '{subagent.config.name}' completed: "
+                                        f"{result.success}"
+                                    )
+
+                                    # Update monitor
+                                    if monitor:
+                                        monitor.mark_completed(subagent.config.name, result)
+
+                                except Exception as e:
+                                    logger.error(
+                                        f"Subagent '{subagent.config.name}' failed with "
+                                        f"exception: {e}"
+                                    )
+
+                                    results[index] = SubAgentResult(
+                                        success=False,
+                                        output="",
+                                        error=f"Subagent execution failed: {str(e)}",
+                                        iterations_used=0,
+                                        execution_time=0.0,
+                                        metadata={
+                                            "subagent_name": subagent.config.name,
+                                            "subagent_type": subagent.config.subagent_type,
+                                            "failure_reason": "exception",
+                                        },
+                                    )
+
+                                # Move from active to completed
+                                if subagent.config.name in self.active_subagents:
+                                    del self.active_subagents[subagent.config.name]
+                                self.completed_subagents.append(subagent)
+                                completed_futures.add(future)
+
+                        except TimeoutError:
+                            # Check for stuck subagents
+                            if monitor:
+                                stuck = monitor.get_stuck_subagents()
+                                if stuck:
+                                    logger.warning(f"Detected stuck subagents: {stuck}")
+                                    # Let the monitor handle them, continue waiting
+                                    continue
+
+                            # No stuck subagents, continue waiting
+                            continue
+                else:
+                    # Traditional collection without monitoring
+                    for future in as_completed(future_to_index):
+                        index = future_to_index[future]
+                        subagent = subagents[index]
+
+                        try:
+                            result = future.result()
+                            results[index] = result
+                            logger.info(
+                                f"Subagent '{subagent.config.name}' completed: {result.success}"
+                            )
+
+                            # Update monitor if available
+                            if monitor:
+                                monitor.mark_completed(subagent.config.name, result)
+
+                        except Exception as e:
+                            logger.error(
+                                f"Subagent '{subagent.config.name}' failed with exception: {e}"
+                            )
+
+                            results[index] = SubAgentResult(
+                                success=False,
+                                output="",
+                                error=f"Subagent execution failed: {str(e)}",
+                                iterations_used=0,
+                                execution_time=0.0,
+                                metadata={
+                                    "subagent_name": subagent.config.name,
+                                    "subagent_type": subagent.config.subagent_type,
+                                    "failure_reason": "exception",
+                                },
+                            )
+
+                        # Move from active to completed
+                        if subagent.config.name in self.active_subagents:
+                            del self.active_subagents[subagent.config.name]
+                        self.completed_subagents.append(subagent)
+
+            finally:
+                # Stop monitoring and get statistics
+                if monitor:
+                    monitor_stats = monitor.stop_monitoring()
+                    logger.info(f"Subagent monitoring completed: {monitor_stats}")
+
+        # Fill any remaining None results (typically due to cancellation)
+        for i, result in enumerate(results):
+            if result is None:
+                subagent = subagents[i]
+                results[i] = SubAgentResult(
+                    success=False,
+                    output="",
+                    error="Subagent execution was cancelled or did not complete",
+                    iterations_used=0,
+                    execution_time=0.0,
+                    metadata={
+                        "subagent_name": subagent.config.name,
+                        "subagent_type": subagent.config.subagent_type,
+                        "failure_reason": "cancelled",
+                    },
+                )
+                # Move to completed if not already there
                 if subagent.config.name in self.active_subagents:
                     del self.active_subagents[subagent.config.name]
                 self.completed_subagents.append(subagent)
-
-        # Ensure all results are filled (should always be true)
-        if any(result is None for result in results):
-            raise RuntimeError("Some subagent results were not filled")
 
         return results
 
