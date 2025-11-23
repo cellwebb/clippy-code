@@ -313,9 +313,6 @@ class SubAgent:
 
     def _run_agent_loop(self) -> str:
         """Run the agent loop with custom parameters."""
-        # Use max_iterations from config (already incorporates type defaults via SubAgentManager)
-        max_iterations = self.config.max_iterations
-
         # Convert "all" to None for allowed_tools (None means all tools)
         allowed_tools_config = self.config.allowed_tools
         if allowed_tools_config == "all":
@@ -336,7 +333,6 @@ class SubAgent:
             approval_callback=None,  # Subagents don't use approval callbacks
             check_interrupted=lambda: self.interrupted,
             mcp_manager=self.parent_agent.mcp_manager,
-            max_iterations=max_iterations,
             allowed_tools=allowed_tools,
             parent_agent=self.parent_agent,
         )

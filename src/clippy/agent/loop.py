@@ -31,7 +31,6 @@ def run_agent_loop(
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None,
     check_interrupted: Callable[[], bool],
     mcp_manager: Any = None,
-    max_iterations: int = 100,
     allowed_tools: list[str] | None = None,
     parent_agent: Any = None,
 ) -> str:
@@ -49,7 +48,6 @@ def run_agent_loop(
         approval_callback: Optional callback for approval requests
         check_interrupted: Callback to check if execution was interrupted
         mcp_manager: Optional MCP manager instance
-        max_iterations: Maximum number of iterations (default: 100)
         allowed_tools: List of allowed tool names (default: all tools)
         parent_agent: Parent agent instance for subagent delegation
 
@@ -61,19 +59,20 @@ def run_agent_loop(
     """
     from .core import InterruptedExceptionError
 
-    # Use the provided max_iterations parameter instead of hardcoding
-    logger.info(f"Starting agent loop with model: {model}, max_iterations: {max_iterations}")
+    logger.info(f"Starting agent loop with model: {model}")
 
     # Track spinner between iterations
     spinner: Spinner | None = None
 
-    for iteration in range(max_iterations):
+    iteration = 0
+    while True:
         # Stop spinner from previous iteration
         if spinner:
             spinner.stop()
             spinner = None
 
-        logger.debug(f"Agent loop iteration {iteration + 1}/{max_iterations}")
+        iteration += 1
+        logger.debug(f"Agent loop iteration {iteration}")
 
         if check_interrupted():
             logger.info("Agent loop interrupted by user")
@@ -99,7 +98,7 @@ def run_agent_loop(
                     filtered_tools.append(tool)
             tools = filtered_tools
 
-        logger.debug(f"Loaded {len(tools)} tools for iteration {iteration + 1}")
+        logger.debug(f"Loaded {len(tools)} tools for iteration {iteration}")
 
         # Call provider (returns OpenAI message dict)
         try:
@@ -148,7 +147,7 @@ def run_agent_loop(
         if response.get("tool_calls"):
             has_tool_calls = True
             num_tool_calls = len(response["tool_calls"])
-            logger.info(f"Processing {num_tool_calls} tool call(s) in iteration {iteration + 1}")
+            logger.info(f"Processing {num_tool_calls} tool call(s) in iteration {iteration}")
 
             for tool_call in response["tool_calls"]:
                 tool_name = tool_call["function"]["name"]
@@ -196,7 +195,7 @@ def run_agent_loop(
         # If no tool calls, we're done
         # (content was already streamed by the provider)
         if not has_tool_calls:
-            logger.info(f"Agent loop completed successfully after {iteration + 1} iteration(s)")
+            logger.info(f"Agent loop completed successfully after {iteration} iteration(s)")
             content = response.get("content", "")
             return content if isinstance(content, str) else ""
 
@@ -204,7 +203,7 @@ def run_agent_loop(
         # (content was already streamed by the provider)
         if response.get("finish_reason") == "stop":
             logger.info(
-                f"Agent loop stopped (finish_reason=stop) after {iteration + 1} iteration(s)"
+                f"Agent loop stopped (finish_reason=stop) after {iteration} iteration(s)"
             )
             content = response.get("content", "")
             return content if isinstance(content, str) else ""
@@ -213,27 +212,7 @@ def run_agent_loop(
         spinner = Spinner("Thinking", enabled=sys.stdout.isatty())
         spinner.start()
 
-    # Max iterations reached - cleanup and display warning
-    if spinner:
-        spinner.stop()
-        spinner = None
-
-    logger.warning(f"Maximum iterations ({max_iterations}) reached")
-    console.print(
-        Panel(
-            "[bold yellow]⚠ Maximum Iterations Reached[/bold yellow]\n\n"
-            "The agent has reached the maximum number of iterations (100) and has stopped.\n"
-            "The task may be incomplete.\n\n"
-            "[dim]This limit prevents infinite loops. You can:\n"
-            '• Say "continue" to continue with the current request\n'
-            "• Break down the task into smaller steps\n"
-            "• Make a new request\n"
-            "• Use /reset to start fresh[/dim]",
-            title="[bold yellow]Iteration Limit[/bold yellow]",
-            border_style="yellow",
-        )
-    )
-    return "Maximum iterations reached. Task may be incomplete."
+    # Note: No maximum iterations limit - loop runs until agent completes or is interrupted
 
 
 def _display_auto_compaction_notification(console: Any, stats: dict[str, Any]) -> None:
