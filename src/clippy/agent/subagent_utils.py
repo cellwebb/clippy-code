@@ -36,6 +36,8 @@ def create_stuck_detection_config(
             "heartbeat_timeout": 30.0,  # 30 seconds without heartbeat
             "overall_timeout": 300.0,  # 5 minutes overall
             "max_stuck_checks": 2,  # Fewer checks before action
+            "auto_retry": True,
+            "max_retries": 2,
             "auto_terminate": True,
             "check_interval": 5.0,  # Check every 5 seconds
         }
@@ -46,6 +48,8 @@ def create_stuck_detection_config(
             "heartbeat_timeout": 180.0,  # 3 minutes without heartbeat
             "overall_timeout": 1800.0,  # 30 minutes overall
             "max_stuck_checks": 5,  # More checks before action
+            "auto_retry": True,
+            "max_retries": 3,
             "auto_terminate": True,
             "check_interval": 15.0,  # Check every 15 seconds
         }
@@ -56,6 +60,8 @@ def create_stuck_detection_config(
             "heartbeat_timeout": 60.0,  # 1 minute without heartbeat
             "overall_timeout": 600.0,  # 10 minutes overall
             "max_stuck_checks": 3,
+            "auto_retry": True,
+            "max_retries": 2,
             "auto_terminate": True,
             "check_interval": 10.0,
         }
