@@ -3,22 +3,22 @@ Vaporwave Clippy Entity - The digital assistant from your dreams 【クリッピ
 """
 
 import random
-import asyncio
 from enum import Enum
-from typing import Optional
-from textual.widget import Widget
-from textual.reactive import reactive
-from textual.timer import Timer
-from rich.console import RenderableType
-from rich.text import Text
-from rich.panel import Panel
+
 from rich.align import Align
+from rich.console import RenderableType
+from rich.panel import Panel
+from rich.text import Text
+from textual.reactive import reactive  # type: ignore
+from textual.timer import Timer  # type: ignore
+from textual.widget import Widget  # type: ignore
 
 from .neon_styles import COLORS, JAPANESE_TEXT, get_glitch_text
 
 
 class ClippyState(Enum):
     """Different states for Clippy animations."""
+
     IDLE = "idle"
     THINKING = "thinking"
     EXCITED = "excited"
@@ -276,8 +276,8 @@ class ClippyEntity(Widget):
         """Initialize the vaporwave Clippy."""
         super().__init__()
         self.state = initial_state
-        self.animation_timer: Optional[Timer] = None
-        self.glitch_timer: Optional[Timer] = None
+        self.animation_timer: Timer | None = None
+        self.glitch_timer: Timer | None = None
         self.current_phrase = random.choice(self.PHRASES)
 
     def on_mount(self) -> None:
@@ -298,9 +298,9 @@ class ClippyEntity(Widget):
         if random.random() < 0.1:  # 10% chance of glitch
             self.glitch_level = random.uniform(0.1, 0.5)
             # Reset glitch after a moment
-            self.set_timer(0.2, lambda: setattr(self, 'glitch_level', 0.0))
+            self.set_timer(0.2, lambda: setattr(self, "glitch_level", 0.0))
 
-    def set_state(self, new_state: ClippyState, duration: Optional[float] = None) -> None:
+    def set_state(self, new_state: ClippyState, duration: float | None = None) -> None:
         """
         Change Clippy's state with optional auto-return to idle.
 
@@ -391,7 +391,8 @@ class ClippyEntity(Widget):
 
     def say_phrase(self) -> str:
         """Get a random Japanese phrase from Clippy."""
-        return random.choice(self.PHRASES)
+        phrase = random.choice(list(self.PHRASES))
+        return phrase if isinstance(phrase, str) else str(phrase)
 
 
 class FloatingClippy(ClippyEntity):

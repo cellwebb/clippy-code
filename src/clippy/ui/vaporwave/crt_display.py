@@ -3,17 +3,13 @@ CRT Display Widget - Retro monitor effects with scanlines and curvature 【モ�
 """
 
 import random
-from typing import Optional
-from textual.widget import Widget
-from textual.widgets import Static
-from textual.containers import Container
-from textual.reactive import reactive
-from textual.timer import Timer
+from typing import Any, Callable, Generator
+
 from rich.console import RenderableType
 from rich.text import Text
-from rich.panel import Panel
-from rich.align import Align
-from rich.layout import Layout
+from textual.containers import Container  # type: ignore
+from textual.reactive import reactive  # type: ignore
+from textual.widget import Widget  # type: ignore
 
 from .neon_styles import COLORS, create_vhs_static_line
 
@@ -89,7 +85,7 @@ class VHSStatic(Widget):
         # Occasional static burst
         if random.random() < 0.05:
             self.noise_level = random.uniform(0.1, 0.3)
-            self.set_timer(0.2, lambda: setattr(self, 'noise_level', 0.05))
+            self.set_timer(0.2, lambda: setattr(self, "noise_level", 0.05))
 
     def render(self) -> RenderableType:
         """Render VHS static noise."""
@@ -137,7 +133,7 @@ class CRTDisplay(Container):
     contrast = reactive(1.0)
     color_bleed = reactive(0.1)
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize the CRT display."""
         super().__init__(*args, **kwargs)
         self.scanlines = Scanlines()
@@ -145,7 +141,7 @@ class CRTDisplay(Container):
         self.phosphor_burn = False
         self.warmup_complete = False
 
-    def compose(self):
+    def compose(self) -> Generator[Widget, None, None]:
         """Compose the CRT display with effects."""
         # Layer effects on top of each other
         yield self.scanlines
@@ -162,7 +158,7 @@ class CRTDisplay(Container):
         """Simulate CRT monitor warming up."""
         self.brightness = 0.3
 
-        def increase_brightness():
+        def increase_brightness() -> None:
             if self.brightness < 0.9:
                 self.brightness += 0.1
                 self.set_timer(0.1, increase_brightness)
@@ -177,11 +173,12 @@ class CRTDisplay(Container):
         if random.random() < 0.1:  # 10% chance
             original_brightness = self.brightness
             self.brightness *= 0.7
-            self.set_timer(0.05, lambda: setattr(self, 'brightness', original_brightness))
+            self.set_timer(0.05, lambda: setattr(self, "brightness", original_brightness))
 
     def power_off_animation(self) -> None:
         """Animate CRT power off with classic shrinking dot."""
-        def shrink_display():
+
+        def shrink_display() -> None:
             if self.brightness > 0:
                 self.brightness -= 0.2
                 self.set_timer(0.05, shrink_display)
@@ -285,15 +282,15 @@ class RetroTerminal(Container):
         super().__init__()
         self.title = title
         self.crt_display = CRTDisplay()
-        self.command_history = []
+        self.command_history: list[str] = []
         self.current_line = ""
 
-    def compose(self):
+    def compose(self) -> Generator[Widget, None, None]:
         """Compose the terminal layout."""
         # Add CRT display as main component
         yield self.crt_display
 
-    def type_text(self, text: str, callback=None) -> None:
+    def type_text(self, text: str, callback: Callable[[], None] | None = None) -> None:
         """
         Simulate typing text with retro effect.
 
@@ -304,12 +301,12 @@ class RetroTerminal(Container):
         self.current_line = ""
         chars = list(text)
 
-        def type_char():
+        def type_char() -> None:
             if chars:
                 self.current_line += chars.pop(0)
                 self.refresh()
                 self.set_timer(0.05, type_char)
-            elif callback:
+            elif callback is not None:
                 callback()
 
         type_char()
@@ -318,9 +315,9 @@ class RetroTerminal(Container):
         """Add a temporary glitch effect to the display."""
         original_static = self.crt_display.static_overlay.noise_level
         self.crt_display.static_overlay.noise_level = 0.5
-        self.set_timer(0.3, lambda: setattr(
-            self.crt_display.static_overlay, 'noise_level', original_static
-        ))
+        self.set_timer(
+            0.3, lambda: setattr(self.crt_display.static_overlay, "noise_level", original_static)
+        )
 
     def show_boot_sequence(self) -> None:
         """Show a retro boot sequence."""
@@ -332,7 +329,7 @@ class RetroTerminal(Container):
             "ＣＡＬＩＢＲＡＴＩＮＧ　ＣＲＴ　ＤＩＳＰＬＡＹ",
             "ＳＹＳＴＥＭ　ＲＥＡＤＹ",
             "",
-            "ＷＥＬＣＯＭＥ　ＴＯ　ＴＨＥ　ＤＩＧＩＴＡＬ　ＳＵＮＳＥＴ"
+            "ＷＥＬＣＯＭＥ　ＴＯ　ＴＨＥ　ＤＩＧＩＴＡＬ　ＳＵＮＳＥＴ",
         ]
 
         for i, message in enumerate(boot_messages):

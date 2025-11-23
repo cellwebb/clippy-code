@@ -3,20 +3,18 @@ Vaporwave Clippy TUI - Main application bringing nostalgic dreams to life 【ア
 """
 
 import asyncio
-from typing import Optional, List
-from textual import events
-from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical, ScrollableContainer
-from textual.widgets import Header, Footer, Input, Button, Static, TabbedContent, TabPane
-from textual.reactive import reactive
-from textual.binding import Binding
-from textual.message import Message
-from textual import work
 
-from .vaporwave.neon_styles import VAPORWAVE_CSS, COLORS, JAPANESE_TEXT
+from textual.app import App, ComposeResult  # type: ignore
+from textual.binding import Binding  # type: ignore
+from textual.containers import Horizontal, Vertical  # type: ignore
+from textual.message import Message  # type: ignore
+from textual.reactive import reactive  # type: ignore
+from textual.widgets import Input, Static, TabbedContent, TabPane  # type: ignore
+
 from .vaporwave.clippy_entity import ClippyEntity, ClippyState
-from .vaporwave.crt_display import CRTDisplay, RetroTerminal, Scanlines
-from .vaporwave.dream_bubbles import ConversationBubbles, DreamBubble, StatusMessage
+from .vaporwave.crt_display import CRTDisplay, Scanlines
+from .vaporwave.dream_bubbles import ConversationBubbles, StatusMessage
+from .vaporwave.neon_styles import JAPANESE_TEXT, VAPORWAVE_CSS
 
 
 class VaporwaveHeader(Static):
@@ -101,7 +99,7 @@ class ChannelTab(Static):
 
 class AddResponseMessage(Message):
     """Message to safely add response from background thread."""
-    
+
     def __init__(self, response: str, message_type: str = "assistant") -> None:
         self.response = response
         self.message_type = message_type
@@ -129,11 +127,11 @@ class VaporwaveClippy(App):
 
     # Application state
     current_channel = reactive(1)
-    messages: List[tuple[str, str]] = []  # (role, content) pairs
+    messages: list[tuple[str, str]] = []  # (role, content) pairs
     glitch_mode = reactive(False)
     full_vaporwave = reactive(False)
 
-    def __init__(self, agent=None) -> None:
+    def __init__(self, agent: object | None = None) -> None:
         """
         Initialize the Vaporwave Clippy app.
 
@@ -142,12 +140,12 @@ class VaporwaveClippy(App):
         """
         super().__init__()
         self.agent = agent
-        self.clippy_entity: Optional[ClippyEntity] = None
-        self.conversation: Optional[ConversationBubbles] = None
-        self.status_message: Optional[StatusMessage] = None
-        self.input_field: Optional[MessageInput] = None
+        self.clippy_entity: ClippyEntity | None = None
+        self.conversation: ConversationBubbles | None = None
+        self.status_message: StatusMessage | None = None
+        self.input_field: MessageInput | None = None
         self.processing = False
-        self.processing_task = None  # Track the current processing task
+        self.processing_task: asyncio.Task[None] | None = None  # Track the current processing task
 
     def compose(self) -> ComposeResult:
         """Compose the vaporwave UI layout."""
@@ -167,7 +165,7 @@ class VaporwaveClippy(App):
                     yield self.clippy_entity
                     yield Static(
                         "【ＨＥＬＰＥＲ】\nI'm here to assist\nwith your code dreams",
-                        classes="clippy-status"
+                        classes="clippy-status",
                     )
 
                 # Right panel - Conversation
@@ -190,7 +188,7 @@ class VaporwaveClippy(App):
                                 "You've found the digital void\n"
                                 "Where lost data dreams...\n"
                                 "リアリティは幻想です",
-                                classes="void-text"
+                                classes="void-text",
                             )
 
             # Input area
@@ -217,10 +215,10 @@ class VaporwaveClippy(App):
         # Welcome message from Clippy with enhanced styling
         if self.conversation:
             self.conversation.add_message(
-                f"Welcome to the digital sunset! 🌆 "
+                "Welcome to the digital sunset! 🌆 "
                 "I'm your vaporwave assistant, ready to help you code through the neon haze. "
                 "What dreams shall we synthesize today?",
-                "assistant"
+                "assistant",
             )
 
         # Set Clippy to idle with occasional animations
@@ -249,6 +247,7 @@ class VaporwaveClippy(App):
         """Trigger random Clippy animations for liveliness."""
         if self.clippy_entity and not self.processing:
             import random
+
             animations = [
                 (ClippyState.IDLE, 0.7),
                 (ClippyState.DREAMING, 0.1),
@@ -256,10 +255,7 @@ class VaporwaveClippy(App):
                 (ClippyState.QUESTIONING, 0.1),
             ]
 
-            state, _ = random.choices(
-                animations,
-                weights=[w for _, w in animations]
-            )[0]
+            state, _ = random.choices(animations, weights=[w for _, w in animations])[0]
 
             if state != ClippyState.IDLE:
                 self.clippy_entity.set_state(state, duration=2.0)
@@ -275,7 +271,7 @@ class VaporwaveClippy(App):
             self.input_field.value = ""
 
         # Handle slash commands
-        if message.startswith('/'):
+        if message.startswith("/"):
             await self.handle_slash_command(message)
             return
 
@@ -301,13 +297,13 @@ class VaporwaveClippy(App):
         """Handle slash commands."""
         cmd = command.lower().split()[0]
 
-        if cmd in ['/quit', '/exit']:
+        if cmd in ["/quit", "/exit"]:
             self.exit()
-        elif cmd == '/help':
+        elif cmd == "/help":
             self.action_show_help()
-        elif cmd == '/reset':
+        elif cmd == "/reset":
             self.action_new_chat()
-        elif cmd == '/clear':
+        elif cmd == "/clear":
             self.action_new_chat()
         else:
             self.notify(f"Unknown command: {cmd}", severity="warning")
@@ -350,7 +346,7 @@ class VaporwaveClippy(App):
         finally:
             self.processing = False
 
-    async def call_agent(self, message: str):
+    async def call_agent(self, message: str) -> str:
         """Call the actual agent for processing."""
         try:
             # The agent.run() method handles everything:
@@ -364,11 +360,17 @@ class VaporwaveClippy(App):
             from functools import partial
 
             # Create a partial with auto_approve_all
-            agent_call = partial(self.agent.run, message, auto_approve_all=True)
-
-            # Run in thread pool and use call_soon_threadsafe for the response
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(None, agent_call)
+            if self.agent is not None:
+                # Using getattr to please mypy since agent is object | None
+                agent_run = getattr(self.agent, "run", None)
+                if agent_run is not None and callable(agent_run):
+                    agent_call = partial(agent_run, message, auto_approve_all=True)
+                    loop = asyncio.get_event_loop()
+                    response = await loop.run_in_executor(None, agent_call)
+                else:
+                    response = "Error: Agent.run method not available"
+            else:
+                response = "Error: Agent not available"
 
             return response
 
@@ -378,6 +380,7 @@ class VaporwaveClippy(App):
         except Exception as e:
             self.notify(f"Agent error: {e}", severity="error")
             import traceback
+
             traceback.print_exc()
             return f"Error: {str(e)}"
 
@@ -388,28 +391,25 @@ class VaporwaveClippy(App):
         responses = [
             f"Ah yes, '{message}'... reminds me of digital sunsets and neon dreams. "
             "Let me help you navigate through this vapor...",
-
             f"'{message}' resonates with the aesthetic frequency. "
             f"{JAPANESE_TEXT['thinking']}... I sense you seek the path through the digital void.",
-
             "Your words echo through the CRT display... "
             "Together we'll synthesize the perfect solution in this retro-future dreamscape.",
-
             f"ERROR_404_REALITY_NOT_FOUND... Just kidding! "
             f"Let me process '{message}' through my vaporwave neural networks...",
-
             "It looks like you're trying to escape into the digital sunset. "
             "Would you like help with that? ✨",
         ]
 
-        return random.choice(responses)
+        response = random.choice(list(responses))
+        return response if isinstance(response, str) else str(response)
 
     def action_quit(self) -> None:
         """Quit the application with proper cleanup."""
         # Cancel any running tasks
         if self.processing_task and not self.processing_task.done():
             self.processing_task.cancel()
-        
+
         self.exit()
 
     def action_toggle_menu(self) -> None:
@@ -442,7 +442,7 @@ Type 'AESTHETIC' for a surprise!
             self.conversation.add_message(
                 "Memory wiped. Starting fresh in the digital void... "
                 f"{JAPANESE_TEXT['welcome']} back!",
-                "assistant"
+                "assistant",
             )
 
     def action_next_channel(self) -> None:
@@ -478,14 +478,14 @@ Type 'AESTHETIC' for a surprise!
                         f"{JAPANESE_TEXT['aesthetic']} MODE ACTIVATED\n"
                         "Reality.exe has stopped responding...\n"
                         "Welcome to the V A P O R W A V E",
-                        "system"
+                        "system",
                     )
             else:
                 self.clippy_entity.set_state(ClippyState.IDLE)
                 self.notify("Returning to normal reality...")
 
 
-def run_vaporwave_clippy(agent=None):
+def run_vaporwave_clippy(agent: object | None = None) -> None:
     """
     Run the Vaporwave Clippy TUI application.
 

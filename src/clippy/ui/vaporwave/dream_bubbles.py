@@ -2,14 +2,12 @@
 Dream Bubbles - Simplified gradient speech bubbles for vaporwave Clippy 【夢の泡】
 """
 
-import random
-from typing import Optional, List
-from textual.widget import Widget
-from textual.widgets import Static
-from textual.containers import VerticalScroll
-from textual.reactive import reactive
 from rich.console import RenderableType
 from rich.text import Text
+from textual.containers import VerticalScroll  # type: ignore
+from textual.reactive import reactive  # type: ignore
+from textual.widget import Widget  # type: ignore
+from textual.widgets import Static  # type: ignore
 
 from .neon_styles import (
     COLORS,
@@ -17,7 +15,7 @@ from .neon_styles import (
 )
 
 
-class ConversationBubbles(VerticalScroll):
+class ConversationBubbles(VerticalScroll):  # type: ignore
     """
     Simplified container for conversation messages with vaporwave styling.
     """
@@ -31,7 +29,7 @@ class ConversationBubbles(VerticalScroll):
         scrollbar-background: #0D0221;
         scrollbar-color: #00FFFF;
     }
-    
+
     .message-widget {
         margin: 1 2;
         padding: 0 1;
@@ -43,13 +41,10 @@ class ConversationBubbles(VerticalScroll):
     def __init__(self) -> None:
         """Initialize conversation container."""
         super().__init__()
-        self.messages: List[Static] = []
+        self.messages: list[Static] = []
 
     def add_message(
-        self,
-        message: str,
-        bubble_type: str = "assistant",
-        auto_scroll: bool = True
+        self, message: str, bubble_type: str = "assistant", auto_scroll: bool = True
     ) -> Widget:
         """
         Add a new message bubble to the conversation.
@@ -81,9 +76,10 @@ class ConversationBubbles(VerticalScroll):
 
         # Create styled message using Rich Text with gradient effect
         text = Text()
-        
+
         # Add timestamp for retro terminal feel
         import datetime
+
         timestamp = datetime.datetime.now().strftime("%H:%M:%S")
         text.append(f"[{timestamp}] ", style=f"dim {color}")
         text.append(f"{prefix} ", style=f"bold {color}")
@@ -150,12 +146,7 @@ class StatusMessage(Widget):
     def render(self) -> RenderableType:
         """Render the status message."""
         # Choose icon based on type
-        icons = {
-            "info": "ℹ",
-            "success": "✓",
-            "error": "✗",
-            "loading": "◉"
-        }
+        icons = {"info": "ℹ", "success": "✓", "error": "✗", "loading": "◉"}
         icon = icons.get(self.message_type, "●")
 
         # Choose color based on type
@@ -163,7 +154,7 @@ class StatusMessage(Widget):
             "info": COLORS["electric_cyan"],
             "success": COLORS["crt_green"],
             "error": COLORS["glitch_red"],
-            "loading": COLORS["sunset_orange"]
+            "loading": COLORS["sunset_orange"],
         }
         color = colors.get(self.message_type, COLORS["electric_cyan"])
 
@@ -190,7 +181,7 @@ class StatusMessage(Widget):
         self.display = True
 
         # Auto-hide after duration
-        self.set_timer(duration, lambda: setattr(self, 'display', False))
+        self.set_timer(duration, lambda: setattr(self, "display", False))
 
 
 # Future enhancement: Complex DreamBubble class for later use
@@ -198,5 +189,6 @@ class DreamBubble(Widget):
     """
     Advanced gradient speech bubble with typewriter effect - for future enhancement.
     """
+
     # This will be implemented later once basic functionality works
     pass

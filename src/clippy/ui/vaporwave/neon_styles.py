@@ -10,14 +10,12 @@ COLORS = {
     "neon_purple": "#9D00FF",
     "sunset_orange": "#FF6B35",
     "laser_lime": "#39FF14",
-
     # Secondary colors
     "deep_purple": "#1A0033",
     "midnight_blue": "#0D0221",
     "dark_magenta": "#4A0E4E",
     "vapor_pink": "#FF69B4",
     "digital_lavender": "#E6E6FA",
-
     # Background and accents
     "grid_cyan": "#00CED1",
     "vhs_static": "#2E2E2E",
@@ -275,7 +273,10 @@ ModalScreen {
 }
 """
 
-def get_gradient_text(text: str, start_color: str = "hot_pink", end_color: str = "electric_cyan") -> str:
+
+def get_gradient_text(
+    text: str, start_color: str = "hot_pink", end_color: str = "electric_cyan"
+) -> str:
     """
     Create gradient colored text using ANSI escape codes.
     This is a simplified version - in practice you'd interpolate colors.
@@ -289,6 +290,7 @@ def get_gradient_text(text: str, start_color: str = "hot_pink", end_color: str =
         result += f"[{color}]{char}[/]"
     return result
 
+
 def get_glitch_text(text: str, glitch_level: float = 0.1) -> str:
     """
     Add glitch effects to text by randomly replacing characters.
@@ -300,7 +302,7 @@ def get_glitch_text(text: str, glitch_level: float = 0.1) -> str:
     import random
 
     result = ""
-    glitch_chars = ASCII_FRAMES["glitch_chars"]
+    glitch_chars = list(ASCII_FRAMES["glitch_chars"])
 
     for char in text:
         if char == " ":
@@ -312,11 +314,14 @@ def get_glitch_text(text: str, glitch_level: float = 0.1) -> str:
 
     return result
 
+
 def create_vhs_static_line(width: int = 80) -> str:
     """Generate a line of VHS static noise."""
     import random
+
     chars = ["░", "▒", "▓", " ", ".", ":", "█"]
-    return "".join(random.choice(chars) for _ in range(width))
+    return "".join(random.choice(list(chars)) for _ in range(width))
+
 
 def create_grid_pattern(width: int = 20, height: int = 10) -> str:
     """Create a perspective grid pattern for backgrounds."""
@@ -339,6 +344,7 @@ def create_grid_pattern(width: int = 20, height: int = 10) -> str:
         lines.append(line)
     return "\n".join(lines)
 
+
 # Color interpolation for smooth gradients
 def interpolate_color(color1: str, color2: str, factor: float) -> str:
     """
@@ -350,8 +356,8 @@ def interpolate_color(color1: str, color2: str, factor: float) -> str:
         factor: Interpolation factor (0.0 = color1, 1.0 = color2)
     """
     # Remove '#' if present
-    color1 = color1.lstrip('#')
-    color2 = color2.lstrip('#')
+    color1 = color1.lstrip("#")
+    color2 = color2.lstrip("#")
 
     # Convert to RGB
     r1, g1, b1 = int(color1[0:2], 16), int(color1[2:4], 16), int(color1[4:6], 16)
@@ -364,6 +370,7 @@ def interpolate_color(color1: str, color2: str, factor: float) -> str:
 
     # Convert back to hex
     return f"#{r:02x}{g:02x}{b:02x}"
+
 
 def create_sunset_gradient(steps: int = 10) -> list[str]:
     """Create a sunset gradient color palette."""
