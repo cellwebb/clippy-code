@@ -76,7 +76,7 @@ class SubAgentConfig:
     system_prompt: str | None = None
     allowed_tools: list[str] | str | None = None  # Can be list, "all", or None
     model: str | None = None
-    max_iterations: int = 25
+    max_iterations: int = 100
     timeout: int | float = 300
     context: dict[str, Any] = field(default_factory=dict)
 

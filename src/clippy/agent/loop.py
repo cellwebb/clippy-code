@@ -34,7 +34,7 @@ def run_agent_loop(
     mcp_manager: Any = None,
     allowed_tools: list[str] | None = None,
     parent_agent: Any = None,
-    max_iterations: int | None = None,
+    max_iterations: int | None = 100,
     max_duration: float | None = None,
 ) -> str:
     """
