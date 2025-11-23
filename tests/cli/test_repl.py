@@ -115,20 +115,19 @@ def test_run_interactive_handles_keyboard_interrupt(monkeypatch: pytest.MonkeyPa
 def test_run_interactive_double_escape(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test double-ESC functionality by recreating the key binding logic."""
     # Import dependencies to test the logic directly
-    import clippy.cli.repl
-    
+
     # Mock time and test the ESC handler logic directly
     exit_calls: list[Any] = []
     time_values = iter([0.0, 0.4])  # 0.0 first, then 0.4 seconds later
     last_esc_time = {"time": -1000.0}  # Start with a very old timestamp
     esc_timeout = 0.5
-    
+
     def mock_time():
         return next(time_values)
-    
+
     def mock_event_app_exit(exception=None):
         exit_calls.append(exception)
-    
+
     def esc_handler(event):
         """Duplicate of the ESC handler logic from repl.py"""
         current_time = mock_time()
@@ -140,21 +139,17 @@ def test_run_interactive_double_escape(monkeypatch: pytest.MonkeyPatch) -> None:
         else:
             # First ESC - just record the time
             last_esc_time["time"] = current_time
-    
-    event = SimpleNamespace(
-        app=SimpleNamespace(
-            exit=mock_event_app_exit
-        )
-    )
+
+    event = SimpleNamespace(app=SimpleNamespace(exit=mock_event_app_exit))
 
     # Test the double-ESC logic
     esc_handler(event)  # first ESC should just record time
     assert len(exit_calls) == 0  # No exit call yet
-    
+
     esc_handler(event)  # second ESC should trigger exit (0.4 < 0.5 timeout)
     assert len(exit_calls) == 1
     assert isinstance(exit_calls[0], KeyboardInterrupt)
-    
+
     # Also test that REPL setup works (simpler test)
     agent = StubAgent()
     console = DummyConsole()

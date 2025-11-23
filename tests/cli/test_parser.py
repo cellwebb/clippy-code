@@ -6,7 +6,7 @@ from collections.abc import Sequence
 
 import pytest
 
-from clippy.cli.parser import create_parser, parse_args
+from clippy.cli.parser import parse_args
 
 
 def _parse(args: Sequence[str]):

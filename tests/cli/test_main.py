@@ -131,7 +131,7 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
         def __init__(self, **kwargs: Any) -> None:
             self.kwargs = kwargs
             created_agents.append(self)
-            
+
         def run(self, prompt: str, auto_approve_all: bool = False) -> None:
             """Mock run method for testing."""
             pass
