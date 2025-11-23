@@ -28,6 +28,7 @@ dependencies = [
     "mcp>=1.18.0",
     "openai>=2.5.0",
     "prompt-toolkit>=3.0.52",
+    "requests>=2.31.0",
     "rich>=14.2.0",
     "python-dotenv>=1.1.1",
     "pydantic>=2.12.3",

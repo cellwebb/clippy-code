@@ -30,6 +30,7 @@ class ActionType(str, Enum):
     GREP = "grep"
     EDIT_FILE = "edit_file"
     FIND_REPLACE = "find_replace"
+    FETCH_WEBPAGE = "fetch_webpage"
     THINK = "think"
     DELEGATE_TO_SUBAGENT = "delegate_to_subagent"
     RUN_PARALLEL_SUBAGENTS = "run_parallel_subagents"
@@ -58,6 +59,7 @@ class PermissionConfig(BaseModel):
         ActionType.CREATE_DIR,
         ActionType.EXECUTE_COMMAND,
         ActionType.EDIT_FILE,
+        ActionType.FETCH_WEBPAGE,  # Require approval for web requests
         ActionType.FIND_REPLACE,  # Multi-file changes require approval
         ActionType.DELEGATE_TO_SUBAGENT,  # Require approval for subagent delegation
         ActionType.RUN_PARALLEL_SUBAGENTS,  # Require approval for parallel subagent execution

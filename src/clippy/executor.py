@@ -11,6 +11,7 @@ from .tools.create_directory import create_directory as _create_directory_util
 from .tools.delete_file import delete_file as _delete_file_util
 from .tools.edit_file import edit_file
 from .tools.execute_command import execute_command
+from .tools.fetch_webpage import fetch_webpage
 from .tools.find_replace import find_replace
 from .tools.get_file_info import get_file_info
 from .tools.grep import grep
@@ -86,6 +87,7 @@ class ActionExecutor:
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
+            "fetch_webpage": ActionType.FETCH_WEBPAGE,  # Add mapping for fetch_webpage tool
             "find_replace": ActionType.FIND_REPLACE,
             "think": ActionType.THINK,
             "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
@@ -167,6 +169,14 @@ class ActionExecutor:
                 result = _delete_file_util(tool_input["path"])
             elif tool_name == "think":
                 result = think(tool_input["thought"])
+            elif tool_name == "fetch_webpage":
+                result = fetch_webpage(
+                    tool_input["url"],
+                    tool_input.get("timeout", 30),
+                    tool_input.get("headers"),
+                    tool_input.get("mode", "raw"),
+                    tool_input.get("max_length"),
+                )
 
             else:
                 logger.warning(f"Unimplemented tool: {tool_name}")

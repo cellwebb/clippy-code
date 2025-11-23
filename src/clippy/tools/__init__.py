@@ -12,6 +12,8 @@ from .edit_file import TOOL_SCHEMA as EDIT_FILE_SCHEMA
 from .edit_file import edit_file
 from .execute_command import TOOL_SCHEMA as EXECUTE_COMMAND_SCHEMA
 from .execute_command import execute_command
+from .fetch_webpage import TOOL_SCHEMA as FETCH_WEBPAGE_SCHEMA
+from .fetch_webpage import fetch_webpage
 from .find_replace import TOOL_SCHEMA as FIND_REPLACE_SCHEMA
 from .find_replace import find_replace
 from .get_file_info import TOOL_SCHEMA as GET_FILE_INFO_SCHEMA
@@ -38,6 +40,7 @@ def get_all_tools() -> list[dict[str, Any]]:
     base_tools = [
         EDIT_FILE_SCHEMA,
         EXECUTE_COMMAND_SCHEMA,
+        FETCH_WEBPAGE_SCHEMA,
         FIND_REPLACE_SCHEMA,
         GET_FILE_INFO_SCHEMA,
         GREP_SCHEMA,
@@ -106,6 +109,7 @@ __all__ = [
     "create_parallel_subagents_and_execute",
     "edit_file",
     "execute_command",
+    "fetch_webpage",
     "find_replace",
     "get_file_info",
     "grep",

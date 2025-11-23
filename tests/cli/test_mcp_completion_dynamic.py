@@ -59,6 +59,7 @@ def test_mcp_command_completion_with_servers():
     assert completer.base_commands["mcp"]["description"] == "MCP server management"
     assert "subcommands" in completer.base_commands["mcp"]
     assert set(completer.base_commands["mcp"]["subcommands"]) == {
+        "help",
         "list",
         "tools",
         "refresh",

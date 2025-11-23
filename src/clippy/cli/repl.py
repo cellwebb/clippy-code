@@ -136,7 +136,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
 
     # Use Rich's Align class to center the content
     from rich.align import Align
-    
+
     welcome_content = (
         f"{clippy_ascii}\n\n"
         "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
@@ -149,7 +149,7 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
         "[bold]Tip:[/bold] Use [bold]Ctrl+J[/bold] to insert new lines for multi-line input.\n\n"
         f"[bold]Current Model:[/bold] [cyan]{current_model}[/cyan]{provider_info}\n\n"
     )
-    
+
     console.print(
         Panel(
             Align.center(welcome_content),
