@@ -49,31 +49,28 @@ def create_parser() -> argparse.ArgumentParser:
         help="Enable verbose logging (shows retry attempts and API errors)",
     )
 
-    
     # Add subcommands after general options
     subparsers = parser.add_subparsers(dest="command", help="Available commands", required=False)
-    
+
     # Auth command
     auth_parser = subparsers.add_parser(
         "auth",
         help="Authenticate with Claude Code OAuth",
-        description="Authenticate or re-authenticate your Claude Code OAuth token"
+        description="Authenticate or re-authenticate your Claude Code OAuth token",
     )
-    auth_parser.add_argument(
-        "-q", "--quiet", action="store_true", help="Suppress non-error output"
-    )
+    auth_parser.add_argument("-q", "--quiet", action="store_true", help="Suppress non-error output")
     auth_parser.add_argument(
         "--log-level",
         choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
         default="INFO",
-        help="Set log level (default: INFO)"
+        help="Set log level (default: INFO)",
     )
-    
+
     # Auth status command
-    status_parser = subparsers.add_parser(
-        "auth-status", 
+    subparsers.add_parser(
+        "auth-status",
         help="Check Claude Code OAuth authentication status",
-        description="Check if Claude Code OAuth token is configured"
+        description="Check if Claude Code OAuth token is configured",
     )
 
     # Add prompt argument to main parser (not subcommands)
@@ -86,7 +83,7 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_args(argv):
+def parse_args(argv: list[str]) -> argparse.Namespace:
     """Parse arguments with special handling for prompts vs subcommands."""
     # If no arguments provided, return defaults
     if not argv:
@@ -98,10 +95,10 @@ def parse_args(argv):
         args.model = None
         args.base_url = None
         args.config = None
-        
+
         args.command = None
         return args
-    
+
     # Check if first argument is a known command
     known_commands = ["auth", "auth-status"]
     if argv[0] in known_commands:
@@ -117,9 +114,9 @@ def parse_args(argv):
         parser.add_argument("--base-url", type=str)
         parser.add_argument("--config", type=str)
         parser.add_argument("-v", "--verbose", action="store_true")
-        
+
         parser.add_argument("prompt", nargs="*")
-        
+
         args = parser.parse_args(argv)
         args.command = None
         return args
