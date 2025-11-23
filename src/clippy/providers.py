@@ -33,22 +33,31 @@ if TYPE_CHECKING:
 
 class ClaudeCodeOAuthProvider(AnthropicProvider):
     """Custom Anthropic provider for Claude Code OAuth authentication.
-    
+
     This provider uses the special OAuth token and headers required for Claude Code subscriptions.
     It automatically handles the exact system message requirement and proper authentication headers.
     """
-    
-    def __init__(self, api_key: str | None = None, base_url: str | None = None, **kwargs: Any) -> None:
+
+    def __init__(
+        self,
+        api_key: str | None = None,
+        base_url: str | None = None,
+        **kwargs: Any,
+    ) -> None:
         # Claude Code OAuth always uses the standard Anthropic API
-        super().__init__(api_key=api_key, base_url=base_url or "https://api.anthropic.com", **kwargs)
-        
+        super().__init__(
+            api_key=api_key,
+            base_url=base_url or "https://api.anthropic.com",
+            **kwargs,
+        )
+
     def _make_request(self, *args: Any, **kwargs: Any) -> Any:
         """Override to add Claude Code specific headers."""
         # Add the special anthropic-beta header for OAuth
         if "headers" not in kwargs:
             kwargs["headers"] = {}
         kwargs["headers"]["anthropic-beta"] = "oauth-2025-04-20"
-        return super()._make_request(*args, **kwargs)
+        return super()._make_request(*args, **kwargs)  # type: ignore
 
 
 class Spinner:
@@ -232,14 +241,14 @@ class LLMProvider:
                     provider_kwargs["api_key"] = self.api_key
                 if self.provider_config and self.provider_config.base_url:
                     provider_kwargs["base_url"] = self.provider_config.base_url
-                
+
                 # Special handling for Claude Code OAuth
                 if system == "claude-code":
                     # Use custom provider class for Claude Code OAuth
-                    provider = ClaudeCodeOAuthProvider(**provider_kwargs)
+                    provider: AnthropicProvider = ClaudeCodeOAuthProvider(**provider_kwargs)
                 else:
                     provider = AnthropicProvider(**provider_kwargs)
-                    
+
                 return AnthropicModel(model_id, provider=provider)
 
             return _builder
@@ -261,7 +270,10 @@ class LLMProvider:
         return None
 
 
-def _convert_openai_messages(messages: list[dict[str, Any]], provider_system: str | None = None) -> list[ModelMessage]:
+def _convert_openai_messages(
+    messages: list[dict[str, Any]],
+    provider_system: str | None = None,
+) -> list[ModelMessage]:
     """Convert OpenAI-style messages into Pydantic AI message objects."""
 
     converted: list[ModelMessage] = []
