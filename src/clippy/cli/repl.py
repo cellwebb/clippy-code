@@ -126,22 +126,26 @@ def run_interactive(agent: ClippyAgent, auto_approve: bool) -> None:
 
 [📎] It looks like you're trying to code!"""
 
+    # Use Rich's Align class to center the content
+    from rich.align import Align
+    
+    welcome_content = (
+        f"{clippy_ascii}\n\n"
+        "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
+        "Just type your request and press Enter to chat with Clippy!\n\n"
+        "[bold]Essential Commands:[/bold]\n"
+        "  /help - Show all available commands\n"
+        "  /model - Show and switch between models\n"
+        "  /exit, /quit - Exit clippy-code\n"
+        "  /reset, /clear, /new - Start fresh conversation\n\n"
+        f"[bold]Current Model:[/bold] [cyan]{current_model}[/cyan]{provider_info}\n\n"
+    )
+    
     console.print(
-        Panel.fit(
-            f"{clippy_ascii}\n\n"
-            "[bold green]clippy-code Interactive Mode[/bold green]\n\n"
-            "Just type your request and press Enter to chat with Clippy!\n\n"
-            "[bold]Essential Commands:[/bold]\n"
-            "  /help - Show all available commands\n"
-            "  /model - Show and switch between models\n"
-            "  /exit, /quit - Exit clippy-code\n"
-            "  /reset, /clear, /new - Start fresh conversation\n\n"
-            "[bold]Tips:[/bold]\n"
-            "  • Use Ctrl+C or double-ESC to stop any action\n"
-            "  • Clippy will ask for permission before risky actions\n"
-            "  • Type @filename and press Tab for file completion\n\n"
-            f"[bold]Current Model:[/bold] [cyan]{current_model}[/cyan]{provider_info}",
+        Panel(
+            Align.center(welcome_content),
             border_style=border_style,
+            width=console.width,
         )
     )
 
