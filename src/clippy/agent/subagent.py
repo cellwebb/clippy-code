@@ -335,6 +335,8 @@ class SubAgent:
             mcp_manager=self.parent_agent.mcp_manager,
             allowed_tools=allowed_tools,
             parent_agent=self.parent_agent,
+            max_iterations=self.config.max_iterations,
+            max_duration=self.config.timeout,
         )
 
     def _get_iteration_count(self) -> int:

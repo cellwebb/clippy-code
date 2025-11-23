@@ -3,6 +3,7 @@
 import json
 import logging
 import sys
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -33,6 +34,8 @@ def run_agent_loop(
     mcp_manager: Any = None,
     allowed_tools: list[str] | None = None,
     parent_agent: Any = None,
+    max_iterations: int | None = None,
+    max_duration: float | None = None,
 ) -> str:
     """
     Run the main agent loop.
@@ -50,6 +53,8 @@ def run_agent_loop(
         mcp_manager: Optional MCP manager instance
         allowed_tools: List of allowed tool names (default: all tools)
         parent_agent: Parent agent instance for subagent delegation
+        max_iterations: Optional hard cap on iterations (None for unlimited)
+        max_duration: Optional wall-clock limit in seconds (None for unlimited)
 
     Returns:
         Final response from the agent
@@ -63,6 +68,7 @@ def run_agent_loop(
 
     # Track spinner between iterations
     spinner: Spinner | None = None
+    loop_start = time.time()
 
     iteration = 0
     while True:
@@ -71,12 +77,38 @@ def run_agent_loop(
             spinner.stop()
             spinner = None
 
-        iteration += 1
-        logger.debug(f"Agent loop iteration {iteration}")
-
         if check_interrupted():
             logger.info("Agent loop interrupted by user")
             raise InterruptedExceptionError()
+
+        # Guardrails: duration/iteration caps
+        elapsed = time.time() - loop_start
+        if max_duration is not None and elapsed >= max_duration:
+            logger.warning(
+                "Agent loop stopped due to max_duration: "
+                f"{elapsed:.2f}s (limit {max_duration}s)"
+            )
+            return _emit_guardrail_summary(
+                conversation_history=conversation_history,
+                reason=f"Reached max duration of {max_duration}s",
+                iterations=iteration,
+                elapsed=elapsed,
+            )
+
+        if max_iterations is not None and iteration >= max_iterations:
+            logger.warning(
+                "Agent loop stopped due to max_iterations: "
+                f"{iteration} (limit {max_iterations})"
+            )
+            return _emit_guardrail_summary(
+                conversation_history=conversation_history,
+                reason=f"Reached max iterations of {max_iterations}",
+                iterations=iteration,
+                elapsed=elapsed,
+            )
+
+        iteration += 1
+        logger.debug(f"Agent loop iteration {iteration}")
 
         # Check for auto-compaction based on model threshold
         compacted, compact_message, compact_stats = check_and_auto_compact(
@@ -169,6 +201,7 @@ def run_agent_loop(
                         False,
                         f"Error parsing tool arguments: {e}",
                         None,
+                        tool_name=tool_name,
                     )
                     continue
 
@@ -248,3 +281,69 @@ def _display_auto_compaction_notification(console: Any, stats: dict[str, Any]) -
         f"[dim]{messages_before}→{messages_after}[/dim] messages "
         f"([dim]{messages_summarized}[/dim] summarized)"
     )
+
+
+def _emit_guardrail_summary(
+    conversation_history: list[dict[str, Any]],
+    reason: str,
+    iterations: int,
+    elapsed: float,
+) -> str:
+    """
+    Append and return a structured summary when a guardrail stops the loop.
+
+    Args:
+        conversation_history: Current conversation history
+        reason: Human-readable stop reason
+        iterations: Iterations completed
+        elapsed: Seconds elapsed
+
+    Returns:
+        Summary content that was appended
+    """
+
+    def _last_tool_snapshot() -> str:
+        last_tool = next(
+            (msg for msg in reversed(conversation_history) if msg.get("role") == "tool"), None
+        )
+        if last_tool:
+            tool_name = last_tool.get("name") or "unknown"
+            first_line = str(last_tool.get("content", "")).splitlines()[0] if last_tool else ""
+            return f"{tool_name}: {first_line}".strip()
+
+        last_call_name = None
+        last_call_args = None
+        for msg in reversed(conversation_history):
+            if msg.get("role") == "assistant" and msg.get("tool_calls"):
+                tool_call = msg["tool_calls"][-1]
+                last_call_name = tool_call.get("function", {}).get("name")
+                last_call_args = tool_call.get("function", {}).get("arguments")
+                break
+
+        if last_call_name:
+            return f"{last_call_name} (pending args: {last_call_args})"
+        return "none recorded"
+
+    last_user = next(
+        (msg for msg in reversed(conversation_history) if msg.get("role") == "user"), {}
+    ).get("content", "")
+    last_assistant = next(
+        (
+            msg
+            for msg in reversed(conversation_history)
+            if msg.get("role") == "assistant" and msg.get("content")
+        ),
+        {},
+    ).get("content", "")
+
+    summary = (
+        f"⏱️ Stopped: {reason}. "
+        f"Iterations run: {iterations}, elapsed: {elapsed:.2f}s.\n"
+        f"Last tool: {_last_tool_snapshot()}\n"
+        f"Last assistant content: {last_assistant or 'n/a'}\n"
+        f"Last user request: {last_user}\n"
+        "Suggested next step: resume with a higher cap or continue from the last tool result."
+    )
+
+    conversation_history.append({"role": "assistant", "content": summary})
+    return summary

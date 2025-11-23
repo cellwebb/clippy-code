@@ -349,3 +349,4 @@ class TestSubAgent:
         mock_run_loop.assert_called_once()
         call_kwargs = mock_run_loop.call_args[1]
         assert call_kwargs["max_iterations"] == 50
+        assert call_kwargs["max_duration"] == config.timeout

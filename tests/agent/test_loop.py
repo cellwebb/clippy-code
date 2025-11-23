@@ -229,11 +229,12 @@ class TestRunAgentLoop:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+            max_iterations=3,
         )
 
-        assert "maximum iterations" in result.lower()
-        # Should stop at 100 iterations
-        assert mock_provider.create_message.call_count == 100
+        assert "reached max iterations" in result.lower()
+        # Should stop at the configured cap
+        assert mock_provider.create_message.call_count == 3
 
     def test_handles_api_error(
         self,
