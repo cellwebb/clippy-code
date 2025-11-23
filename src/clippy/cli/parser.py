@@ -54,4 +54,11 @@ def create_parser() -> argparse.ArgumentParser:
         help="Enable verbose logging (shows retry attempts and API errors)",
     )
 
+    parser.add_argument(
+        "-d",
+        "--dream",
+        action="store_true",
+        help="Launch in vaporwave dream mode - nostalgic 90s/2000s TUI interface",
+    )
+
     return parser

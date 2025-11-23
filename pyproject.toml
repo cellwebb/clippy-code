@@ -39,6 +39,7 @@ dependencies = [
     "tenacity>=9.1.2",
     "questionary>=2.0.1",
     "pathspec>=0.12.1",
+    "textual>=0.99.1",
 ]
 
 [project.optional-dependencies]
