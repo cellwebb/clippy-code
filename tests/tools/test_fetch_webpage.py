@@ -235,7 +235,9 @@ class TestFetchWebpage:
         assert len(result["content"]) <= 150  # 100 + truncation message (allow extra space)
         assert "Content truncated" in result["content"]
         assert result["original_length"] == 1000
-        assert len(result["content"].replace("\n\n[Content truncated due to length limit]", "")) == 100
+        assert (
+            len(result["content"].replace("\n\n[Content truncated due to length limit]", "")) == 100
+        )
 
     @patch("requests.get")
     def test_fetch_webpage_content_mode_article_fallback(self, mock_get):
