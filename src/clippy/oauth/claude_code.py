@@ -198,14 +198,19 @@ def build_authorization_url(context: OAuthContext) -> str:
     return f"{CLAUDE_CODE_CONFIG['auth_url']}?{urlencode(params)}"
 
 
-def _start_callback_server(context: OAuthContext) -> tuple[HTTPServer, _OAuthResult, threading.Event] | None:
+def _start_callback_server(
+    context: OAuthContext,
+) -> tuple[HTTPServer, _OAuthResult, threading.Event] | None:
     """Start local HTTP server to receive OAuth callback."""
     port_range = CLAUDE_CODE_CONFIG["callback_port_range"]
 
     for port in range(port_range[0], port_range[1] + 1):
         try:
             server = HTTPServer(("localhost", port), _CallbackHandler)
-            context.redirect_uri = f"{CLAUDE_CODE_CONFIG['redirect_host']}:{port}/{CLAUDE_CODE_CONFIG['redirect_path']}"
+            context.redirect_uri = (
+                f"{CLAUDE_CODE_CONFIG['redirect_host']}:{port}/"
+                f"{CLAUDE_CODE_CONFIG['redirect_path']}"
+            )
             result = _OAuthResult()
             event = threading.Event()
             _CallbackHandler.result = result
@@ -354,7 +359,7 @@ def load_stored_token() -> str | None:
     token = os.getenv("CLAUDE_CODE_ACCESS_TOKEN")
     if token:
         return token
-        
+
     # Then check file
     env_path = get_token_storage_path()
     if not env_path.exists():

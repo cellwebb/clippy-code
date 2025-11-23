@@ -75,11 +75,11 @@ def auth(quiet: bool = False, log_level: str = "INFO") -> None:
 def status() -> None:
     """Check Claude Code OAuth authentication status."""
     token = load_stored_token()
-    
+
     if token:
         console.print("✅ Claude Code OAuth token is configured")
         console.print("   Token is stored in ~/.clippy/.env")
-        
+
         # Check if it's set in the environment
         env_token = os.getenv("CLAUDE_CODE_ACCESS_TOKEN")
         if env_token:
@@ -94,6 +94,7 @@ def status() -> None:
 
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) > 1 and sys.argv[1] == "auth":
         quiet = "--quiet" in sys.argv or "-q" in sys.argv
         log_level = "INFO"
