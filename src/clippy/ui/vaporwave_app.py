@@ -99,6 +99,15 @@ class ChannelTab(Static):
         self.channel_id = channel_id
 
 
+class AddResponseMessage(Message):
+    """Message to safely add response from background thread."""
+    
+    def __init__(self, response: str, message_type: str = "assistant") -> None:
+        self.response = response
+        self.message_type = message_type
+        super().__init__()
+
+
 class VaporwaveClippy(App):
     """
     The main Vaporwave Clippy TUI application.
@@ -138,6 +147,7 @@ class VaporwaveClippy(App):
         self.status_message: Optional[StatusMessage] = None
         self.input_field: Optional[MessageInput] = None
         self.processing = False
+        self.processing_task = None  # Track the current processing task
 
     def compose(self) -> ComposeResult:
         """Compose the vaporwave UI layout."""
@@ -194,16 +204,22 @@ class VaporwaveClippy(App):
         # Custom footer
         yield VaporwaveFooter()
 
+    def on_add_response_message(self, message: AddResponseMessage) -> None:
+        """Handle response message from background thread."""
+        if self.conversation:
+            self.conversation.add_message(message.response, message.message_type)
+
     async def on_mount(self) -> None:
         """Initialize the app when mounted."""
         # Show boot sequence
         await self.show_boot_sequence()
 
-        # Welcome message from Clippy
+        # Welcome message from Clippy with enhanced styling
         if self.conversation:
             self.conversation.add_message(
-                f"Welcome to the digital sunset! {JAPANESE_TEXT['welcome']}! "
-                "I'm your vaporwave assistant. How can I help you code your dreams today?",
+                f"Welcome to the digital sunset! 🌆 "
+                "I'm your vaporwave assistant, ready to help you code through the neon haze. "
+                "What dreams shall we synthesize today?",
                 "assistant"
             )
 
@@ -213,13 +229,12 @@ class VaporwaveClippy(App):
             self.set_interval(5.0, self.random_clippy_animation)
 
     async def show_boot_sequence(self) -> None:
-        """Show a retro boot sequence."""
+        """Show a subtle retro boot sequence."""
         boot_messages = [
-            ("INITIALIZING VAPORWAVE OS...", 0.5),
-            ("LOADING NEON COLORS...", 0.3),
-            ("CALIBRATING CRT DISPLAY...", 0.4),
-            ("SYNTHESIZING AESTHETIC...", 0.6),
-            ("SYSTEM READY", 0.2),
+            ("Loading vaporwave interface...", 0.8),
+            ("Synthesizing neon colors...", 0.6),
+            ("Calibrating CRT effects...", 0.5),
+            ("System ready 🌟", 0.3),
         ]
 
         for message, delay in boot_messages:
@@ -228,7 +243,7 @@ class VaporwaveClippy(App):
             await asyncio.sleep(delay)
 
         if self.status_message:
-            self.status_message.show_message("Welcome to the dream", "success", 2.0)
+            self.status_message.show_message("Welcome to the digital dreamscape", "success", 2.0)
 
     def random_clippy_animation(self) -> None:
         """Trigger random Clippy animations for liveliness."""
@@ -271,8 +286,16 @@ class VaporwaveClippy(App):
         # Store message
         self.messages.append(("user", message))
 
-        # Process with agent if available (worker handles async automatically)
-        self.process_message(message)
+        # Cancel any existing processing task
+        if self.processing_task and not self.processing_task.done():
+            self.processing_task.cancel()
+            try:
+                await self.processing_task
+            except asyncio.CancelledError:
+                pass
+
+        # Process with agent - run as background task
+        self.processing_task = asyncio.create_task(self.process_message(message))
 
     async def handle_slash_command(self, command: str) -> None:
         """Handle slash commands."""
@@ -289,59 +312,74 @@ class VaporwaveClippy(App):
         else:
             self.notify(f"Unknown command: {cmd}", severity="warning")
 
-    @work
     async def process_message(self, message: str) -> None:
         """Process message with the agent."""
         self.processing = True
 
         try:
-            # Show notification that we're processing
-            self.notify("Processing your message... 【処理中】", severity="information")
-
             # Update Clippy state
             if self.clippy_entity:
                 self.clippy_entity.start_thinking()
 
-            # Simulate processing (replace with actual agent call)
+            # Check if agent exists
             if self.agent:
-                # TODO: Integrate with actual agent
                 response = await self.call_agent(message)
             else:
                 # Simulated response for testing
                 await asyncio.sleep(1.5)
                 response = self.generate_vaporwave_response(message)
 
-            # Add response to conversation
-            if self.conversation:
-                self.conversation.add_message(response, "assistant")
-                self.notify("Response added! ✨", severity="information")
-
             # Store response
             self.messages.append(("assistant", response))
+
+            # Add response to conversation - use Post message to main thread
+            self.post_message(AddResponseMessage(response))
 
             # Update Clippy state
             if self.clippy_entity:
                 self.clippy_entity.trigger_success()
 
+        except asyncio.CancelledError:
+            # Task was cancelled, exit gracefully
+            return
         except Exception as e:
             self.notify(f"Error processing message: {e}", severity="error")
-            if self.conversation:
-                self.conversation.add_message(
-                    f"ERROR: {str(e)}\nリアリティは壊れました",
-                    "system"
-                )
+            # Also add error message safely
+            error_msg = f"ERROR: {str(e)}\nリアリティは壊れました"
+            self.post_message(AddResponseMessage(error_msg, "system"))
         finally:
             self.processing = False
 
     async def call_agent(self, message: str):
         """Call the actual agent for processing."""
-        # TODO: Implement actual agent integration
-        # This would involve:
-        # 1. Adding message to agent's conversation history
-        # 2. Getting response from agent
-        # 3. Handling tool executions with approval dialogs
-        # 4. Returning final response
-        return "Agent integration pending..."
+        try:
+            # The agent.run() method handles everything:
+            # - Adding user message to history
+            # - Calling LLM
+            # - Handling tool calls with approvals
+            # - Returning the final response
+
+            # Run in a thread to avoid blocking the UI
+            import asyncio
+            from functools import partial
+
+            # Create a partial with auto_approve_all
+            agent_call = partial(self.agent.run, message, auto_approve_all=True)
+
+            # Run in thread pool and use call_soon_threadsafe for the response
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(None, agent_call)
+
+            return response
+
+        except asyncio.CancelledError:
+            # Task was cancelled, propagate up
+            raise
+        except Exception as e:
+            self.notify(f"Agent error: {e}", severity="error")
+            import traceback
+            traceback.print_exc()
+            return f"Error: {str(e)}"
 
     def generate_vaporwave_response(self, message: str) -> str:
         """Generate a vaporwave-themed response for testing."""
@@ -365,6 +403,14 @@ class VaporwaveClippy(App):
         ]
 
         return random.choice(responses)
+
+    def action_quit(self) -> None:
+        """Quit the application with proper cleanup."""
+        # Cancel any running tasks
+        if self.processing_task and not self.processing_task.done():
+            self.processing_task.cancel()
+        
+        self.exit()
 
     def action_toggle_menu(self) -> None:
         """Toggle the menu display."""
