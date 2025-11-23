@@ -85,8 +85,7 @@ def run_agent_loop(
         elapsed = time.time() - loop_start
         if max_duration is not None and elapsed >= max_duration:
             logger.warning(
-                "Agent loop stopped due to max_duration: "
-                f"{elapsed:.2f}s (limit {max_duration}s)"
+                f"Agent loop stopped due to max_duration: {elapsed:.2f}s (limit {max_duration}s)"
             )
             return _emit_guardrail_summary(
                 conversation_history=conversation_history,
@@ -97,8 +96,7 @@ def run_agent_loop(
 
         if max_iterations is not None and iteration >= max_iterations:
             logger.warning(
-                "Agent loop stopped due to max_iterations: "
-                f"{iteration} (limit {max_iterations})"
+                f"Agent loop stopped due to max_iterations: {iteration} (limit {max_iterations})"
             )
             return _emit_guardrail_summary(
                 conversation_history=conversation_history,
@@ -235,9 +233,7 @@ def run_agent_loop(
         # Check finish reason
         # (content was already streamed by the provider)
         if response.get("finish_reason") == "stop":
-            logger.info(
-                f"Agent loop stopped (finish_reason=stop) after {iteration} iteration(s)"
-            )
+            logger.info(f"Agent loop stopped (finish_reason=stop) after {iteration} iteration(s)")
             content = response.get("content", "")
             return content if isinstance(content, str) else ""
 

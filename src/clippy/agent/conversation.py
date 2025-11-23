@@ -289,18 +289,18 @@ markers, or brackets. Keep it brief but informative (aim for 200-400 words).""",
 
         # Remove potential markdown formatting or special characters
         # that might cause issues with certain providers
-        lines = summary_content.split('\n')
+        lines = summary_content.split("\n")
         cleaned_lines = []
         for line in lines:
             # Remove markdown-style headers and special markers
-            if line.startswith('#') or line.startswith('[') and ']' in line[:20]:
+            if line.startswith("#") or line.startswith("[") and "]" in line[:20]:
                 continue
             # Clean up the line
             cleaned_line = line.strip()
             if cleaned_line:
                 cleaned_lines.append(cleaned_line)
 
-        summary_content = '\n'.join(cleaned_lines)
+        summary_content = "\n".join(cleaned_lines)
 
         if not summary_content:
             return False, "Summary content was cleaned to empty", {}, []
