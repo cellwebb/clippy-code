@@ -1,6 +1,20 @@
 """Subagent type configurations and utilities."""
 
+from dataclasses import dataclass
 from typing import Any
+
+
+@dataclass
+class Subagent:
+    """Represents a subagent configuration."""
+
+    name: str
+    prompt: str
+    is_builtin: bool = True
+    allowed_tools: list[str] | str | None = None
+    model: str | None = None
+    max_iterations: int = 25
+
 
 # Subagent type configurations with Clippy-style personalities
 SUBAGENT_TYPES = {
@@ -173,6 +187,38 @@ def list_subagent_types() -> list[str]:
         List of subagent type names
     """
     return list(SUBAGENT_TYPES.keys())
+
+
+def list_subagents() -> list[Subagent]:
+    """
+    Get list of available subagents including user-defined ones.
+
+    Returns:
+        List of Subagent objects
+    """
+    subagents = []
+
+    # Add built-in subagents
+    for name, config in SUBAGENT_TYPES.items():
+        subagents.append(
+            Subagent(
+                name=name,
+                prompt=str(config["system_prompt"]),  # type: ignore[index]
+                is_builtin=True,
+                allowed_tools=config["allowed_tools"],  # type: ignore[index]
+                model=config["model"],  # type: ignore[index]
+                max_iterations=int(config["max_iterations"]),  # type: ignore[index]
+            )
+        )
+
+    # Add user-defined subagents from config
+    from .subagent_config_manager import get_subagent_config_manager
+
+    config_manager = get_subagent_config_manager()
+    user_subagents = config_manager.get_user_subagents()
+    subagents.extend(user_subagents)
+
+    return subagents
 
 
 def validate_subagent_config(config: dict[str, Any]) -> tuple[bool, str]:

@@ -398,3 +398,105 @@ class ClippyAgent:
             self.conversation_history = new_history
 
         return success, message, stats
+
+    def toggle_yolo_mode(self) -> bool:
+        """Toggle YOLO mode (auto-approve all actions).
+
+        Returns:
+            New YOLO mode state (True if enabled, False if disabled)
+        """
+        self.yolo_mode = not self.yolo_mode
+        return self.yolo_mode
+
+    def get_auto_actions(self) -> list[str]:
+        """Get list of auto-approved actions.
+
+        Returns:
+            List of action type names that are auto-approved
+        """
+        auto_actions = []
+        for action_type in self.permission_manager.config.auto_approve:
+            auto_actions.append(action_type.value)
+        return auto_actions
+
+    def revoke_auto_action(self, action: Any) -> bool:
+        """Revoke auto-approval for an action.
+
+        Args:
+            action: ActionType to revoke auto-approval for
+
+        Returns:
+            True if action was auto-approved and is now revoked, False otherwise
+        """
+        if action in self.permission_manager.config.auto_approve:
+            self.permission_manager.config.auto_approve.remove(action)
+            self.permission_manager.config.require_approval.add(action)
+            return True
+        return False
+
+    def clear_auto_actions(self) -> int:
+        """Clear all auto-approvals (move to require_approval).
+
+        Returns:
+            Number of actions that were moved from auto-approve to require-approval
+        """
+        count = len(self.permission_manager.config.auto_approve)
+        self.permission_manager.config.require_approval.update(
+            self.permission_manager.config.auto_approve
+        )
+        self.permission_manager.config.auto_approve.clear()
+        return count
+
+    def append_user_message(self, message: str) -> None:
+        """Append a user message to the conversation.
+
+        Args:
+            message: User message to append
+        """
+        # Initialize with system message if first run
+        if not self.conversation_history:
+            self.conversation_history.append({"role": "system", "content": create_system_prompt()})
+
+        self.conversation_history.append({"role": "user", "content": message})
+
+    def restart_mcp(self) -> tuple[bool, str]:
+        """Restart MCP manager and refresh connections.
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        if not self.mcp_manager:
+            return False, "MCP manager not available"
+
+        try:
+            # Restart MCP manager (implementation depends on MCP manager interface)
+            success = self.mcp_manager.restart()
+            if success:
+                return True, "MCP manager restarted successfully"
+            else:
+                return False, "Failed to restart MCP manager"
+        except Exception as e:
+            return False, f"Error restarting MCP manager: {e}"
+
+    def start_auto_mode(self) -> None:
+        """Start auto mode (placeholder implementation)."""
+        # This would start some kind of automated execution mode
+        # Implementation depends on what auto mode should do
+        pass
+
+    def stop_auto_mode(self) -> None:
+        """Stop auto mode (placeholder implementation)."""
+        # This would stop the automated execution mode
+        # Implementation depends on what auto mode should do
+        pass
+
+    def reload_model(self) -> None:
+        """Reload the current model configuration.
+
+        This is a placeholder for model reloading functionality.
+        In the current implementation, models are switched directly,
+        so this method is maintained for compatibility.
+        """
+        # In the current architecture, model switching is done directly
+        # This method is maintained for backward compatibility
+        pass

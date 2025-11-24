@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from clippy.agent.subagent_types import list_subagent_types
+from clippy.agent.subagent_types import SUBAGENT_TYPES, Subagent, list_subagent_types
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,8 @@ class SubagentConfigManager:
         self.config_path = config_path
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
         self._model_overrides: dict[str, str] = {}
+        self._user_subagents: dict[str, dict[str, Any]] = {}
+        self._default_subagent: str = "general"
         self._load_config()
 
     def _load_config(self) -> None:
@@ -44,7 +46,12 @@ class SubagentConfigManager:
             with open(self.config_path, encoding="utf-8") as f:
                 data = json.load(f)
                 self._model_overrides = data.get("model_overrides", {})
-                logger.debug(f"Loaded subagent config: {len(self._model_overrides)} overrides")
+                self._user_subagents = data.get("user_subagents", {})
+                self._default_subagent = data.get("default_subagent", "general")
+                logger.debug(
+                    f"Loaded subagent config: {len(self._model_overrides)} overrides, "
+                    f"{len(self._user_subagents)} user subagents"
+                )
         except Exception as e:
             logger.error(f"Failed to load subagent config: {e}")
             self._model_overrides = {}
@@ -52,7 +59,11 @@ class SubagentConfigManager:
     def _save_config(self) -> None:
         """Save configuration to disk."""
         try:
-            data = {"model_overrides": self._model_overrides}
+            data = {
+                "model_overrides": self._model_overrides,
+                "user_subagents": self._user_subagents,
+                "default_subagent": self._default_subagent,
+            }
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
             logger.debug(f"Saved subagent config to {self.config_path}")
@@ -155,6 +166,126 @@ class SubagentConfigManager:
             }
 
         return configs
+
+    def get_default_subagent(self) -> str:
+        """Get the default subagent type.
+
+        Returns:
+            Default subagent type name
+        """
+        return self._default_subagent
+
+    def set_default_subagent(self, subagent_name: str) -> tuple[bool, str]:
+        """Set the default subagent type.
+
+        Args:
+            subagent_name: Name of the subagent to set as default
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        # Check if subagent exists
+        all_subagents = self.get_all_subagent_names()
+        if subagent_name not in all_subagents:
+            return False, f"Unknown subagent: {subagent_name}"
+
+        self._default_subagent = subagent_name
+        self._save_config()
+        logger.info(f"Set default subagent: {subagent_name}")
+        return True, f"Default subagent set to '{subagent_name}'"
+
+    def add_subagent(self, name: str, prompt: str) -> tuple[bool, str]:
+        """Add a new user-defined subagent.
+
+        Args:
+            name: Name of the subagent
+            prompt: System prompt for the subagent
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        # Check if name already exists (built-in or user)
+        if name in SUBAGENT_TYPES.keys() or name in self._user_subagents:
+            return False, f"Subagent '{name}' already exists"
+
+        # Validate inputs
+        if not name.strip():
+            return False, "Subagent name cannot be empty"
+        if not prompt.strip():
+            return False, "Subagent prompt cannot be empty"
+
+        # Add subagent
+        self._user_subagents[name] = {
+            "prompt": prompt.strip(),
+            "allowed_tools": "all",  # Default to all tools for user subagents
+            "max_iterations": 25,
+        }
+
+        self._save_config()
+        logger.info(f"Added user subagent: {name}")
+        return True, f"Subagent '{name}' added successfully"
+
+    def remove_subagent(self, name: str) -> tuple[bool, str]:
+        """Remove a user-defined subagent.
+
+        Args:
+            name: Name of the subagent to remove
+
+        Returns:
+            Tuple of (success: bool, message: str)
+        """
+        # Cannot remove built-in subagents
+        if name in SUBAGENT_TYPES.keys():
+            return False, f"Cannot remove built-in subagent '{name}'"
+
+        # Remove user subagent
+        if name in self._user_subagents:
+            del self._user_subagents[name]
+
+            # If this was the default, reset to "general"
+            if self._default_subagent == name:
+                self._default_subagent = "general"
+                default_msg = " Default subagent reset to 'general'."
+            else:
+                default_msg = ""
+
+            self._save_config()
+            logger.info(f"Removed user subagent: {name}")
+            return True, f"Subagent '{name}' removed successfully.{default_msg}"
+        else:
+            return False, f"Unknown subagent: {name}"
+
+    def get_user_subagents(self) -> list[Subagent]:
+        """Get list of user-defined subagents.
+
+        Returns:
+            List of user-defined Subagent objects
+        """
+        subagents = []
+        for name, config in self._user_subagents.items():
+            if not isinstance(config, dict):
+                continue
+            subagents.append(
+                Subagent(
+                    name=name,
+                    prompt=config["prompt"],
+                    is_builtin=False,
+                    allowed_tools=config.get("allowed_tools", "all"),
+                    model=config.get("model"),
+                    max_iterations=config.get("max_iterations", 25),
+                )
+            )
+        return subagents
+
+    def get_all_subagent_names(self) -> list[str]:
+        """Get list of all subagent names (built-in + user-defined).
+
+        Returns:
+            List of all subagent names
+        """
+        names = list(SUBAGENT_TYPES.keys())
+        names.extend(self._user_subagents.keys())
+        return names
 
 
 # Global instance for easy access
