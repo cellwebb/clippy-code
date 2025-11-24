@@ -13,7 +13,7 @@ import pytest
 from rich.console import Console
 
 from clippy.agent.tool_handler import handle_tool_use
-from clippy.cli.commands import _handle_model_add
+from clippy.cli.commands.model import _handle_model_add
 from clippy.executor import ActionExecutor
 from clippy.mcp.config import Config
 from clippy.mcp.manager import Manager
@@ -192,7 +192,8 @@ def test_cli_commands_markup_handling():
             mock_get_manager.return_value = mock_manager
 
             try:
-                _handle_model_add(console, ["provider", "model"])
+                agent = Mock()
+                _handle_model_add(agent, console, "provider model")
                 # Should not raise MarkupError
                 assert True
             except Exception as e:

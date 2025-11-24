@@ -7,7 +7,7 @@ from unittest.mock import Mock, patch
 
 from rich.console import Console
 
-from clippy.cli.commands import handle_command
+from clippy.cli.commands_main import handle_command
 
 
 def test_custom_command_integration() -> None:
