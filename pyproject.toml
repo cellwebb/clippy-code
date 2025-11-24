@@ -91,6 +91,7 @@ exclude = [
     "src/clippy/ui/vaporwave/.*",
 ]
 
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
