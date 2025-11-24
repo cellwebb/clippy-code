@@ -290,7 +290,7 @@ Environment variables:
 
 MCP Configuration:
 
-Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or project directory (`.clippy/mcp.json`). See [docs/MCP_DOCUMENTATION.md](docs/MCP_DOCUMENTATION.md) for detailed configuration and usage.
+Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or project directory (`.clippy/mcp.json`). See [docs/MCP.md](docs/MCP.md) for detailed configuration and usage.
 
 ## Key Implementation Details
 
