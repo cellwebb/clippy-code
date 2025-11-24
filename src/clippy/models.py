@@ -392,6 +392,15 @@ class UserModelManager:
         else:
             return True, f"Set compaction threshold for model '{name}' to {threshold:,} tokens"
 
+    def switch_model(self, name: str) -> tuple[bool, str]:
+        """Switch to a model by setting it as the current model."""
+        model = self.get_model(name)
+        if not model:
+            return False, f"Model '{name}' not found"
+
+        # Set this model as the default
+        return self.set_default(name)
+
 
 # Global instances
 _providers: dict[str, ProviderConfig] = {}
@@ -509,6 +518,27 @@ def list_available_models() -> list[tuple[str, str, bool, int | None]]:
     models = user_manager.list_models()
     return [
         (model.name, model.description, model.is_default, model.compaction_threshold)
+        for model in models
+    ]
+
+
+def list_available_models_with_provider() -> list[tuple[str, str, bool, int | None, str]]:
+    """Get list of available user models with descriptions, default status,
+    compaction thresholds, and provider names.
+
+    Returns:
+        List of tuples (name, description, is_default, compaction_threshold, provider)
+    """
+    user_manager = get_user_manager()
+    models = user_manager.list_models()
+    return [
+        (
+            model.name,
+            model.description,
+            model.is_default,
+            model.compaction_threshold,
+            model.provider,
+        )
         for model in models
     ]
 
