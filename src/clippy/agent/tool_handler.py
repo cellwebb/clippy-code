@@ -11,6 +11,12 @@ from ..diff_utils import format_diff_for_display
 from ..executor import ActionExecutor
 from ..mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from ..permissions import ActionType, PermissionLevel, PermissionManager
+from ..utils import (
+    count_tokens,
+    format_over_size_warning,
+    get_max_tool_result_tokens,
+    smart_truncate_tool_result,
+)
 from .utils import generate_preview_diff
 
 logger = logging.getLogger(__name__)
@@ -340,7 +346,29 @@ def handle_tool_use(
         else:
             console.print(f"[bold red]✗ {escape(message)}[/bold red]")
 
-    # Add result to conversation
+    # Add result to conversation (with token limiting)
+    # Check result size before adding to detect potential truncation
+    if result and tool_name:
+        max_tokens = get_max_tool_result_tokens()
+        # Estimate the full content that would be added
+        test_content = message
+        if result:
+            test_content += f"\n\n{format_mcp_result(result)}"
+        if not success:
+            test_content = f"ERROR: {test_content}"
+
+        if count_tokens(test_content) > max_tokens:
+            # Show warning about truncation
+            original_tokens = count_tokens(test_content)
+            console.print(
+                f"[yellow]⚠️ Tool result from '{tool_name}' is too large "
+                f"({original_tokens:,} tokens)[/yellow]"
+            )
+            console.print(
+                f"[dim]   Will be truncated to {max_tokens:,} tokens for LLM processing[/dim]"
+            )
+            console.print("[dim]   Set CLIPPY_MAX_TOOL_RESULT_TOKENS to adjust limit[/dim]")
+
     add_tool_result(conversation_history, tool_use_id, success, message, result, tool_name)
 
     # Save conversation automatically after each tool execution
@@ -461,12 +489,16 @@ def add_tool_result(
     """
     Add a tool result to the conversation history.
 
+    Automatically limits the size of tool results to prevent overwhelming the LLM
+    with too many tokens. Uses smart truncation strategies based on tool type.
+
     Args:
         conversation_history: Current conversation history (modified in place)
         tool_use_id: Unique ID for this tool use
         success: Whether the tool execution succeeded
         message: Result message
         result: Optional result data
+        tool_name: Name of the tool that was executed
     """
     content = message
     if result:
@@ -477,6 +509,25 @@ def add_tool_result(
     # Add error prefix if failed (OpenAI doesn't have is_error flag)
     if not success:
         content = f"ERROR: {content}"
+
+    # Check token count and limit if needed
+    max_tokens = get_max_tool_result_tokens()
+    if tool_name and count_tokens(content) > max_tokens:
+        original_tokens = count_tokens(content)
+        content = smart_truncate_tool_result(content, max_tokens, tool_name)
+        final_tokens = count_tokens(content)
+
+        # Log the truncation
+        logger.warning(
+            f"Tool result from '{tool_name}' truncated: {original_tokens:,} → "
+            f"{final_tokens:,} tokens (limit: {max_tokens:,})"
+        )
+
+        # Add warning to console if this seems like an interactive session
+        if hasattr(logger.handlers[0], "stream") if logger.handlers else False:
+            logger.info(
+                format_over_size_warning(tool_name, original_tokens, final_tokens, max_tokens)
+            )
 
     # Add tool result message (OpenAI format)
     conversation_history.append(

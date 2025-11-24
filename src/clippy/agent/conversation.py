@@ -236,71 +236,19 @@ markers, or brackets. Keep it brief but informative (aim for 200-400 words).""",
         # Build temporary conversation for summarization
         summarization_conversation = [system_msg] + to_summarize + [summary_request]
 
-        # Call LLM to create summary with error handling for provider compatibility
-        try:
-            response = provider.create_message(
-                messages=summarization_conversation,
-                tools=[],  # No tools needed for summarization
-                model=model,
-            )
-        except Exception as e:
-            # If the provider rejects the message format, try a fallback approach
-            # by just keeping the system prompt and recent messages
-            logger.warning(f"Provider rejected message format during compaction: {e}")
-            logger.info("Using simple truncation fallback for conversation compaction")
-
-            # Fallback: just keep system + recent messages without summary
-            new_history_fallback = [system_msg] + recent_msgs
-
-            # Get token count after fallback compaction
-            after_stats_fallback = get_token_count(new_history_fallback, model, None)
-            after_tokens_fallback = after_stats_fallback["total_tokens"]
-
-            # Calculate reduction stats for fallback
-            tokens_saved_fallback = before_tokens - after_tokens_fallback
-            reduction_percent_fallback = (
-                (tokens_saved_fallback / before_tokens) * 100 if before_tokens > 0 else 0
-            )
-
-            stats_fallback = {
-                "before_tokens": before_tokens,
-                "after_tokens": after_tokens_fallback,
-                "tokens_saved": tokens_saved_fallback,
-                "reduction_percent": reduction_percent_fallback,
-                "messages_before": before_stats["message_count"],
-                "messages_after": len(new_history_fallback),
-                "messages_summarized": len(to_summarize),
-            }
-
-            success_msg_fallback = (
-                f"Conversation compacted (fallback): {before_tokens:,} → "
-                f"{after_tokens_fallback:,} tokens ({reduction_percent_fallback:.1f}% reduction)"
-            )
-
-            return True, success_msg_fallback, stats_fallback, new_history_fallback
+        # Call LLM to create summary
+        response = provider.create_message(
+            messages=summarization_conversation,
+            tools=[],  # No tools needed for summarization
+            model=model,
+        )
 
         summary_content = response.get("content", "")
         if not summary_content:
             return False, "Failed to generate summary", {}, []
 
         # Clean the summary content to ensure provider compatibility
-        # Remove any potential problematic characters or formatting
         summary_content = str(summary_content).strip()
-
-        # Remove potential markdown formatting or special characters
-        # that might cause issues with certain providers
-        lines = summary_content.split("\n")
-        cleaned_lines = []
-        for line in lines:
-            # Remove markdown-style headers and special markers
-            if line.startswith("#") or line.startswith("[") and "]" in line[:20]:
-                continue
-            # Clean up the line
-            cleaned_line = line.strip()
-            if cleaned_line:
-                cleaned_lines.append(cleaned_line)
-
-        summary_content = "\n".join(cleaned_lines)
 
         if not summary_content:
             return False, "Summary content was cleaned to empty", {}, []
@@ -309,7 +257,7 @@ markers, or brackets. Keep it brief but informative (aim for 200-400 words).""",
         # to maintain compatibility with all providers including ZAI
         summary_msg = {
             "role": "assistant",
-            "content": f"Previous conversation summary:\n\n{summary_content}",
+            "content": f"[CONVERSATION SUMMARY]\n\n{summary_content}\n\n[END SUMMARY]",
         }
 
         # Rebuild conversation: system + summary + recent messages
