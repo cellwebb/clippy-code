@@ -253,80 +253,81 @@ def handle_help_command(console: Console) -> CommandResult:
     """Handle /help command."""
     # Get custom commands help
     from .custom_commands import get_custom_manager
+
     custom_manager = get_custom_manager()
     custom_help = custom_manager.help_text()
-    
+
     # Build help content
     help_content = (
         "[bold]Session Control:[/bold]\n"
         "  /help - Show this help message\n"
-            "  /init - Create or refine AGENTS.md documentation\n"
-            "    /init --refine - Enhance existing AGENTS.md with project analysis\n"
-            "    /init --force - Overwrite existing AGENTS.md with fresh template\n"
-            "  /exit, /quit - Exit clippy-code\n"
-            "  /reset, /clear, /new - Reset conversation history\n"
-            "  /resume [name] - Resume a saved conversation\n"
-            "    (interactive selection if no name provided)\n"
-            "  /truncate <count> [option] - Truncate conversation history\n"
-            "    Options: --keep-recent (default), --keep-older\n"
-            "    Examples: /truncate 5, /truncate 3 --keep-older\n"
-            "[bold]Session Info:[/bold]\n"
-            "  /status - Show token usage and session info\n"
-            "  /compact - Summarize conversation to reduce context usage\n\n"
-            "[bold]Authentication:[/bold]\n"
-            "  clippy auth - Authenticate with Claude Code OAuth\n"
-            "  clippy auth-status - Check Claude Code authentication status\n\n"
-            "[bold]Model Management:[/bold]\n"
-            "  /model - List available subcommands and models\n"
-            "  /model help - Show comprehensive model management help\n"
-            "  /model list - Show your saved models\n"
-            "  /model <name> - Switch to a saved model\n"
-            "  /model load <name> - Load model (same as direct switch)\n"
-            "  /model add <provider> <model_id> [options] - Add a new model\n"
-            "    Options: --name <name>, --default, --threshold <tokens>\n"
-            "    Example: /model add claude-code claude-sonnet-4-5 --name claude-sonnet\n"
-            "  /model remove <name> - Remove a saved model\n"
-            "  /model default <name> - Set model as default\n"
-            "  /model threshold <name> <tokens> - Set compaction threshold\n"
-            "  /model use <provider> <model_id> - Try a model without saving\n\n"
-            "[bold]Subagent Configuration:[/bold]\n"
-            "  /subagent list - Show subagent type configurations\n"
-            "  /subagent set <type> <model> - Set model for a subagent type\n"
-            "  /subagent clear <type> - Clear model override for a subagent type\n"
-            "  /subagent reset - Clear all model overrides\n\n"
-            "[bold]Providers:[/bold]\n"
-            "  /providers - List available providers\n"
-            "  /provider <name> - Show provider details\n"
-            "  /provider add - Add a new provider (interactive wizard)\n"
-            "  /provider remove <name> - Remove a user-defined provider\n\n"
-            "[bold]Permissions:[/bold]\n"
-            "  /auto list - List auto-approved actions\n"
-            "  /auto revoke <action> - Revoke auto-approval for an action\n"
-            "  /auto clear - Clear all auto-approvals\n"
-            "  /yolo - Toggle YOLO mode (auto-approve ALL actions)\n\n"
-            "[bold]MCP Servers:[/bold]\n"
-            "  /mcp help - Show comprehensive MCP server management help\n"
-            "  /mcp list - List configured MCP servers\n"
-            "  /mcp tools [server] - List tools available from MCP servers\n"
-            "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
-            "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
-            "  /mcp revoke <server> - Revoke trust for an MCP server\n"
-            "  /mcp enable <server> - Enable a disabled MCP server\n"
-            "  /mcp disable <server> - Disable an enabled MCP server\n\n"
-            "[bold]Custom Commands:[/bold]\n"
-            "  /custom list - List all custom commands\n"
-            "  /custom reload - Reload custom commands from disk\n"
-            "  /custom edit [editor] - Edit custom commands configuration\n"
-            "  /custom example - Show example configuration\n"
-            "  /custom help - Show custom command management help\n\n"
-            "[bold]Interrupt:[/bold]\n"
-            "  Ctrl+C or double-ESC - Stop current execution"
+        "  /init - Create or refine AGENTS.md documentation\n"
+        "    /init --refine - Enhance existing AGENTS.md with project analysis\n"
+        "    /init --force - Overwrite existing AGENTS.md with fresh template\n"
+        "  /exit, /quit - Exit clippy-code\n"
+        "  /reset, /clear, /new - Reset conversation history\n"
+        "  /resume [name] - Resume a saved conversation\n"
+        "    (interactive selection if no name provided)\n"
+        "  /truncate <count> [option] - Truncate conversation history\n"
+        "    Options: --keep-recent (default), --keep-older\n"
+        "    Examples: /truncate 5, /truncate 3 --keep-older\n"
+        "[bold]Session Info:[/bold]\n"
+        "  /status - Show token usage and session info\n"
+        "  /compact - Summarize conversation to reduce context usage\n\n"
+        "[bold]Authentication:[/bold]\n"
+        "  clippy auth - Authenticate with Claude Code OAuth\n"
+        "  clippy auth-status - Check Claude Code authentication status\n\n"
+        "[bold]Model Management:[/bold]\n"
+        "  /model - List available subcommands and models\n"
+        "  /model help - Show comprehensive model management help\n"
+        "  /model list - Show your saved models\n"
+        "  /model <name> - Switch to a saved model\n"
+        "  /model load <name> - Load model (same as direct switch)\n"
+        "  /model add <provider> <model_id> [options] - Add a new model\n"
+        "    Options: --name <name>, --default, --threshold <tokens>\n"
+        "    Example: /model add claude-code claude-sonnet-4-5 --name claude-sonnet\n"
+        "  /model remove <name> - Remove a saved model\n"
+        "  /model default <name> - Set model as default\n"
+        "  /model threshold <name> <tokens> - Set compaction threshold\n"
+        "  /model use <provider> <model_id> - Try a model without saving\n\n"
+        "[bold]Subagent Configuration:[/bold]\n"
+        "  /subagent list - Show subagent type configurations\n"
+        "  /subagent set <type> <model> - Set model for a subagent type\n"
+        "  /subagent clear <type> - Clear model override for a subagent type\n"
+        "  /subagent reset - Clear all model overrides\n\n"
+        "[bold]Providers:[/bold]\n"
+        "  /providers - List available providers\n"
+        "  /provider <name> - Show provider details\n"
+        "  /provider add - Add a new provider (interactive wizard)\n"
+        "  /provider remove <name> - Remove a user-defined provider\n\n"
+        "[bold]Permissions:[/bold]\n"
+        "  /auto list - List auto-approved actions\n"
+        "  /auto revoke <action> - Revoke auto-approval for an action\n"
+        "  /auto clear - Clear all auto-approvals\n"
+        "  /yolo - Toggle YOLO mode (auto-approve ALL actions)\n\n"
+        "[bold]MCP Servers:[/bold]\n"
+        "  /mcp help - Show comprehensive MCP server management help\n"
+        "  /mcp list - List configured MCP servers\n"
+        "  /mcp tools [server] - List tools available from MCP servers\n"
+        "  /mcp refresh - Refresh tool catalogs from MCP servers\n"
+        "  /mcp allow <server> - Mark an MCP server as trusted for this session\n"
+        "  /mcp revoke <server> - Revoke trust for an MCP server\n"
+        "  /mcp enable <server> - Enable a disabled MCP server\n"
+        "  /mcp disable <server> - Disable an enabled MCP server\n\n"
+        "[bold]Custom Commands:[/bold]\n"
+        "  /custom list - List all custom commands\n"
+        "  /custom reload - Reload custom commands from disk\n"
+        "  /custom edit [editor] - Edit custom commands configuration\n"
+        "  /custom example - Show example configuration\n"
+        "  /custom help - Show custom command management help\n\n"
+        "[bold]Interrupt:[/bold]\n"
+        "  Ctrl+C or double-ESC - Stop current execution"
     )
-    
+
     # Add custom commands section if any exist
     if custom_help:
         help_content += f"\n\n{custom_help}"
-    
+
     console.print(
         Panel.fit(
             help_content,
@@ -2306,19 +2307,21 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
         parts = user_input.split(maxsplit=1)
         command_args = parts[1] if len(parts) > 1 else ""
         from .custom_cli import handle_custom_command_management
+
         return handle_custom_command_management(command_args, console)
-    
+
     # Custom commands - check for user-defined commands
     if command_lower.startswith("/"):
         # Extract command name (remove / and split on space)
         command_parts = command_lower[1:].split(maxsplit=1)
         command_name = command_parts[0]
         command_args = command_parts[1] if len(command_parts) > 1 else ""
-        
+
         # Don't try to handle "custom" again since it's handled above
         if command_name != "custom":
             # Try to handle as custom command
             from .custom_commands import handle_custom_command
+
             custom_result = handle_custom_command(command_name, command_args, agent, console)
             if custom_result is not None:
                 return custom_result
