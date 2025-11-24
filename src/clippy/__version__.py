@@ -1,3 +1,3 @@
 """Version information for clippy-code."""
 
-__version__ = "4.9.1"
+__version__ = "4.9.2"
