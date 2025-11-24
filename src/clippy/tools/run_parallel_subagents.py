@@ -380,7 +380,7 @@ def create_parallel_subagents_and_execute(
             f"Running {len(subagent_instances)} subagents in parallel "
             f"(max_concurrent={max_concurrent})"
         )
-        
+
         # Only pass stuck_detection_config if configured
         if stuck_detection_config is not None:
             results = parent_agent.subagent_manager.run_parallel(

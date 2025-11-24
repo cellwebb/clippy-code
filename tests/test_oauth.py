@@ -104,7 +104,10 @@ def test_load_stored_token_valid_token() -> None:
         env_file = Path(tmpdir) / ".env"
         env_file.write_text("CLAUDE_CODE_ACCESS_TOKEN=test_token_123\nOTHER_VAR=value\n")
 
-        with patch("clippy.oauth.claude_code.get_token_storage_path") as mock_path:
+        with (
+            patch("clippy.oauth.claude_code.get_token_storage_path") as mock_path,
+            patch.dict(os.environ, {"CLAUDE_CODE_ACCESS_TOKEN": ""}, clear=True),
+        ):
             mock_path.return_value = env_file
 
             token = load_stored_token()
