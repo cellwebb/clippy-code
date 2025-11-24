@@ -251,10 +251,15 @@ def handle_resume_command(agent: ClippyAgent, console: Console, command_args: st
 
 def handle_help_command(console: Console) -> CommandResult:
     """Handle /help command."""
-    console.print(
-        Panel.fit(
-            "[bold]Session Control:[/bold]\n"
-            "  /help - Show this help message\n"
+    # Get custom commands help
+    from .custom_commands import get_custom_manager
+    custom_manager = get_custom_manager()
+    custom_help = custom_manager.help_text()
+    
+    # Build help content
+    help_content = (
+        "[bold]Session Control:[/bold]\n"
+        "  /help - Show this help message\n"
             "  /init - Create or refine AGENTS.md documentation\n"
             "    /init --refine - Enhance existing AGENTS.md with project analysis\n"
             "    /init --force - Overwrite existing AGENTS.md with fresh template\n"
@@ -308,8 +313,23 @@ def handle_help_command(console: Console) -> CommandResult:
             "  /mcp revoke <server> - Revoke trust for an MCP server\n"
             "  /mcp enable <server> - Enable a disabled MCP server\n"
             "  /mcp disable <server> - Disable an enabled MCP server\n\n"
+            "[bold]Custom Commands:[/bold]\n"
+            "  /custom list - List all custom commands\n"
+            "  /custom reload - Reload custom commands from disk\n"
+            "  /custom edit [editor] - Edit custom commands configuration\n"
+            "  /custom example - Show example configuration\n"
+            "  /custom help - Show custom command management help\n\n"
             "[bold]Interrupt:[/bold]\n"
-            "  Ctrl+C or double-ESC - Stop current execution",
+            "  Ctrl+C or double-ESC - Stop current execution"
+    )
+    
+    # Add custom commands section if any exist
+    if custom_help:
+        help_content += f"\n\n{custom_help}"
+    
+    console.print(
+        Panel.fit(
+            help_content,
             border_style="blue",
         )
     )
@@ -2280,6 +2300,28 @@ def handle_command(user_input: str, agent: ClippyAgent, console: Console) -> Com
     # YOLO command
     if command_lower == "/yolo":
         return handle_yolo_command(agent, console)
+
+    # Custom command management
+    if command_lower.startswith("/custom"):
+        parts = user_input.split(maxsplit=1)
+        command_args = parts[1] if len(parts) > 1 else ""
+        from .custom_cli import handle_custom_command_management
+        return handle_custom_command_management(command_args, console)
+    
+    # Custom commands - check for user-defined commands
+    if command_lower.startswith("/"):
+        # Extract command name (remove / and split on space)
+        command_parts = command_lower[1:].split(maxsplit=1)
+        command_name = command_parts[0]
+        command_args = command_parts[1] if len(command_parts) > 1 else ""
+        
+        # Don't try to handle "custom" again since it's handled above
+        if command_name != "custom":
+            # Try to handle as custom command
+            from .custom_commands import handle_custom_command
+            custom_result = handle_custom_command(command_name, command_args, agent, console)
+            if custom_result is not None:
+                return custom_result
 
     # Not a recognized command
     return None
