@@ -274,6 +274,7 @@ def create_parallel_subagents_and_execute(
     fail_fast: bool = False,
     aggregate_results: bool = True,
     stuck_detection: dict[str, Any] | None = None,
+    max_iterations: int | None = None,
 ) -> tuple[bool, str, Any]:
     """
     Create and execute multiple subagents in parallel with the given parameters.
@@ -287,6 +288,7 @@ def create_parallel_subagents_and_execute(
         max_concurrent: Maximum number of subagents to run concurrently
         fail_fast: If True, stop all subagents if one fails
         aggregate_results: If True, aggregate results into a single summary
+        max_iterations: Maximum iterations for all subagents (can be overridden per subagent)
 
     Returns:
         Tuple of (success: bool, message: str, result: Any)
@@ -324,11 +326,14 @@ def create_parallel_subagents_and_execute(
 
             # Override defaults with provided parameters
             config = default_config.copy()
+            # Use global max_iterations if provided and no per-subagent override
             if (
                 "max_iterations" in subagent_config
                 and subagent_config["max_iterations"] is not None
             ):
                 config["max_iterations"] = subagent_config["max_iterations"]
+            elif max_iterations is not None:
+                config["max_iterations"] = max_iterations
             if "timeout" in subagent_config and subagent_config["timeout"] != 300:
                 config["timeout"] = subagent_config["timeout"]
             if "allowed_tools" in subagent_config:
@@ -375,11 +380,19 @@ def create_parallel_subagents_and_execute(
             f"Running {len(subagent_instances)} subagents in parallel "
             f"(max_concurrent={max_concurrent})"
         )
-        results = parent_agent.subagent_manager.run_parallel(
-            subagent_instances,
-            max_concurrent=max_concurrent,
-            stuck_detection_config=stuck_detection_config,
-        )
+        
+        # Only pass stuck_detection_config if configured
+        if stuck_detection_config is not None:
+            results = parent_agent.subagent_manager.run_parallel(
+                subagent_instances,
+                max_concurrent=max_concurrent,
+                stuck_detection_config=stuck_detection_config,
+            )
+        else:
+            results = parent_agent.subagent_manager.run_parallel(
+                subagent_instances,
+                max_concurrent=max_concurrent,
+            )
 
         # Analyze results
         successful_count = sum(1 for result in results if result.success)
