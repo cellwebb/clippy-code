@@ -27,6 +27,8 @@ from .read_file import TOOL_SCHEMA as READ_FILE_SCHEMA
 from .read_file import read_file
 from .read_files import TOOL_SCHEMA as READ_FILES_SCHEMA
 from .read_files import read_files
+from .read_lines import TOOL_SCHEMA as READ_LINES_SCHEMA
+from .read_lines import read_lines
 from .search_files import TOOL_SCHEMA as SEARCH_FILES_SCHEMA
 from .search_files import search_files
 from .think import TOOL_SCHEMA as THINK_SCHEMA
@@ -117,6 +119,7 @@ __all__ = [
     "list_directory",
     "read_file",
     "read_files",
+    "read_lines",
     "search_files",
     "think",
     "write_file",
@@ -128,4 +131,5 @@ __all__ = [
     "_move_file_util",
     "_create_directory_util",
     "_delete_file_util",
+    "READ_LINES_SCHEMA",
 ]
