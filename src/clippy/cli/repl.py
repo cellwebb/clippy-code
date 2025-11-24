@@ -14,7 +14,7 @@ from rich.markup import escape
 from rich.panel import Panel
 
 from ..agent import ClippyAgent, InterruptedExceptionError
-from .commands import handle_command
+from .commands_main import handle_command
 from .completion import create_completer
 
 

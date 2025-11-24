@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.markup import escape
 
 from ..agent import ClippyAgent
+from ..agent.mcp_manager import set_mcp_manager
 from ..executor import ActionExecutor
 from ..mcp.config import load_config
 from ..mcp.manager import Manager
@@ -174,6 +175,8 @@ def main() -> None:
         try:
             mcp_manager = Manager(config=mcp_config, console=console)
             mcp_manager.start()  # Now synchronous - runs in background thread
+            # Set global MCP manager for CLI command access
+            set_mcp_manager(mcp_manager)
         except Exception as e:
             console.print(
                 f"[yellow]⚠ Warning: Failed to initialize MCP manager: {escape(str(e))}[/yellow]"
