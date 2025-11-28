@@ -17,9 +17,7 @@ def get_tool_schema() -> dict[str, Any]:
             "function": {
                 "name": "delegate_to_subagent",
                 "description": (
-                    "Delegate a complex subtask to a specialized subagent. "
-                    "Use this when you need to handle a well-defined subtask that would "
-                    "benefit from isolated context, specialized prompting, or parallel execution."
+                    "Delegate a complex subtask to a specialized subagent for isolated execution."
                 ),
                 "parameters": {
                     "type": "object",
@@ -79,9 +77,7 @@ def get_tool_schema() -> dict[str, Any]:
             "function": {
                 "name": "delegate_to_subagent",
                 "description": (
-                    "Delegate a complex subtask to a specialized subagent. "
-                    "Use this when you need to handle a well-defined subtask that would "
-                    "benefit from isolated context, specialized prompting, or parallel execution."
+                    "Delegate a complex subtask to a specialized subagent for isolated execution."
                 ),
                 "parameters": {
                     "type": "object",

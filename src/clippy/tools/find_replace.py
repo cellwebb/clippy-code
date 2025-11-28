@@ -12,8 +12,8 @@ TOOL_SCHEMA = {
         "name": "find_replace",
         "description": (
             "Multi-file pattern replacement with regex support, preview mode, and safety checks. "
-            "Supports dry-run mode, file filtering, interactive confirmation, and generates diffs. "
-            "Perfect for refactoring, updating imports, or making project-wide changes safely."
+            "Supports dry-run, file filtering, and backups. "
+            "Use for refactoring or project-wide changes."
         ),
         "parameters": {
             "type": "object",

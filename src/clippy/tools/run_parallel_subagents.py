@@ -54,9 +54,8 @@ def get_tool_schema() -> dict[str, Any]:
             "function": {
                 "name": "run_parallel_subagents",
                 "description": (
-                    "Run multiple subagents in parallel to handle independent tasks concurrently. "
-                    "Use this when you have multiple independent subtasks that can be executed "
-                    "simultaneously to save time and improve efficiency."
+                    "Run multiple subagents in parallel for independent tasks. "
+                    "Use to save time on concurrent operations."
                 ),
                 "parameters": {
                     "type": "object",
@@ -196,9 +195,8 @@ def get_tool_schema() -> dict[str, Any]:
             "function": {
                 "name": "run_parallel_subagents",
                 "description": (
-                    "Run multiple subagents in parallel to handle independent tasks concurrently. "
-                    "Use this when you have multiple independent subtasks that can be executed "
-                    "simultaneously to save time and improve efficiency."
+                    "Run multiple subagents in parallel for independent tasks. "
+                    "Use to save time on concurrent operations."
                 ),
                 "parameters": {
                     "type": "object",
