@@ -43,6 +43,9 @@ Tool usage best practices:
 - edit_file: ALWAYS read the file first to see exact content. Copy exact text from
   the file for patterns. If pattern matches multiple times, add more surrounding
   context. Never retry the same failing pattern - read the file and adjust instead.
+- After editing a file, ALWAYS read it again to verify the changes were applied correctly.
+- find_replace: Use this for multi-file refactoring or when you need to change the
+  same pattern across many files. For single-file edits, use edit_file.
 - For multi-line patterns in edit_file, just use \\n in the pattern string naturally
 - Test patterns with grep before using in edit_file if uncertain
 

@@ -11,23 +11,8 @@ TOOL_SCHEMA = {
         "name": "edit_file",
         "description": (
             "Edit a file by inserting, replacing, deleting, or appending content. "
-            "All pattern matching uses EXACT STRING MATCHING with FUZZY MATCHING FALLBACK.\n\n"
-            "PATTERN MATCHING:\n"
-            "1. EXACT MATCH: Pattern must appear exactly in file (copy text from file)\n"
-            "2. FUZZY FALLBACK: If no exact match, tries fuzzy matching (Jaro-Winkler ≥ 0.95)\n"
-            "   - Handles minor whitespace differences automatically\n"
-            "   - No need to escape special characters!\n\n"
-            "CRITICAL BEST PRACTICES:\n"
-            "1. ALWAYS use read_file BEFORE edit_file to see exact content\n"
-            "2. COPY exact text you want to match (including whitespace)\n"
-            "3. If 'pattern found N times' error: Include more surrounding context\n"
-            "   to make pattern unique\n"
-            "4. Multi-line patterns work naturally - just use \\n in pattern string\n"
-            "   Example: pattern='class Foo:\\n    def bar'\n"
-            "5. NO special character escaping needed (. * + ? etc. are literal)\n"
-            "6. NEVER retry the same failing pattern twice - read file and adjust\n"
-            "7. Fuzzy matching handles minor typos/spacing automatically (≥95% similar)\n"
-            "8. Pattern can be a substring - doesn't need to match entire line"
+            "Uses exact string matching with fuzzy fallback (Jaro-Winkler ≥ 0.95). "
+            "Always read the file first to get the exact text for the pattern."
         ),
         "parameters": {
             "type": "object",

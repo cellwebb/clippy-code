@@ -40,6 +40,19 @@ def execute_command(cmd: str, working_dir: str = ".", timeout: int = 300) -> tup
         if ".." in working_dir:
             return False, "Directory traversal not allowed in working_dir", None
 
+        # Safety check for dangerous commands
+        dangerous_patterns = [
+            "rm -rf /",
+            "rm -fr /",
+            ":(){ :|:& };:",  # Fork bomb
+            "mkfs",
+            "dd if=/dev/zero",
+        ]
+        
+        for pattern in dangerous_patterns:
+            if pattern in cmd:
+                return False, f"Command contains blocked dangerous pattern: {pattern}", None
+
         # Handle timeout value
         timeout_arg = None if timeout == 0 else timeout
 
