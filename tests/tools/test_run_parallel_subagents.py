@@ -565,21 +565,20 @@ class TestRunParallelSubagentsTool:
         assert long_output not in summary
         assert "..." in summary
 
-    def test_tool_schema_fallback(self):
-        """Test tool schema fallback when subagent_types import fails."""
-        with patch(
-            "clippy.tools.run_parallel_subagents.list_subagent_types",
-            side_effect=ImportError,
-        ):
-            schema = get_tool_schema()
-
-            # Should still return a valid schema with fallback enum
-            assert isinstance(schema, dict)
-            assert schema["function"]["name"] == "run_parallel_subagents"
-
-            enum_values = schema["function"]["parameters"]["properties"]["subagents"]["items"][
-                "properties"
-            ]["subagent_type"]["enum"]
-            assert isinstance(enum_values, list)
-            assert "general" in enum_values
-            assert "code_review" in enum_values
+    def test_tool_schema_enum_values(self):
+        """Test that tool schema contains correct subagent type enum values."""
+        schema = get_tool_schema()
+        
+        enum_values = schema["function"]["parameters"]["properties"]["subagents"]["items"][
+            "properties"
+        ]["subagent_type"]["enum"]
+        
+        assert isinstance(enum_values, list)
+        # Check for known subagent types
+        assert "general" in enum_values
+        assert "code_review" in enum_values
+        assert "testing" in enum_values
+        assert "refactor" in enum_values
+        assert "documentation" in enum_values
+        assert "fast_general" in enum_values
+        assert "power_analysis" in enum_values

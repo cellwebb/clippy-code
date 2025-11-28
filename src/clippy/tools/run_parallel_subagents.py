@@ -4,6 +4,8 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+from ..agent.subagent_types import list_subagent_types
+
 logger = logging.getLogger(__name__)
 
 # Module-level references for test mocking
@@ -37,209 +39,148 @@ def _ensure_imports() -> None:
             get_default_config = subagent_types_module.get_default_config
 
 
-# Re-export for test mocking - these are imported lazily in functions
-def list_subagent_types() -> list[str]:
-    """Get list of available subagent types."""
-    from ..agent.subagent_types import list_subagent_types as lst
-
-    return lst()
-
-
 # Tool schema for run_parallel_subagents
 def get_tool_schema() -> dict[str, Any]:
-    """Get the tool schema dynamically."""
-    try:
-        return {
-            "type": "function",
-            "function": {
-                "name": "run_parallel_subagents",
-                "description": (
-                    "Run multiple subagents in parallel for independent tasks. "
-                    "Use to save time on concurrent operations."
-                ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "subagents": {
-                            "type": "array",
-                            "description": "List of subagent configurations to run in parallel",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "task": {
-                                        "type": "string",
-                                        "description": (
-                                            "Clear description of the task for this subagent"
-                                        ),
-                                    },
-                                    "subagent_type": {
-                                        "type": "string",
-                                        "enum": list_subagent_types(),
-                                        "description": "Type of specialized subagent to use",
-                                    },
-                                    "allowed_tools": {
-                                        "type": "array",
-                                        "items": {"type": "string"},
-                                        "description": (
-                                            "List of tools the subagent is allowed to use "
-                                            "(optional)"
-                                        ),
-                                    },
-                                    "auto_approve_tools": {
-                                        "type": "array",
-                                        "items": {"type": "string"},
-                                        "description": (
-                                            "List of tools to auto-approve for the subagent"
-                                        ),
-                                    },
-                                    "context": {
-                                        "type": "object",
-                                        "description": (
-                                            "Additional context to provide to the subagent "
-                                            "(optional)"
-                                        ),
-                                    },
-                                    "timeout": {
-                                        "type": "integer",
-                                        "description": "Timeout in seconds (default: 300)",
-                                        "default": 300,
-                                    },
-                                    "max_iterations": {
-                                        "type": "integer",
-                                        "description": (
-                                            "Maximum iterations for the subagent "
-                                            "(default: from type config)"
-                                        ),
-                                        "default": None,
-                                    },
-                                },
-                                "required": ["task", "subagent_type"],
-                            },
-                        },
-                        "max_concurrent": {
-                            "type": "integer",
-                            "description": (
-                                "Maximum number of subagents to run concurrently (default: 3)"
-                            ),
-                            "default": 3,
-                        },
-                        "fail_fast": {
-                            "type": "boolean",
-                            "description": (
-                                "If True, stop all subagents if one fails (default: False)"
-                            ),
-                            "default": False,
-                        },
-                        "aggregate_results": {
-                            "type": "boolean",
-                            "description": (
-                                "If True, aggregate results into a single summary (default: True)"
-                            ),
-                            "default": True,
-                        },
-                        "stuck_detection": {
+    """Get the tool schema."""
+    return {
+        "type": "function",
+        "function": {
+            "name": "run_parallel_subagents",
+            "description": (
+                "Run multiple subagents in parallel for independent tasks. "
+                "Use to save time on concurrent operations."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "subagents": {
+                        "type": "array",
+                        "description": "List of subagent configurations to run in parallel",
+                        "items": {
                             "type": "object",
-                            "description": (
-                                "Configuration for detecting and handling stuck subagents"
-                            ),
                             "properties": {
-                                "enabled": {
-                                    "type": "boolean",
-                                    "description": "Enable stuck subagent detection",
-                                    "default": False,
-                                },
-                                "stuck_timeout": {
-                                    "type": "number",
+                                "task": {
+                                    "type": "string",
                                     "description": (
-                                        "How long without progress before considering "
-                                        "stuck (seconds)"
+                                        "Clear description of the task for this subagent"
                                     ),
-                                    "default": 120,
                                 },
-                                "heartbeat_timeout": {
-                                    "type": "number",
+                                "subagent_type": {
+                                    "type": "string",
+                                    "enum": list_subagent_types(),
+                                    "description": "Type of specialized subagent to use",
+                                },
+                                "allowed_tools": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
                                     "description": (
-                                        "How long without heartbeat before considering "
-                                        "stuck (seconds)"
+                                        "List of tools the subagent is allowed to use "
+                                        "(optional)"
                                     ),
-                                    "default": 60,
                                 },
-                                "overall_timeout": {
-                                    "type": "number",
+                                "auto_approve_tools": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
                                     "description": (
-                                        "Overall timeout for parallel execution (seconds)"
+                                        "List of tools to auto-approve for the subagent"
                                     ),
-                                    "default": 600,
                                 },
-                                "auto_terminate": {
-                                    "type": "boolean",
-                                    "description": "Automatically terminate stuck subagents",
-                                    "default": True,
+                                "context": {
+                                    "type": "object",
+                                    "description": (
+                                        "Additional context to provide to the subagent "
+                                        "(optional)"
+                                    ),
                                 },
-                                "check_interval": {
-                                    "type": "number",
-                                    "description": "Progress check interval (seconds)",
-                                    "default": 10,
+                                "timeout": {
+                                    "type": "integer",
+                                    "description": "Timeout in seconds (default: 300)",
+                                    "default": 300,
                                 },
+                                "max_iterations": {
+                                    "type": "integer",
+                                    "description": (
+                                        "Maximum iterations for the subagent "
+                                        "(default: from type config)"
+                                    ),
+                                    "default": None,
+                                },
+                            },
+                            "required": ["task", "subagent_type"],
+                        },
+                    },
+                    "max_concurrent": {
+                        "type": "integer",
+                        "description": (
+                            "Maximum number of subagents to run concurrently (default: 3)"
+                        ),
+                        "default": 3,
+                    },
+                    "fail_fast": {
+                        "type": "boolean",
+                        "description": (
+                            "If True, stop all subagents if one fails (default: False)"
+                        ),
+                        "default": False,
+                    },
+                    "aggregate_results": {
+                        "type": "boolean",
+                        "description": (
+                            "If True, aggregate results into a single summary (default: True)"
+                        ),
+                        "default": True,
+                    },
+                    "stuck_detection": {
+                        "type": "object",
+                        "description": (
+                            "Configuration for detecting and handling stuck subagents"
+                        ),
+                        "properties": {
+                            "enabled": {
+                                "type": "boolean",
+                                "description": "Enable stuck subagent detection",
+                                "default": False,
+                            },
+                            "stuck_timeout": {
+                                "type": "number",
+                                "description": (
+                                    "How long without progress before considering "
+                                    "stuck (seconds)"
+                                ),
+                                "default": 120,
+                            },
+                            "heartbeat_timeout": {
+                                "type": "number",
+                                "description": (
+                                    "How long without heartbeat before considering "
+                                    "stuck (seconds)"
+                                ),
+                                "default": 60,
+                            },
+                            "overall_timeout": {
+                                "type": "number",
+                                "description": (
+                                    "Overall timeout for parallel execution (seconds)"
+                                ),
+                                "default": 600,
+                            },
+                            "auto_terminate": {
+                                "type": "boolean",
+                                "description": "Automatically terminate stuck subagents",
+                                "default": True,
+                            },
+                            "check_interval": {
+                                "type": "number",
+                                "description": "Progress check interval (seconds)",
+                                "default": 10,
                             },
                         },
                     },
-                    "required": ["subagents"],
                 },
+                "required": ["subagents"],
             },
-        }
-    except ImportError:
-        # Fallback if subagent_types is not available
-        return {
-            "type": "function",
-            "function": {
-                "name": "run_parallel_subagents",
-                "description": (
-                    "Run multiple subagents in parallel for independent tasks. "
-                    "Use to save time on concurrent operations."
-                ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "subagents": {
-                            "type": "array",
-                            "description": "List of subagent configurations to run in parallel",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "task": {
-                                        "type": "string",
-                                        "description": (
-                                            "Clear description of the task for this subagent"
-                                        ),
-                                    },
-                                    "subagent_type": {
-                                        "type": "string",
-                                        "enum": [
-                                            "general",
-                                            "code_review",
-                                            "testing",
-                                            "refactor",
-                                            "documentation",
-                                        ],
-                                        "description": "Type of specialized subagent to use",
-                                    },
-                                },
-                                "required": ["task", "subagent_type"],
-                            },
-                        },
-                        "max_concurrent": {
-                            "type": "integer",
-                            "description": (
-                                "Maximum number of subagents to run concurrently (default: 3)"
-                            ),
-                            "default": 3,
-                        },
-                    },
-                    "required": ["subagents"],
-                },
-            },
-        }
+        },
+    }
 
 
 TOOL_SCHEMA = get_tool_schema()

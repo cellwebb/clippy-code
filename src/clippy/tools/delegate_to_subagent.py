@@ -3,139 +3,72 @@
 import logging
 from typing import Any
 
+from ..agent.subagent_types import list_subagent_types
+
 logger = logging.getLogger(__name__)
 
 
 # Tool schema for delegate_to_subagent
 def get_tool_schema() -> dict[str, Any]:
-    """Get the tool schema dynamically to avoid circular imports."""
-    try:
-        from ..agent.subagent_types import list_subagent_types
-
-        return {
-            "type": "function",
-            "function": {
-                "name": "delegate_to_subagent",
-                "description": (
-                    "Delegate a complex subtask to a specialized subagent for isolated execution."
-                ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "task": {
-                            "type": "string",
-                            "description": (
-                                "Clear description of the task for the subagent to complete"
-                            ),
-                        },
-                        "subagent_type": {
-                            "type": "string",
-                            "enum": list_subagent_types(),
-                            "description": "Type of specialized subagent to use",
-                        },
-                        "allowed_tools": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": (
-                                "List of tools the subagent is allowed to use (optional)"
-                            ),
-                        },
-                        "auto_approve_tools": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": (
-                                "List of tools to auto-approve for the subagent (e.g. ['write_file'])"
-                            ),
-                        },
-                        "context": {
-                            "type": "object",
-                            "description": (
-                                "Additional context to provide to the subagent (optional)"
-                            ),
-                        },
-                        "timeout": {
-                            "type": "integer",
-                            "description": "Timeout in seconds (default: 300)",
-                            "default": 300,
-                        },
-                        "max_iterations": {
-                            "type": "integer",
-                            "description": (
-                                "Maximum iterations for the subagent (default: from type config)"
-                            ),
-                            "default": None,
-                        },
+    """Get the tool schema."""
+    return {
+        "type": "function",
+        "function": {
+            "name": "delegate_to_subagent",
+            "description": (
+                "Delegate a complex subtask to a specialized subagent for isolated execution."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task": {
+                        "type": "string",
+                        "description": (
+                            "Clear description of the task for the subagent to complete"
+                        ),
                     },
-                    "required": ["task", "subagent_type"],
-                },
-            },
-        }
-    except ImportError:
-        # Fallback if subagent_types is not available
-        return {
-            "type": "function",
-            "function": {
-                "name": "delegate_to_subagent",
-                "description": (
-                    "Delegate a complex subtask to a specialized subagent for isolated execution."
-                ),
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "task": {
-                            "type": "string",
-                            "description": (
-                                "Clear description of the task for the subagent to complete"
-                            ),
-                        },
-                        "subagent_type": {
-                            "type": "string",
-                            "enum": [
-                                "general",
-                                "code_review",
-                                "testing",
-                                "refactor",
-                                "documentation",
-                            ],
-                            "description": "Type of specialized subagent to use",
-                        },
-                        "allowed_tools": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": (
-                                "List of tools the subagent is allowed to use (optional)"
-                            ),
-                        },
-                        "auto_approve_tools": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": (
-                                "List of tools to auto-approve for the subagent (e.g. ['write_file'])"
-                            ),
-                        },
-                        "context": {
-                            "type": "object",
-                            "description": (
-                                "Additional context to provide to the subagent (optional)"
-                            ),
-                        },
-                        "timeout": {
-                            "type": "integer",
-                            "description": "Timeout in seconds (default: 300)",
-                            "default": 300,
-                        },
-                        "max_iterations": {
-                            "type": "integer",
-                            "description": (
-                                "Maximum iterations for the subagent (default: from type config)"
-                            ),
-                            "default": None,
-                        },
+                    "subagent_type": {
+                        "type": "string",
+                        "enum": list_subagent_types(),
+                        "description": "Type of specialized subagent to use",
                     },
-                    "required": ["task", "subagent_type"],
+                    "allowed_tools": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "List of tools the subagent is allowed to use (optional)"
+                        ),
+                    },
+                    "auto_approve_tools": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "List of tools to auto-approve for the subagent (e.g. ['write_file'])"
+                        ),
+                    },
+                    "context": {
+                        "type": "object",
+                        "description": (
+                            "Additional context to provide to the subagent (optional)"
+                        ),
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "description": "Timeout in seconds (default: 300)",
+                        "default": 300,
+                    },
+                    "max_iterations": {
+                        "type": "integer",
+                        "description": (
+                            "Maximum iterations for the subagent (default: from type config)"
+                        ),
+                        "default": None,
+                    },
                 },
+                "required": ["task", "subagent_type"],
             },
-        }
+        },
+    }
 
 
 TOOL_SCHEMA = get_tool_schema()
