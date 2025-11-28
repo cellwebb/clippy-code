@@ -212,82 +212,73 @@ class CustomCommandManager:
         self._load_commands()
 
     def _load_commands(self) -> None:
-        """Load custom commands from configuration file."""
-        config_path = self._get_config_path()
+        """Load custom commands from configuration files (project + global)."""
+        config_paths = self._get_config_paths()
 
-        if not config_path.exists():
-            # Create example config
-            self._create_example_config(config_path)
-            return
+        # Track if we found any config files
+        found_any = False
 
-        try:
-            with open(config_path) as f:
-                config_data = json.load(f)
+        # Load from all paths (global first, then project to allow override)
+        for config_path in reversed(config_paths):  # Reverse so project overrides global
+            if not config_path.exists():
+                continue
 
-            commands_config = config_data.get("commands", {})
+            found_any = True
 
-            for name, cmd_config in commands_config.items():
-                try:
-                    self.commands[name] = CustomCommand(name, cmd_config)
-                except Exception as e:
-                    print(f"Warning: Failed to load custom command '{name}': {e}")
+            try:
+                with open(config_path) as f:
+                    config_data = json.load(f)
 
-        except json.JSONDecodeError as e:
-            print(f"Warning: Failed to parse custom commands config: {e}")
-        except Exception as e:
-            print(f"Warning: Failed to load custom commands: {e}")
+                commands_config = config_data.get("commands", {})
 
-    def _get_config_path(self) -> Path:
-        """Get the path to the custom commands configuration file."""
-        # Use the same directory as other user configurations
+                for name, cmd_config in commands_config.items():
+                    try:
+                        self.commands[name] = CustomCommand(name, cmd_config)
+                    except Exception as e:
+                        msg = f"Warning: Failed to load '{name}' from {config_path}: {e}"
+                        print(msg)
+
+            except json.JSONDecodeError as e:
+                print(f"Warning: Failed to parse custom commands config at {config_path}: {e}")
+            except Exception as e:
+                print(f"Warning: Failed to load custom commands from {config_path}: {e}")
+
+        # If no config files exist, create the global one
+        if not found_any:
+            global_path = self._get_global_config_path()
+            self._create_example_config(global_path)
+
+    def _get_config_paths(self) -> list[Path]:
+        """Get paths to check for custom commands (project, then global)."""
+        paths = []
+
+        # Project-level config (current directory)
+        project_path = Path.cwd() / ".clippy" / "custom_commands.json"
+        paths.append(project_path)
+
+        # Global config (home directory)
+        global_path = self._get_global_config_path()
+        paths.append(global_path)
+
+        return paths
+
+    def _get_global_config_path(self) -> Path:
+        """Get the path to the global custom commands configuration file."""
         user_manager = get_user_manager()
         return user_manager.config_dir / "custom_commands.json"
 
     def _create_example_config(self, config_path: Path) -> None:
-        """Create an example configuration file."""
-        example_config = {
-            "commands": {
-                "git": {
-                    "type": "shell",
-                    "description": "Execute git commands",
-                    "command": "git {args}",
-                    "working_dir": ".",
-                    "timeout": 30,
-                    "dry_run": False,
-                    "dangerous": False,
-                },
-                "whoami": {
-                    "type": "text",
-                    "description": "Show current user and directory",
-                    "text": "User: {user}\nDirectory: {cwd}\nModel: {model}\n",
-                    "formatted": True,
-                },
-                "todo": {
-                    "type": "template",
-                    "description": "Quick todo list template",
-                    "template": (
-                        "📝 TODO List ({user} @ {cwd})\n"
-                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        "{args}\n"
-                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    ),
-                    "formatted": True,
-                },
-                "stats": {
-                    "type": "function",
-                    "description": "Show session statistics",
-                    "function": "clippy.cli.custom_commands.show_session_stats",
-                },
-            }
-        }
+        """Create an empty configuration file."""
+        empty_config: dict[str, Any] = {"commands": {}}
 
         try:
             config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_path, "w") as f:
-                json.dump(example_config, f, indent=2)
-            print(f"Created example custom commands config at: {config_path}")
+                json.dump(empty_config, f, indent=2)
+            print(f"Created empty custom commands config at: {config_path}")
+            print("See docs/CUSTOM_COMMANDS.md for examples and documentation")
         except Exception as e:
-            print(f"Warning: Failed to create example config: {e}")
+            print(f"Warning: Failed to create config: {e}")
 
     def get_command(self, name: str) -> CustomCommand | None:
         """Get a custom command by name."""
