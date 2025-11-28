@@ -381,16 +381,18 @@ class TestDelegateToSubagentTool:
         created_config = mock_manager.create_subagent.call_args[0][0]
         assert created_config.context == context_data
 
-    def test_tool_schema_fallback(self):
-        """Test tool schema fallback when subagent_types import fails."""
-        with patch("clippy.agent.subagent_types.list_subagent_types", side_effect=ImportError):
-            schema = get_tool_schema()
+    def test_tool_schema_enum_values(self):
+        """Test that tool schema contains correct subagent type enum values."""
+        schema = get_tool_schema()
 
-            # Should still return a valid schema with fallback enum
-            assert isinstance(schema, dict)
-            assert schema["function"]["name"] == "delegate_to_subagent"
+        enum_values = schema["function"]["parameters"]["properties"]["subagent_type"]["enum"]
 
-            enum_values = schema["function"]["parameters"]["properties"]["subagent_type"]["enum"]
-            assert isinstance(enum_values, list)
-            assert "general" in enum_values
-            assert "code_review" in enum_values
+        assert isinstance(enum_values, list)
+        # Check for known subagent types
+        assert "general" in enum_values
+        assert "code_review" in enum_values
+        assert "testing" in enum_values
+        assert "refactor" in enum_values
+        assert "documentation" in enum_values
+        assert "fast_general" in enum_values
+        assert "power_analysis" in enum_values
