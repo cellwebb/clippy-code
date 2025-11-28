@@ -48,7 +48,7 @@ def execute_command(cmd: str, working_dir: str = ".", timeout: int = 300) -> tup
             "mkfs",
             "dd if=/dev/zero",
         ]
-        
+
         for pattern in dangerous_patterns:
             if pattern in cmd:
                 return False, f"Command contains blocked dangerous pattern: {pattern}", None

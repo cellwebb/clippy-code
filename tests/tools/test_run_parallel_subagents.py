@@ -568,11 +568,11 @@ class TestRunParallelSubagentsTool:
     def test_tool_schema_enum_values(self):
         """Test that tool schema contains correct subagent type enum values."""
         schema = get_tool_schema()
-        
+
         enum_values = schema["function"]["parameters"]["properties"]["subagents"]["items"][
             "properties"
         ]["subagent_type"]["enum"]
-        
+
         assert isinstance(enum_values, list)
         # Check for known subagent types
         assert "general" in enum_values

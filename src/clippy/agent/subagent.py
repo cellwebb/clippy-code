@@ -147,11 +147,11 @@ class SubAgent:
             # We need to map tool names to ActionTypes
             # This mapping should ideally be shared with tool_handler, but for now we'll
             # do a best-effort mapping or update the PermissionManager to handle tool names
-            
+
             # For now, we'll rely on the fact that tool_handler maps tool names to ActionTypes
             # But PermissionManager works with ActionTypes.
             # This is a bit tricky because we have tool names here, not ActionTypes.
-            
+
             # Let's import the mapping logic or duplicate it for the critical ones
             action_map = {
                 "read_file": ActionType.READ_FILE,
