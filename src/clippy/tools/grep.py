@@ -9,10 +9,7 @@ TOOL_SCHEMA = {
     "type": "function",
     "function": {
         "name": "grep",
-        "description": (
-            "Search for patterns in files using grep. "
-            "This is a safe read-only operation that requires no approval."
-        ),
+        "description": ("Search for patterns in files using grep."),
         "parameters": {
             "type": "object",
             "properties": {
