@@ -9,7 +9,10 @@ TOOL_SCHEMA = {
     "type": "function",
     "function": {
         "name": "grep",
-        "description": ("Search for patterns in files using grep."),
+        "description": (
+            "Search for patterns in files using grep. "
+            "Supports full regular expressions (regex) and optimized search."
+        ),
         "parameters": {
             "type": "object",
             "properties": {

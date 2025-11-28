@@ -11,7 +11,8 @@ TOOL_SCHEMA = {
         "description": (
             "Fetch the content of a webpage from the given URL. "
             "Can return raw HTML, main content only, or plain text. "
-            "Useful for reading documentation, articles, or web content."
+            "Useful for reading documentation, articles, or web content. "
+            "Note: Does not support JavaScript execution (static content only)."
         ),
         "parameters": {
             "type": "object",
