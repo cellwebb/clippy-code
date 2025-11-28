@@ -74,8 +74,7 @@ def get_tool_schema() -> dict[str, Any]:
                                     "type": "array",
                                     "items": {"type": "string"},
                                     "description": (
-                                        "List of tools the subagent is allowed to use "
-                                        "(optional)"
+                                        "List of tools the subagent is allowed to use (optional)"
                                     ),
                                 },
                                 "auto_approve_tools": {
@@ -88,8 +87,7 @@ def get_tool_schema() -> dict[str, Any]:
                                 "context": {
                                     "type": "object",
                                     "description": (
-                                        "Additional context to provide to the subagent "
-                                        "(optional)"
+                                        "Additional context to provide to the subagent (optional)"
                                     ),
                                 },
                                 "timeout": {
@@ -132,9 +130,7 @@ def get_tool_schema() -> dict[str, Any]:
                     },
                     "stuck_detection": {
                         "type": "object",
-                        "description": (
-                            "Configuration for detecting and handling stuck subagents"
-                        ),
+                        "description": ("Configuration for detecting and handling stuck subagents"),
                         "properties": {
                             "enabled": {
                                 "type": "boolean",
@@ -144,24 +140,20 @@ def get_tool_schema() -> dict[str, Any]:
                             "stuck_timeout": {
                                 "type": "number",
                                 "description": (
-                                    "How long without progress before considering "
-                                    "stuck (seconds)"
+                                    "How long without progress before considering stuck (seconds)"
                                 ),
                                 "default": 120,
                             },
                             "heartbeat_timeout": {
                                 "type": "number",
                                 "description": (
-                                    "How long without heartbeat before considering "
-                                    "stuck (seconds)"
+                                    "How long without heartbeat before considering stuck (seconds)"
                                 ),
                                 "default": 60,
                             },
                             "overall_timeout": {
                                 "type": "number",
-                                "description": (
-                                    "Overall timeout for parallel execution (seconds)"
-                                ),
+                                "description": ("Overall timeout for parallel execution (seconds)"),
                                 "default": 600,
                             },
                             "auto_terminate": {

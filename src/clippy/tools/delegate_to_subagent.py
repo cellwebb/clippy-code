@@ -35,9 +35,7 @@ def get_tool_schema() -> dict[str, Any]:
                     "allowed_tools": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": (
-                            "List of tools the subagent is allowed to use (optional)"
-                        ),
+                        "description": ("List of tools the subagent is allowed to use (optional)"),
                     },
                     "auto_approve_tools": {
                         "type": "array",
@@ -48,9 +46,7 @@ def get_tool_schema() -> dict[str, Any]:
                     },
                     "context": {
                         "type": "object",
-                        "description": (
-                            "Additional context to provide to the subagent (optional)"
-                        ),
+                        "description": ("Additional context to provide to the subagent (optional)"),
                     },
                     "timeout": {
                         "type": "integer",
