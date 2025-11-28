@@ -35,6 +35,47 @@ Custom commands are defined in `~/.clippy/custom_commands.json`. The file uses t
 }
 ```
 
+## Project-Level vs Global Commands
+
+Custom commands can be defined at two levels:
+
+1. **Global commands** (`~/.clippy/custom_commands.json`): Available in all projects
+2. **Project-level commands** (`./.clippy/custom_commands.json`): Available only in the current directory
+
+When both exist, clippy-code merges them with **project commands taking precedence**. This allows you to:
+- Share project-specific commands with your team (via git)
+- Override global commands on a per-project basis
+- Keep personal commands separate from team commands
+
+**Example workflow:**
+```bash
+# Global command for personal use
+~/.clippy/custom_commands.json:
+{
+  "commands": {
+    "deploy": {
+      "type": "shell",
+      "description": "Deploy to my personal server",
+      "command": "ssh myserver 'cd /app && git pull'"
+    }
+  }
+}
+
+# Project-level command (override)
+./.clippy/custom_commands.json:
+{
+  "commands": {
+    "deploy": {
+      "type": "shell",
+      "description": "Deploy to production",
+      "command": "./scripts/deploy.sh {args}"
+    }
+  }
+}
+```
+
+In this example, when you run `/deploy` in this project directory, it will use the project-specific deployment script instead of the global one.
+
 ## Command Types
 
 ### Shell Commands (`type: "shell"`)
