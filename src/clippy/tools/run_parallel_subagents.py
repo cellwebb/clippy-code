@@ -86,6 +86,13 @@ def get_tool_schema() -> dict[str, Any]:
                                             "(optional)"
                                         ),
                                     },
+                                    "auto_approve_tools": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": (
+                                            "List of tools to auto-approve for the subagent"
+                                        ),
+                                    },
                                     "context": {
                                         "type": "object",
                                         "description": (
@@ -346,6 +353,7 @@ def create_parallel_subagents_and_execute(
                 subagent_type=subagent_config["subagent_type"],
                 system_prompt=config.get("system_prompt"),
                 allowed_tools=config.get("allowed_tools"),
+                auto_approve_tools=subagent_config.get("auto_approve_tools"),
                 model=config.get("model"),
                 max_iterations=config.get("max_iterations", 25),
                 timeout=config.get("timeout", 300),

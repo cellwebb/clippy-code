@@ -265,6 +265,12 @@ def validate_subagent_config(config: dict[str, Any]) -> tuple[bool, str]:
         if allowed_tools != "all" and not isinstance(allowed_tools, list):
             return False, "allowed_tools must be 'all' or a list of tool names"
 
+    # Validate auto_approve_tools if provided
+    if "auto_approve_tools" in config:
+        auto_approve_tools = config["auto_approve_tools"]
+        if auto_approve_tools is not None and not isinstance(auto_approve_tools, list):
+            return False, "auto_approve_tools must be a list of tool names"
+
     return True, ""
 
 

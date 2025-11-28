@@ -42,6 +42,13 @@ def get_tool_schema() -> dict[str, Any]:
                                 "List of tools the subagent is allowed to use (optional)"
                             ),
                         },
+                        "auto_approve_tools": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": (
+                                "List of tools to auto-approve for the subagent (e.g. ['write_file'])"
+                            ),
+                        },
                         "context": {
                             "type": "object",
                             "description": (
@@ -103,6 +110,13 @@ def get_tool_schema() -> dict[str, Any]:
                                 "List of tools the subagent is allowed to use (optional)"
                             ),
                         },
+                        "auto_approve_tools": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": (
+                                "List of tools to auto-approve for the subagent (e.g. ['write_file'])"
+                            ),
+                        },
                         "context": {
                             "type": "object",
                             "description": (
@@ -135,6 +149,7 @@ def execute_delegate_to_subagent(
     task: str,
     subagent_type: str,
     allowed_tools: list[str] | None = None,
+    auto_approve_tools: list[str] | None = None,
     context: dict[str, Any] | None = None,
     timeout: int = 300,
     max_iterations: int | None = None,
@@ -167,6 +182,7 @@ def create_subagent_and_execute(
     task: str,
     subagent_type: str,
     allowed_tools: list[str] | None = None,
+    auto_approve_tools: list[str] | None = None,
     context: dict[str, Any] | None = None,
     timeout: int = 300,
     max_iterations: int | None = None,
@@ -220,6 +236,7 @@ def create_subagent_and_execute(
             subagent_type=subagent_type,
             system_prompt=default_config.get("system_prompt"),
             allowed_tools=default_config.get("allowed_tools"),
+            auto_approve_tools=auto_approve_tools,
             model=default_config.get("model"),
             max_iterations=default_config.get("max_iterations", 25),
             timeout=default_config.get("timeout", 300),
