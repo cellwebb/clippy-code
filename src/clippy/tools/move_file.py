@@ -11,7 +11,7 @@ TOOL_SCHEMA = {
         "name": "move_file",
         "description": (
             "Move or rename files and directories with validation and progress tracking. "
-            "Supports cross-device moves, conflict detection, and undo capability. "
+            "Supports cross-device moves and conflict detection. "
             "Use with care as this operation modifies the filesystem."
         ),
         "parameters": {
