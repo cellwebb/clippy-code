@@ -15,6 +15,7 @@ from prompt_toolkit.document import Document
 from ..agent.subagent_types import list_subagent_types
 from ..models import list_available_models, list_available_providers
 from ..permissions import ActionType
+from .custom_commands import get_custom_manager
 
 
 class ClippyCommandCompleter(Completer):
@@ -398,6 +399,26 @@ class ClippyCommandCompleter(Completer):
                                     start_position=start_pos,
                                 )
                             )
+
+            # Add custom commands
+            try:
+                custom_manager = get_custom_manager()
+                custom_commands = custom_manager.list_commands()
+
+                for name, cmd in custom_commands.items():
+                    if name.startswith(text_without_slash) and not cmd.hidden:
+                        start_pos = -len(text_without_slash)
+                        completions.append(
+                            Completion(
+                                text=name,
+                                display=f"/{name}",
+                                display_meta=cmd.description,
+                                start_position=start_pos,
+                            )
+                        )
+            except Exception:
+                # Don't let custom command errors break completion
+                pass
 
         return sorted(completions, key=lambda c: c.text)
 
