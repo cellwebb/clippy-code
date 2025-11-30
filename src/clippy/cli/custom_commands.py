@@ -268,8 +268,42 @@ class CustomCommandManager:
         return user_manager.config_dir / "custom_commands.json"
 
     def _create_example_config(self, config_path: Path) -> None:
-        """Create an empty configuration file."""
-        empty_config: dict[str, Any] = {"commands": {}}
+        """Create an example configuration file."""
+        example_config = {
+            "commands": {
+                "git": {
+                    "type": "shell",
+                    "description": "Execute git commands",
+                    "command": "git {args}",
+                    "working_dir": ".",
+                    "timeout": 30,
+                    "dry_run": False,
+                    "dangerous": False,
+                },
+                "whoami": {
+                    "type": "text",
+                    "description": "Show current user and directory",
+                    "text": "User: {user}\nDirectory: {cwd}\nModel: {model}\n",
+                    "formatted": True,
+                },
+                "todo": {
+                    "type": "template",
+                    "description": "Quick todo list template",
+                    "template": (
+                        "📝 TODO List ({user} @ {cwd})\n"
+                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        "{args}\n"
+                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    ),
+                    "formatted": True,
+                },
+                "stats": {
+                    "type": "function",
+                    "description": "Show session statistics",
+                    "function": "clippy.cli.custom_commands.show_session_stats",
+                },
+            }
+        }
 
         try:
             config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -306,6 +340,74 @@ class CustomCommandManager:
             help_parts.append(f"  /{name} - {cmd.description}")
 
         return "\n".join(help_parts)
+
+    def get_command_scope(self, name: str) -> list[str]:
+        """Get which scope(s) a command is defined in.
+        
+        Returns:
+            List containing 'project' and/or 'global' if command exists in those scopes.
+        """
+        scopes = []
+        config_paths = self._get_config_paths()
+        
+        for config_path in config_paths:
+            if not config_path.exists():
+                continue
+                
+            try:
+                with open(config_path) as f:
+                    config_data = json.load(f)
+                commands_config = config_data.get("commands", {})
+                
+                if name in commands_config:
+                    # Determine scope based on path
+                    if config_path.parent.name == ".clippy" and config_path.parent.parent == Path.cwd():
+                        scopes.append("project")
+                    else:
+                        scopes.append("global")
+            except (json.JSONDecodeError, Exception):
+                continue
+                
+        return scopes
+
+    def remove_command(self, name: str, scope: str) -> bool:
+        """Remove a command from the specified scope.
+        
+        Args:
+            name: Command name to remove
+            scope: Either 'project' or 'global'
+            
+        Returns:
+            True if command was removed, False otherwise
+        """
+        if scope == "project":
+            config_path = Path.cwd() / ".clippy" / "custom_commands.json"
+        else:
+            config_path = self._get_global_config_path()
+            
+        if not config_path.exists():
+            return False
+            
+        try:
+            with open(config_path) as f:
+                config_data = json.load(f)
+                
+            commands_config = config_data.get("commands", {})
+            if name in commands_config:
+                del commands_config[name]
+                config_data["commands"] = commands_config
+                
+                # Save updated config
+                config_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(config_path, "w") as f:
+                    json.dump(config_data, f, indent=2)
+                    
+                return True
+        except (json.JSONDecodeError, Exception):
+            return False
+            
+        return False
+
 
 
 # Global instance

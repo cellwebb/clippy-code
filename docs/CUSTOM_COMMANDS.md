@@ -4,14 +4,43 @@ Clippy-code supports a powerful custom slash command system that allows you to d
 
 ## Quick Start
 
-1. **Create your first custom command:**
+### Interactive Method (Recommended)
+
+The easiest way to create and manage custom commands is using the interactive wizards:
+
+1. **Create a new custom command:**
+   ```
+   /custom add
+   ```
+   Follow the prompts to select the command type, name, and configuration.
+
+2. **Edit an existing command:**
+   ```
+   /custom edit <command-name>
+   ```
+
+3. **Delete a command:**
+   ```
+   /custom delete <command-name>
+   ```
+
+4. **List all commands:**
+   ```
+   /custom list
+   ```
+
+### Manual Method (Advanced Users)
+
+For advanced users who prefer to edit JSON files directly:
+
+1. **See an example configuration:**
    ```
    /custom example
    ```
 
-2. **Edit the configuration file:**
+2. **Edit the configuration file directly:**
    ```
-   /custom edit
+   /custom config
    ```
 
 3. **Reload your commands:**
@@ -172,20 +201,34 @@ Functions receive `args`, `agent`, and `console` parameters and should return a 
 
 ## Management Commands
 
+### `/custom add`
+Interactive wizard to create a new custom command. Prompts you through:
+- Choosing scope (project or global)
+- Entering command name with validation
+- Selecting command type (shell, text, template, function)
+- Configuring type-specific options
+- Setting description and visibility
+
+### `/custom edit <command-name>`
+Interactive wizard to edit an existing custom command. Loads current configuration as defaults and guides you through modifying any settings.
+
+### `/custom delete <command-name>`
+Delete a custom command with confirmation. If the command exists in multiple scopes (project and global), asks which one to delete.
+
 ### `/custom list`
-List all configured custom commands with their details.
+List all configured custom commands with their details, type, and scope.
 
 ### `/custom reload`
-Reload custom commands from the configuration file.
+Reload custom commands from the configuration files. Use this after manually editing configuration files.
 
-### `/custom edit [editor]`
-Open the configuration file in your preferred editor.
+### `/custom config [editor]`
+Open the configuration file directly in your preferred editor (for advanced users).
 - Uses `$EDITOR` or `$VISUAL` environment variable
 - Defaults to `nano` if not set
-- Alternative: `/custom edit vim` or `/custom edit code`
+- Alternative: `/custom config vim` or `/custom config code`
 
 ### `/custom example`
-Display a comprehensive example configuration.
+Display a comprehensive example configuration showing all command types.
 
 ### `/custom help`
 Show help for custom command management.

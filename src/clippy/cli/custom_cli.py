@@ -1,9 +1,12 @@
 """CLI commands for managing custom slash commands.
 
 Provides commands like:
+- /custom add - Interactive wizard to create custom commands
+- /custom edit <name> - Interactive wizard to edit commands
+- /custom delete <name> - Delete custom commands
 - /custom list - List all custom commands
 - /custom reload - Reload custom commands
-- /custom edit - Edit custom commands config
+- /custom config - Edit config file directly
 - /custom example - Show example configuration
 """
 
@@ -18,14 +21,18 @@ from rich.panel import Panel
 from ..models import get_user_manager
 from .commands import CommandResult
 from .custom_commands import get_custom_manager
+from .custom_cli_wizards import (
+    handle_custom_add,
+    handle_custom_delete,
+    handle_custom_edit_wizard,
+)
+
 
 
 def handle_custom_command_management(args: str, console: Console) -> CommandResult:
     """Handle /custom commands for managing custom slash commands."""
     if not args.strip():
-        console.print("[red]Usage: /custom <subcommand> [args][/red]")
-        console.print("[dim]Subcommands: list, reload, edit, example, help[/dim]")
-        return "continue"
+        return _handle_custom_help(console)
 
     parts = args.strip().split(maxsplit=1)
     subcommand = parts[0].lower()
@@ -35,8 +42,14 @@ def handle_custom_command_management(args: str, console: Console) -> CommandResu
         return _handle_custom_list(console)
     elif subcommand == "reload":
         return _handle_custom_reload(console)
+    elif subcommand == "add":
+        return handle_custom_add(console)
     elif subcommand == "edit":
-        return _handle_custom_edit(console, subcommand_args)
+        return handle_custom_edit_wizard(console, subcommand_args)
+    elif subcommand == "delete":
+        return handle_custom_delete(console, subcommand_args)
+    elif subcommand == "config":
+        return _handle_custom_config(console, subcommand_args)
     elif subcommand == "example":
         return _handle_custom_example(console)
     elif subcommand == "help":
@@ -45,6 +58,8 @@ def handle_custom_command_management(args: str, console: Console) -> CommandResu
         console.print(f"[red]Unknown subcommand: {subcommand}[/red]")
         console.print("[dim]Use /custom help for available subcommands[/dim]")
         return "continue"
+
+
 
 
 def _handle_custom_list(console: Console) -> CommandResult:
@@ -105,8 +120,8 @@ def _handle_custom_reload(console: Console) -> CommandResult:
     return "continue"
 
 
-def _handle_custom_edit(console: Console, args: str) -> CommandResult:
-    """Edit custom commands configuration."""
+def _handle_custom_config(console: Console, args: str) -> CommandResult:
+    """Edit custom commands configuration file directly."""
     user_manager = get_user_manager()
     config_path = user_manager.config_dir / "custom_commands.json"
 
@@ -234,23 +249,28 @@ def _handle_custom_help(console: Console) -> CommandResult:
     console.print(
         Panel.fit(
             "[bold]Custom Command Management:[/bold]\n"
+            "  /custom - Show this help message\n"
+            "  /custom add - Interactive wizard to create a new custom command\n"
+            "  /custom edit <name> - Interactive wizard to edit an existing command\n"
+            "  /custom delete <name> - Delete a custom command\n"
             "  /custom list - List all configured custom commands\n"
             "  /custom reload - Reload custom commands from disk\n"
-            "  /custom edit [editor] - Edit custom commands configuration\n"
+            "  /custom config [editor] - Edit configuration file directly\n"
             "    Uses $EDITOR or 'nano' by default\n"
             "  /custom example - Show example configuration\n"
             "  /custom help - Show this help message\n\n"
             "[bold]Configuration:[/bold]\n"
-            "  Config file: ~/.clippy/custom_commands.json\n"
-            "  Format: JSON with 'commands' object\n\n"
+            "  Project config: .clippy/custom_commands.json\n"
+            "  Global config: ~/.clippy/custom_commands.json\n"
+            "  Project commands override global commands with same name\n\n"
             "[bold]Examples:[/bold]\n"
-            "  /todo Buy milk and eggs - Creates a todo list\n"
-            "  /git status - Shows git status\n"
-            "  /whoami - Shows user and directory info\n"
-            "  /stats - Shows session statistics",
+            "  /custom add - Create a new custom command interactively\n"
+            "  /custom edit mycommand - Edit 'mycommand' interactively\n"
+            "  /custom delete mycommand - Delete 'mycommand'",
             title="Custom Commands Help",
             border_style="blue",
         )
     )
 
     return "continue"
+
