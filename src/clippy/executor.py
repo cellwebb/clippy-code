@@ -24,6 +24,8 @@ from .tools.think import think
 from .tools.write_file import write_file
 
 logger = logging.getLogger(__name__)
+# Execution constants
+DEFAULT_COMMAND_TIMEOUT = 300  # 5 minutes in seconds
 
 
 class ActionExecutor:
@@ -33,13 +35,23 @@ class ActionExecutor:
         self.permission_manager = permission_manager
         self._mcp_manager = None
 
-    def set_mcp_manager(self, manager: Any) -> None:
+    def set_mcp_manager(self, manager: Any | None) -> None:
         """
         Set the MCP manager for handling MCP tool calls.
 
         Args:
-            manager: MCP Manager instance
+            manager: MCP Manager instance or None to disable MCP
         """
+        if manager is not None:
+            # Try to import Manager to check type
+            try:
+                from .mcp.manager import Manager as MCPManager
+
+                if not isinstance(manager, MCPManager):
+                    raise TypeError(f"Expected MCPManager or None, got {type(manager)}")
+            except ImportError:
+                # If we can't import, just accept it
+                pass
         self._mcp_manager = manager
 
     def execute(
@@ -122,7 +134,7 @@ class ActionExecutor:
             elif tool_name == "list_directory":
                 result = list_directory(tool_input["path"], tool_input.get("recursive", False))
             elif tool_name == "execute_command":
-                timeout = tool_input.get("timeout", 300)  # Default to 5 minutes
+                timeout = tool_input.get("timeout", DEFAULT_COMMAND_TIMEOUT)
                 result = execute_command(
                     tool_input["command"], tool_input.get("working_dir", "."), timeout
                 )
