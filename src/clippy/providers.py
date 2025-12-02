@@ -170,14 +170,6 @@ class LLMProvider:
 
         try:
             result = self._provider.create_message(messages, tools, model, **kwargs)
-
-            # Print response (existing behavior)
-            assistant_content = result.get("content")
-            if assistant_content:
-                cleaned_content = assistant_content.lstrip("\n")
-                logger.info(f"[📎] {cleaned_content}")
-                print(f"\n[📎] {cleaned_content}")
-
             return result
         except LLMError:
             # Re-raise LLM errors directly
