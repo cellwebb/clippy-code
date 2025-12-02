@@ -612,3 +612,222 @@ class TestRunAgentLoop:
         )
 
         assert result == ""
+
+    def test_stops_at_max_duration(
+        self,
+        mock_provider: MagicMock,
+        permission_manager: PermissionManager,
+        executor: ActionExecutor,
+        console: Console,
+        conversation_history: list[dict[str, Any]],
+    ) -> None:
+        """Test that loop stops when max_duration is exceeded."""
+        import time
+
+        # Mock time.time to simulate elapsed time
+        start_time = time.time()
+
+        # Create responses that keep returning tool calls
+        def delayed_response(*args, **kwargs):
+            return {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": [
+                    {
+                        "id": "call_1",
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": '{"file_path": "test.txt"}'},
+                    }
+                ],
+            }
+
+        mock_provider.create_message.side_effect = delayed_response
+
+        # Use a very short max_duration that will be exceeded immediately
+        # since we patch time.time
+        call_count = [0]
+
+        def mock_time():
+            call_count[0] += 1
+            if call_count[0] <= 2:
+                return start_time
+            # After 2 calls, return a time way past duration limit
+            return start_time + 1000
+
+        with patch("time.time", mock_time):
+            result = run_agent_loop(
+                conversation_history=conversation_history,
+                provider=mock_provider,
+                model="gpt-4",
+                permission_manager=permission_manager,
+                executor=executor,
+                console=console,
+                auto_approve_all=True,
+                approval_callback=None,
+                check_interrupted=lambda: False,
+                max_duration=0.001,  # Very short duration
+            )
+
+        assert "reached max duration" in result.lower() or "stopped" in result.lower()
+
+    def test_filters_allowed_tools(
+        self,
+        mock_provider: MagicMock,
+        permission_manager: PermissionManager,
+        executor: ActionExecutor,
+        console: Console,
+        conversation_history: list[dict[str, Any]],
+    ) -> None:
+        """Test that allowed_tools filters the tools sent to the provider."""
+        mock_provider.create_message.return_value = {
+            "role": "assistant",
+            "content": "Done",
+            "finish_reason": "stop",
+        }
+
+        with patch("clippy.agent.loop.tool_catalog") as mock_catalog:
+            # Create mock tools
+            mock_catalog.get_all_tools.return_value = [
+                {"function": {"name": "read_file", "parameters": {}}},
+                {"function": {"name": "write_file", "parameters": {}}},
+                {"function": {"name": "delete_file", "parameters": {}}},
+            ]
+
+            run_agent_loop(
+                conversation_history=conversation_history,
+                provider=mock_provider,
+                model="gpt-4",
+                permission_manager=permission_manager,
+                executor=executor,
+                console=console,
+                auto_approve_all=False,
+                approval_callback=None,
+                check_interrupted=lambda: False,
+                allowed_tools=["read_file"],  # Only allow read_file
+            )
+
+            # Check that provider received filtered tools
+            call_args = mock_provider.create_message.call_args
+            tools_sent = call_args.kwargs.get("tools", [])
+            tool_names = [t["function"]["name"] for t in tools_sent]
+
+            assert tool_names == ["read_file"]
+            assert "write_file" not in tool_names
+            assert "delete_file" not in tool_names
+
+    def test_preserves_reasoning_content(
+        self,
+        mock_provider: MagicMock,
+        permission_manager: PermissionManager,
+        executor: ActionExecutor,
+        console: Console,
+        conversation_history: list[dict[str, Any]],
+    ) -> None:
+        """Test that reasoning_content from reasoner models is preserved."""
+        mock_provider.create_message.return_value = {
+            "role": "assistant",
+            "content": "Final answer",
+            "reasoning_content": "Let me think step by step...",
+            "finish_reason": "stop",
+        }
+
+        run_agent_loop(
+            conversation_history=conversation_history,
+            provider=mock_provider,
+            model="o1",
+            permission_manager=permission_manager,
+            executor=executor,
+            console=console,
+            auto_approve_all=False,
+            approval_callback=None,
+            check_interrupted=lambda: False,
+        )
+
+        # Check that reasoning_content was preserved in history
+        assistant_msg = conversation_history[-1]
+        assert assistant_msg["role"] == "assistant"
+        assert assistant_msg.get("reasoning_content") == "Let me think step by step..."
+
+    def test_auto_saves_conversation_with_parent_agent(
+        self,
+        mock_provider: MagicMock,
+        permission_manager: PermissionManager,
+        executor: ActionExecutor,
+        console: Console,
+        conversation_history: list[dict[str, Any]],
+    ) -> None:
+        """Test that conversation is auto-saved when parent_agent is provided."""
+        mock_provider.create_message.return_value = {
+            "role": "assistant",
+            "content": "Done",
+            "finish_reason": "stop",
+        }
+
+        # Create mock parent agent
+        mock_parent = MagicMock()
+        mock_parent.save_conversation.return_value = (True, "Saved")
+
+        run_agent_loop(
+            conversation_history=conversation_history,
+            provider=mock_provider,
+            model="gpt-4",
+            permission_manager=permission_manager,
+            executor=executor,
+            console=console,
+            auto_approve_all=False,
+            approval_callback=None,
+            check_interrupted=lambda: False,
+            parent_agent=mock_parent,
+        )
+
+        # save_conversation should have been called
+        mock_parent.save_conversation.assert_called()
+
+    def test_handles_tool_execution_failure_gracefully(
+        self,
+        mock_provider: MagicMock,
+        permission_manager: PermissionManager,
+        executor: ActionExecutor,
+        console: Console,
+        conversation_history: list[dict[str, Any]],
+    ) -> None:
+        """Test that tool execution failures are handled gracefully."""
+        first_response = {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [
+                {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                        "name": "read_file",
+                        "arguments": json.dumps({"file_path": "/nonexistent/path.txt"}),
+                    },
+                }
+            ],
+        }
+
+        second_response = {
+            "role": "assistant",
+            "content": "I couldn't read the file.",
+            "finish_reason": "stop",
+        }
+
+        mock_provider.create_message.side_effect = [first_response, second_response]
+
+        # The loop should continue even when tool fails
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            provider=mock_provider,
+            model="gpt-4",
+            permission_manager=permission_manager,
+            executor=executor,
+            console=console,
+            auto_approve_all=True,
+            approval_callback=None,
+            check_interrupted=lambda: False,
+        )
+
+        assert result == "I couldn't read the file."
+        # Should have completed both iterations
+        assert mock_provider.create_message.call_count == 2

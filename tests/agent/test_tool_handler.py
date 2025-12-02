@@ -601,3 +601,178 @@ def test_handle_tool_use_approval_callback_interrupt(monkeypatch: pytest.MonkeyP
             conversation_history=[],
             approval_callback=lambda *_: (_ for _ in ()).throw(InterruptedExceptionError()),
         )
+
+
+def test_handle_tool_use_yolo_mode_auto_approves(
+    monkeypatch: pytest.MonkeyPatch, console: DummyConsole
+) -> None:
+    """Test that YOLO mode auto-approves actions that would require approval."""
+    history: list[dict[str, Any]] = []
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = RecordingExecutor(message="File written", result="success")
+
+    # Create a mock parent agent with yolo_mode enabled
+    class MockParentAgent:
+        yolo_mode = True
+
+        def save_conversation(self):
+            return (True, "saved")
+
+    # Ensure ask_approval would fail if called
+    monkeypatch.setattr(
+        "clippy.agent.tool_handler.ask_approval",
+        lambda *args, **kwargs: pytest.fail("ask_approval should not be called in YOLO mode"),
+    )
+
+    success = handle_tool_use(
+        tool_name="write_file",
+        tool_input={"path": "file.txt", "content": "hello"},
+        tool_use_id="tool-yolo",
+        auto_approve_all=False,  # Should be overridden by YOLO mode
+        permission_manager=permission_manager,
+        executor=executor,
+        console=console,
+        conversation_history=history,
+        approval_callback=None,
+        parent_agent=MockParentAgent(),
+    )
+
+    assert success is True
+    assert executor.calls == [("write_file", {"path": "file.txt", "content": "hello"}, False)]
+
+
+def test_handle_tool_use_yolo_mode_logs_warning(
+    monkeypatch: pytest.MonkeyPatch, console: DummyConsole, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test that YOLO mode logs a warning when auto-approving."""
+    import logging
+
+    history: list[dict[str, Any]] = []
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = RecordingExecutor()
+
+    class MockParentAgent:
+        yolo_mode = True
+
+        def save_conversation(self):
+            return (True, "saved")
+
+    with caplog.at_level(logging.WARNING, logger="clippy.agent.tool_handler"):
+        handle_tool_use(
+            tool_name="write_file",
+            tool_input={"path": "test.py"},
+            tool_use_id="tool-yolo-log",
+            auto_approve_all=False,
+            permission_manager=permission_manager,
+            executor=executor,
+            console=console,
+            conversation_history=history,
+            approval_callback=None,
+            parent_agent=MockParentAgent(),
+        )
+
+    # Check that YOLO mode warning was logged
+    assert any("YOLO mode" in record.message for record in caplog.records)
+    assert any("write_file" in record.message for record in caplog.records)
+
+
+def test_handle_tool_use_auto_approve_all_bypasses_approval(
+    monkeypatch: pytest.MonkeyPatch, console: DummyConsole
+) -> None:
+    """Test that auto_approve_all=True bypasses approval for require-approval actions."""
+    history: list[dict[str, Any]] = []
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = RecordingExecutor(message="Executed", result="done")
+
+    # Ensure ask_approval would fail if called
+    monkeypatch.setattr(
+        "clippy.agent.tool_handler.ask_approval",
+        lambda *args, **kwargs: pytest.fail("ask_approval should not be called"),
+    )
+
+    success = handle_tool_use(
+        tool_name="execute_command",
+        tool_input={"command": "echo test"},
+        tool_use_id="tool-auto",
+        auto_approve_all=True,
+        permission_manager=permission_manager,
+        executor=executor,
+        console=console,
+        conversation_history=history,
+        approval_callback=None,
+    )
+
+    assert success is True
+    assert len(executor.calls) == 1
+
+
+def test_handle_tool_use_unknown_tool_fails_with_error(console: DummyConsole) -> None:
+    """Test that unknown tools fail with an error message."""
+    history: list[dict[str, Any]] = []
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = RecordingExecutor()
+
+    # Unknown tool should fail without executing
+    success = handle_tool_use(
+        tool_name="unknown_tool_xyz",
+        tool_input={"arg": "value"},
+        tool_use_id="tool-unknown",
+        auto_approve_all=True,  # Even with auto-approve, should fail
+        permission_manager=permission_manager,
+        executor=executor,
+        console=console,
+        conversation_history=history,
+        approval_callback=None,
+    )
+
+    assert success is False
+    assert len(executor.calls) == 0  # Should not execute
+    assert len(history) == 1
+    assert "Unknown tool" in history[0]["content"]
+    assert "unknown_tool_xyz" in history[0]["content"]
+
+
+def test_handle_tool_use_execution_failure_records_error(console: DummyConsole) -> None:
+    """Test that execution failure is recorded in conversation history."""
+    history: list[dict[str, Any]] = []
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = RecordingExecutor(success=False, message="Command failed", result=None)
+
+    success = handle_tool_use(
+        tool_name="read_file",
+        tool_input={"path": "file.txt"},
+        tool_use_id="tool-fail",
+        auto_approve_all=True,
+        permission_manager=permission_manager,
+        executor=executor,
+        console=console,
+        conversation_history=history,
+        approval_callback=None,
+    )
+
+    assert success is False
+    assert len(history) == 1
+    assert "Command failed" in history[0]["content"]
+
+
+def test_handle_tool_use_preserves_tool_call_id(console: DummyConsole) -> None:
+    """Test that tool_use_id is preserved in conversation history."""
+    history: list[dict[str, Any]] = []
+    permission_manager = PermissionManager(PermissionConfig())
+    executor = RecordingExecutor(message="Success", result="data")
+
+    handle_tool_use(
+        tool_name="read_file",
+        tool_input={"path": "test.txt"},
+        tool_use_id="unique-id-12345",
+        auto_approve_all=True,
+        permission_manager=permission_manager,
+        executor=executor,
+        console=console,
+        conversation_history=history,
+        approval_callback=None,
+    )
+
+    assert len(history) == 1
+    assert history[0]["tool_call_id"] == "unique-id-12345"
+    assert history[0]["name"] == "read_file"
