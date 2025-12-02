@@ -140,17 +140,17 @@ def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple
             # Just a hyphen means entire file
             return (1, total_lines)
         elif normalized.count("-") == 2:
-            # Format like "10-20+" with offset
+            # Format like "10-20-5" with offset after range
             try:
                 parts = normalized.split("-")
                 start = int(parts[0]) if parts[0] else 1
                 end = int(parts[1]) if parts[1] else total_lines
                 if parts[2] == "":
                     end = total_lines
-                else:
-                    # Handle offset after second hyphen
-                    # This is complex, fallback to safer parsing
-                    pass
+                elif parts[2].isdigit():
+                    # Third part is an offset to add to end
+                    end = end + int(parts[2])
+                # else: ignore non-numeric third part
             except ValueError:
                 return (1, total_lines)
         else:
