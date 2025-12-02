@@ -1,9 +1,11 @@
 """Tests for the action executor."""
 
+import os
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from clippy.executor import ActionExecutor
+from clippy.executor import ActionExecutor, validate_write_path, validate_write_paths
 from clippy.permissions import ActionType, PermissionManager
 
 # Note: executor and permission_manager fixtures are provided by tests/conftest.py
@@ -362,3 +364,254 @@ class TestExecutorEdgeCases:
         """Test that permission manager is accessible."""
         assert executor.permission_manager is permission_manager
         assert executor.permission_manager.config is not None
+
+
+class TestValidateWritePath:
+    """Tests for validate_write_path function."""
+
+    def test_path_within_cwd_is_valid(self, tmp_path: Path) -> None:
+        """Test that paths within CWD are valid."""
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            test_path = tmp_path / "subdir" / "file.txt"
+
+            is_valid, error = validate_write_path(str(test_path))
+
+            assert is_valid is True
+            assert error == ""
+        finally:
+            os.chdir(original_cwd)
+
+    def test_path_outside_cwd_is_invalid(self, tmp_path: Path) -> None:
+        """Test that paths outside CWD are invalid."""
+        original_cwd = os.getcwd()
+        try:
+            # Create a subdirectory and chdir into it
+            subdir = tmp_path / "subdir"
+            subdir.mkdir()
+            os.chdir(subdir)
+
+            # Try to write to parent directory
+            parent_file = tmp_path / "outside.txt"
+
+            is_valid, error = validate_write_path(str(parent_file))
+
+            assert is_valid is False
+            assert "restricted to current directory" in error
+        finally:
+            os.chdir(original_cwd)
+
+    def test_absolute_path_outside_cwd_is_invalid(self) -> None:
+        """Test that absolute paths outside CWD are invalid."""
+        # /tmp is almost certainly outside CWD in tests
+        is_valid, error = validate_write_path("/tmp/some/random/file.txt")
+
+        # This should fail unless CWD is /tmp
+        cwd = Path.cwd().resolve()
+        if not str(cwd).startswith("/tmp"):
+            assert is_valid is False
+            assert "restricted" in error.lower() or "outside" in error.lower()
+
+    def test_path_with_allowed_roots(self, tmp_path: Path) -> None:
+        """Test that paths in allowed_roots are valid."""
+        original_cwd = os.getcwd()
+        try:
+            # Set CWD to a different location
+            cwd_dir = tmp_path / "cwd"
+            cwd_dir.mkdir()
+            os.chdir(cwd_dir)
+
+            # Create an allowed root
+            allowed_root = tmp_path / "allowed"
+            allowed_root.mkdir()
+
+            # Path in allowed root should be valid
+            allowed_file = allowed_root / "file.txt"
+            is_valid, error = validate_write_path(str(allowed_file), [allowed_root])
+
+            assert is_valid is True
+            assert error == ""
+        finally:
+            os.chdir(original_cwd)
+
+    def test_path_with_multiple_allowed_roots(self, tmp_path: Path) -> None:
+        """Test with multiple allowed roots."""
+        original_cwd = os.getcwd()
+        try:
+            cwd_dir = tmp_path / "cwd"
+            cwd_dir.mkdir()
+            os.chdir(cwd_dir)
+
+            root1 = tmp_path / "root1"
+            root2 = tmp_path / "root2"
+            root1.mkdir()
+            root2.mkdir()
+
+            # Files in either root should be valid
+            file1 = root1 / "file.txt"
+            file2 = root2 / "file.txt"
+
+            is_valid1, _ = validate_write_path(str(file1), [root1, root2])
+            is_valid2, _ = validate_write_path(str(file2), [root1, root2])
+
+            assert is_valid1 is True
+            assert is_valid2 is True
+        finally:
+            os.chdir(original_cwd)
+
+    def test_relative_path_resolution(self, tmp_path: Path) -> None:
+        """Test that relative paths are resolved correctly."""
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            # Relative path within CWD
+            is_valid, error = validate_write_path("./subdir/file.txt")
+
+            assert is_valid is True
+            assert error == ""
+        finally:
+            os.chdir(original_cwd)
+
+    def test_path_traversal_attempt(self, tmp_path: Path) -> None:
+        """Test that path traversal attempts are blocked."""
+        original_cwd = os.getcwd()
+        try:
+            subdir = tmp_path / "subdir"
+            subdir.mkdir()
+            os.chdir(subdir)
+
+            # Try to escape using ..
+            is_valid, error = validate_write_path("../escape.txt")
+
+            assert is_valid is False
+            assert "restricted" in error.lower() or "outside" in error.lower()
+        finally:
+            os.chdir(original_cwd)
+
+
+class TestValidateWritePaths:
+    """Tests for validate_write_paths function."""
+
+    def test_all_valid_paths(self, tmp_path: Path) -> None:
+        """Test with all valid paths."""
+        original_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+
+            paths = [
+                str(tmp_path / "file1.txt"),
+                str(tmp_path / "file2.txt"),
+                str(tmp_path / "subdir" / "file3.txt"),
+            ]
+
+            is_valid, error = validate_write_paths(paths)
+
+            assert is_valid is True
+            assert error == ""
+        finally:
+            os.chdir(original_cwd)
+
+    def test_one_invalid_path_fails_all(self, tmp_path: Path) -> None:
+        """Test that one invalid path fails the entire batch."""
+        original_cwd = os.getcwd()
+        try:
+            subdir = tmp_path / "subdir"
+            subdir.mkdir()
+            os.chdir(subdir)
+
+            paths = [
+                str(subdir / "valid.txt"),
+                str(tmp_path / "invalid.txt"),  # Outside CWD
+                str(subdir / "also_valid.txt"),
+            ]
+
+            is_valid, error = validate_write_paths(paths)
+
+            assert is_valid is False
+            assert "restricted" in error.lower() or "outside" in error.lower()
+        finally:
+            os.chdir(original_cwd)
+
+    def test_empty_paths_list(self) -> None:
+        """Test with empty paths list."""
+        is_valid, error = validate_write_paths([])
+
+        assert is_valid is True
+        assert error == ""
+
+    def test_first_error_returned(self, tmp_path: Path) -> None:
+        """Test that the first error is returned."""
+        original_cwd = os.getcwd()
+        try:
+            subdir = tmp_path / "subdir"
+            subdir.mkdir()
+            os.chdir(subdir)
+
+            paths = [
+                "/some/invalid/path1.txt",
+                "/some/invalid/path2.txt",
+            ]
+
+            is_valid, error = validate_write_paths(paths)
+
+            assert is_valid is False
+            # Should contain the first invalid path
+            assert "path1" in error.lower()
+        finally:
+            os.chdir(original_cwd)
+
+
+class TestExecutorWithPathValidation:
+    """Tests for executor path validation integration."""
+
+    def test_executor_with_allowed_write_roots(
+        self, permission_manager: PermissionManager, tmp_path: Path
+    ) -> None:
+        """Test that executor respects allowed_write_roots."""
+        temp_dir = Path(tempfile.gettempdir())
+        executor = ActionExecutor(permission_manager, allowed_write_roots=[temp_dir])
+
+        test_file = tmp_path / "test_write.txt"
+        success, message, _ = executor.execute(
+            "write_file", {"path": str(test_file), "content": "test"}
+        )
+
+        assert success is True
+        assert test_file.exists()
+
+    def test_write_outside_allowed_roots_fails(self, permission_manager: PermissionManager) -> None:
+        """Test that writes outside allowed roots fail."""
+        # Create executor with only CWD allowed (no extra roots)
+        executor = ActionExecutor(permission_manager, allowed_write_roots=None)
+
+        # Try to write to /tmp (likely outside CWD)
+        test_file = "/tmp/test_should_fail_xyz123.txt"
+        cwd = Path.cwd().resolve()
+
+        # Only test if /tmp is actually outside CWD
+        if not str(Path(test_file).resolve()).startswith(str(cwd)):
+            success, message, _ = executor.execute(
+                "write_file", {"path": test_file, "content": "test"}
+            )
+
+            assert success is False
+            assert "restricted" in message.lower() or "Error" in message
+
+    def test_allowed_write_roots_accessible(
+        self, permission_manager: PermissionManager, tmp_path: Path
+    ) -> None:
+        """Test that allowed_write_roots is accessible on executor."""
+        temp_dir = Path(tempfile.gettempdir())
+        executor = ActionExecutor(permission_manager, allowed_write_roots=[temp_dir])
+
+        assert executor._allowed_write_roots == [temp_dir]
+
+    def test_executor_without_allowed_roots_uses_cwd(
+        self, permission_manager: PermissionManager
+    ) -> None:
+        """Test that executor without allowed_roots defaults to CWD only."""
+        executor = ActionExecutor(permission_manager)
+
+        assert executor._allowed_write_roots is None
