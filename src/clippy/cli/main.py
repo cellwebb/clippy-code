@@ -83,6 +83,13 @@ def main() -> None:
         status()
         return
 
+    # Run first-time setup if needed
+    from .first_time_setup import run_first_time_setup, should_run_setup
+
+    if should_run_setup():
+        run_first_time_setup()
+        # Reload environment after setup in case user created .env file
+        load_env()
     # Setup logging
     setup_logging(verbose=args.verbose)
 
@@ -99,7 +106,8 @@ def main() -> None:
     if not default_model or not default_provider:
         console = Console()
         console.print("[bold red]Error:[/bold red] No default model configuration found.")
-        console.print("This should never happen - GPT-5 should be set as default.")
+        console.print("Please run clippy-code again to complete the setup wizard.")
+        console.print("Or manually configure a model using: [cyan]clippy-code /model add[/cyan]")
         sys.exit(1)
 
     # Resolve model input (handles user model names and raw model IDs)
