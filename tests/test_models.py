@@ -65,7 +65,7 @@ def test_load_providers() -> None:
     # Check that common providers exist
     assert "openai" in providers
     assert "anthropic" in providers
-    assert "custom-anthropic" in providers
+    assert "claude-code" in providers
     assert "cerebras" in providers
     assert "gemini" in providers
     assert "ollama" in providers
