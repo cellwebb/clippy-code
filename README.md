@@ -123,9 +123,6 @@ clippy-code works with any OpenAI-compatible provider: Anthropic (including Clau
 # List available providers
 /model list
 
-# Try a model without saving
-/model use cerebras qwen-3-coder-480b
-
 # Save a model configuration
 /model add cerebras qwen-3-coder-480b --name "q3c"
 
