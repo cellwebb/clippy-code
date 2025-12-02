@@ -3,23 +3,11 @@
 from __future__ import annotations
 
 import time
-from typing import Any
+from unittest.mock import MagicMock, patch
 
-import pytest
-from pydantic_ai import ModelRequest, ModelResponse
-from pydantic_ai.messages import SystemPromptPart, TextPart, ToolCallPart, UserPromptPart
-from pydantic_ai.models import ModelRequestParameters
-
-# HuggingFace support removed - no one uses it! 📎
+from clippy.llm import AnthropicProvider, GoogleProvider, OpenAIProvider, create_provider
 from clippy.models import ProviderConfig
-from clippy.providers import LLMProvider, Spinner, _convert_tools
-
-
-def _openai_chat_model_stub(model: str, provider: Any | None = None) -> str:
-    """Return a deterministic identifier for monkeypatched OpenAIChatModel."""
-
-    _ = provider  # intentionally unused, keeps signature compatible
-    return f"model:{model}"
+from clippy.providers import LLMProvider, Spinner
 
 
 class TestSpinner:
@@ -70,218 +58,263 @@ class TestSpinner:
         assert spinner.message == "Custom Message"
 
 
-class TestLLMProvider:
-    """Tests for the Pydantic AI backed provider."""
+class TestOpenAIProvider:
+    """Tests for OpenAI provider."""
 
-    def test_create_message_converts_messages_and_tools(
-        self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
-    ) -> None:
-        provider = LLMProvider(api_key="key")
+    def test_initialization(self) -> None:
+        provider = OpenAIProvider(api_key="test-key", base_url="https://api.example.com")
 
-        monkeypatch.setattr("clippy.providers.OpenAIChatModel", _openai_chat_model_stub)
+        assert provider.api_key == "test-key"
+        assert provider.base_url == "https://api.example.com"
 
-        captured: dict[str, Any] = {}
+    def test_default_base_url(self) -> None:
+        provider = OpenAIProvider(api_key="test-key")
 
-        def fake_model_request_sync(
-            model_identifier: Any,
-            messages: list[ModelRequest],
-            *,
-            model_request_parameters: ModelRequestParameters | None = None,
-        ) -> ModelResponse:
-            captured["model"] = model_identifier
-            captured["messages"] = messages
-            captured["params"] = model_request_parameters
-            return ModelResponse(parts=[TextPart(content="Hello world")])
+        assert provider.base_url == "https://api.openai.com/v1"
 
-        monkeypatch.setattr("clippy.providers.model_request_sync", fake_model_request_sync)
+    def test_should_use_responses_api(self) -> None:
+        provider = OpenAIProvider()
 
-        result = provider.create_message(
-            messages=[
-                {"role": "system", "content": "You are helpful."},
-                {"role": "user", "content": "Say hi"},
-            ],
-            tools=[
+        assert provider._should_use_responses_api("gpt-4o") is False
+        assert provider._should_use_responses_api("gpt-5-codex") is True
+        assert provider._should_use_responses_api("o3-codex-mini") is True
+
+    def test_headers(self) -> None:
+        provider = OpenAIProvider(api_key="test-key")
+        headers = provider._headers()
+
+        assert headers["Content-Type"] == "application/json"
+        assert headers["Authorization"] == "Bearer test-key"
+
+    def test_normalize_chat_response(self) -> None:
+        provider = OpenAIProvider()
+
+        response_data = {
+            "choices": [
                 {
-                    "type": "function",
-                    "function": {
-                        "name": "write_file",
-                        "description": "Write a file",
-                        "parameters": {"type": "object", "properties": {}},
+                    "message": {
+                        "role": "assistant",
+                        "content": "Hello!",
+                        "tool_calls": [
+                            {
+                                "id": "call_123",
+                                "type": "function",
+                                "function": {"name": "test", "arguments": "{}"},
+                            }
+                        ],
                     },
+                    "finish_reason": "tool_calls",
                 }
             ],
-            model="gpt-4o",
-        )
-
-        output = capsys.readouterr().out
-        assert "[📎] Hello world" in output
-
-        assert result == {
-            "role": "assistant",
-            "content": "Hello world",
-            "finish_reason": None,
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
         }
 
-        assert captured["model"] == "model:gpt-4o"
-        assert len(captured["messages"]) == 1
-        request = captured["messages"][0]
-        assert isinstance(request, ModelRequest)
-        assert isinstance(request.parts[0], SystemPromptPart)
-        assert isinstance(request.parts[1], UserPromptPart)
+        result = provider._normalize_chat_response(response_data)
 
-        params = captured["params"]
-        assert isinstance(params, ModelRequestParameters)
-        assert params.function_tools is not None
-        assert params.function_tools[0].name == "write_file"
+        assert result["role"] == "assistant"
+        assert result["content"] == "Hello!"
+        assert result["finish_reason"] == "tool_calls"
+        assert len(result["tool_calls"]) == 1
+        assert result["tool_calls"][0]["id"] == "call_123"
 
-    def test_create_message_returns_tool_calls(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        provider = LLMProvider()
+    def test_convert_tools_to_responses_format(self) -> None:
+        provider = OpenAIProvider()
 
-        monkeypatch.setattr("clippy.providers.OpenAIChatModel", _openai_chat_model_stub)
-
-        def fake_model_request_sync(*_: Any, **__: Any) -> ModelResponse:
-            return ModelResponse(
-                parts=[
-                    ToolCallPart(
-                        tool_name="write_file",
-                        args={"path": "a.txt"},
-                        tool_call_id="call-1",
-                    )
-                ]
-            )
-
-        monkeypatch.setattr("clippy.providers.model_request_sync", fake_model_request_sync)
-
-        result = provider.create_message(
-            messages=[{"role": "user", "content": "Create file"}],
-            tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "write_file",
-                        "parameters": {"type": "object", "properties": {}},
-                    },
-                }
-            ],
-            model="gpt-4o",
-        )
-
-        assert result["tool_calls"] == [
+        tools = [
             {
-                "id": "call-1",
                 "type": "function",
-                "function": {"name": "write_file", "arguments": '{"path": "a.txt"}'},
+                "function": {
+                    "name": "write_file",
+                    "description": "Write a file",
+                    "parameters": {"type": "object", "properties": {}},
+                },
             }
         ]
 
-    def test_create_message_prefixed_model_uses_openai_provider(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        provider_config = ProviderConfig(
-            name="synthetic",
-            base_url="https://api.synthetic.new/openai/v1",
-            api_key_env="SYN_API_KEY",
-            description="Synthetic",
-            pydantic_system="openai",
-        )
-        provider = LLMProvider(api_key="secret", provider_config=provider_config)
+        converted = provider._convert_tools_to_responses_format(tools)
 
-        captured: dict[str, Any] = {}
+        assert len(converted) == 1
+        assert converted[0]["type"] == "function"
+        assert converted[0]["name"] == "write_file"
+        assert converted[0]["description"] == "Write a file"
+        # Responses API uses flat structure (no nested "function")
+        assert "function" not in converted[0]
 
-        def fake_model_request_sync(
-            model_identifier: Any,
-            *args: Any,
-            model_request_parameters: ModelRequestParameters | None = None,
-            **kwargs: Any,
-        ) -> ModelResponse:
-            captured["model"] = model_identifier
-            assert model_request_parameters is not None
-            return ModelResponse(parts=[TextPart(content="ok")])
-
-        monkeypatch.setattr("clippy.providers.model_request_sync", fake_model_request_sync)
-
-        provider.create_message(
-            messages=[{"role": "user", "content": "ping"}],
-            model="hf:zai-org/GLM",
-        )
-
-        # With the fix, prefixed models now use OpenAIChatModel with custom provider
-        from pydantic_ai.models.openai import OpenAIChatModel
-
-        assert isinstance(captured["model"], OpenAIChatModel)
-        assert captured["model"].model_name == "hf:zai-org/GLM"
-
-    def test_resolve_model_hf_prefix_fails_gracefully(self) -> None:
-        """Test that hf: prefix now works like any other OpenAI-compatible provider."""
-        provider_config = ProviderConfig(
-            name="synthetic",
-            base_url="https://api.synthetic.new/openai/v1",
-            api_key_env="SYN_API_KEY",
-            description="Synthetic",
-            pydantic_system="openai",
-        )
-        provider = LLMProvider(api_key="secret", provider_config=provider_config)
-
-        # hf: prefix should now work as OpenAI-compatible
-        resolved, model_obj = provider._resolve_model("hf:zai-org/GLM-4.6")
-
-        assert resolved == "hf:zai-org/GLM-4.6"
-        # Should be OpenAIChatModel, not HuggingFaceModel
-        from pydantic_ai.models.openai import OpenAIChatModel
-
-        assert isinstance(model_obj, OpenAIChatModel)
-        assert model_obj.model_name == "hf:zai-org/GLM-4.6"
-
-    def test_resolve_model_openai_prefix_with_openai_provider(self) -> None:
-        provider_config = ProviderConfig(
-            name="synthetic",
-            base_url="https://api.synthetic.new/openai/v1",
-            api_key_env="SYN_API_KEY",
-            description="Synthetic",
-            pydantic_system="openai",
-        )
-        provider = LLMProvider(api_key="secret", provider_config=provider_config)
-
-        resolved, model_obj = provider._resolve_model("hf:zai-org/GLM")
-
-        assert resolved == "hf:zai-org/GLM"
-        # With the fix, model_obj should now be an OpenAIChatModel, not None
-        from pydantic_ai.models.openai import OpenAIChatModel
-
-        assert isinstance(model_obj, OpenAIChatModel)
-        assert model_obj.model_name == "hf:zai-org/GLM"
-
-
-class TestConvertTools:
-    def test_default_strict_false(self) -> None:
-        defs = _convert_tools(
-            [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "write_file",
-                        "description": "Write",
-                        "parameters": {"type": "object", "properties": {}},
-                    },
-                }
+    @patch("clippy.llm.openai.post_with_retry")
+    def test_create_message_chat_completions(self, mock_post: MagicMock) -> None:
+        """Test Chat Completions API call."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "choices": [
+                {"message": {"role": "assistant", "content": "Hello!"}, "finish_reason": "stop"}
             ]
+        }
+        mock_response.is_success = True
+        mock_post.return_value = mock_response
+
+        provider = OpenAIProvider(api_key="test-key")
+        result = provider.create_message(
+            messages=[{"role": "user", "content": "Hi"}], model="gpt-4o"
         )
 
-        assert defs[0].strict is False
+        assert result["content"] == "Hello!"
+        assert result["role"] == "assistant"
 
-    def test_respects_strict_flag(self) -> None:
-        defs = _convert_tools(
-            [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "read_file",
-                        "description": "Read",
-                        "strict": True,
-                        "parameters": {"type": "object", "properties": {}},
-                    },
-                }
-            ]
+        # Verify the URL used
+        call_args = mock_post.call_args
+        assert "/chat/completions" in call_args[0][1]
+
+
+class TestAnthropicProvider:
+    """Tests for Anthropic provider."""
+
+    def test_initialization(self) -> None:
+        provider = AnthropicProvider(api_key="test-key")
+
+        assert provider.api_key == "test-key"
+        assert provider.base_url == "https://api.anthropic.com"
+
+    def test_headers(self) -> None:
+        provider = AnthropicProvider(api_key="test-key")
+        headers = provider._headers()
+
+        assert headers["Content-Type"] == "application/json"
+        assert headers["x-api-key"] == "test-key"
+        assert "anthropic-version" in headers
+
+    def test_convert_tools(self) -> None:
+        provider = AnthropicProvider()
+
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "read_file",
+                    "description": "Read a file",
+                    "parameters": {"type": "object", "properties": {"path": {"type": "string"}}},
+                },
+            }
+        ]
+
+        converted = provider._convert_tools(tools)
+
+        assert len(converted) == 1
+        assert converted[0]["name"] == "read_file"
+        assert converted[0]["description"] == "Read a file"
+        assert "input_schema" in converted[0]
+
+    def test_map_stop_reason(self) -> None:
+        provider = AnthropicProvider()
+
+        assert provider._map_stop_reason("end_turn") == "stop"
+        assert provider._map_stop_reason("tool_use") == "tool_calls"
+        assert provider._map_stop_reason("max_tokens") == "length"
+        assert provider._map_stop_reason(None) is None
+
+
+class TestGoogleProvider:
+    """Tests for Google Gemini provider."""
+
+    def test_initialization(self) -> None:
+        provider = GoogleProvider(api_key="test-key")
+
+        assert provider.api_key == "test-key"
+        assert "generativelanguage.googleapis.com" in provider.base_url
+
+    def test_convert_tools(self) -> None:
+        provider = GoogleProvider()
+
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "search",
+                    "description": "Search for something",
+                    "parameters": {"type": "object", "properties": {}},
+                },
+            }
+        ]
+
+        converted = provider._convert_tools(tools)
+
+        assert len(converted) == 1
+        assert converted[0]["name"] == "search"
+
+    def test_map_finish_reason(self) -> None:
+        provider = GoogleProvider()
+
+        assert provider._map_finish_reason("STOP") == "stop"
+        assert provider._map_finish_reason("MAX_TOKENS") == "length"
+        assert provider._map_finish_reason("SAFETY") == "content_filter"
+        assert provider._map_finish_reason(None) is None
+
+
+class TestCreateProvider:
+    """Tests for provider factory function."""
+
+    def test_create_openai_provider(self) -> None:
+        provider = create_provider("openai", api_key="test")
+        assert isinstance(provider, OpenAIProvider)
+
+    def test_create_anthropic_provider(self) -> None:
+        provider = create_provider("anthropic", api_key="test")
+        assert isinstance(provider, AnthropicProvider)
+
+    def test_create_google_provider(self) -> None:
+        provider = create_provider("google", api_key="test")
+        assert isinstance(provider, GoogleProvider)
+
+    def test_create_gemini_alias(self) -> None:
+        provider = create_provider("gemini", api_key="test")
+        assert isinstance(provider, GoogleProvider)
+
+    def test_default_to_openai(self) -> None:
+        provider = create_provider("unknown", api_key="test")
+        assert isinstance(provider, OpenAIProvider)
+
+
+class TestLLMProviderWrapper:
+    """Tests for the LLMProvider wrapper class."""
+
+    def test_initialization_with_provider_config(self) -> None:
+        config = ProviderConfig(
+            name="test",
+            base_url="https://api.test.com",
+            api_key_env="TEST_KEY",
+            description="Test provider",
+            pydantic_system="openai",
         )
 
-        assert defs[0].strict is True
+        provider = LLMProvider(api_key="key", provider_config=config)
+
+        assert provider.api_key == "key"
+        assert provider.provider_config == config
+
+    def test_initialization_with_anthropic_config(self) -> None:
+        config = ProviderConfig(
+            name="claude",
+            base_url="https://api.anthropic.com",
+            api_key_env="ANTHROPIC_KEY",
+            description="Anthropic",
+            pydantic_system="anthropic",
+        )
+
+        provider = LLMProvider(api_key="key", provider_config=config)
+
+        assert isinstance(provider._provider, AnthropicProvider)
+
+    @patch.object(OpenAIProvider, "create_message")
+    def test_create_message_delegates(self, mock_create: MagicMock) -> None:
+        mock_create.return_value = {
+            "role": "assistant",
+            "content": "Hello!",
+            "finish_reason": "stop",
+        }
+
+        provider = LLMProvider(api_key="key")
+        result = provider.create_message(
+            messages=[{"role": "user", "content": "Hi"}], model="gpt-4o"
+        )
+
+        assert result["content"] == "Hello!"
+        mock_create.assert_called_once()

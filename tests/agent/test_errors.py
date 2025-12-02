@@ -1,16 +1,25 @@
 """Tests for enhanced error handling."""
 
-import builtins
-import sys
-from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-from openai import AuthenticationError
 
 from clippy.agent import ClippyAgent, handle_tool_use
 from clippy.agent.errors import format_api_error
 from clippy.executor import ActionExecutor
+from clippy.llm.errors import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    BadRequestError,
+    ConflictError,
+    InternalServerError,
+    LLMError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+    UnprocessableEntityError,
+)
 from clippy.permissions import PermissionConfig, PermissionManager
 
 
@@ -62,10 +71,8 @@ class TestErrorHandling:
         permission_manager = PermissionManager(PermissionConfig())
         executor = ActionExecutor(permission_manager)
 
-        # Test authentication error
-        mock_create_message.side_effect = AuthenticationError(
-            "Invalid API key", response=Mock(), body=Mock()
-        )
+        # Test authentication error using our custom error class
+        mock_create_message.side_effect = AuthenticationError("Invalid API key")
         agent = ClippyAgent(
             permission_manager=permission_manager,
             executor=executor,
@@ -117,83 +124,52 @@ class TestErrorHandling:
             assert success is False
 
 
-def _install_dummy_openai(monkeypatch) -> SimpleNamespace:
-    """Install a minimal openai module exposing the error hierarchy."""
-
-    class _BaseError(Exception):
-        def __init__(self, message: str = "error", *args, **kwargs) -> None:
-            super().__init__(message)
-
-    dummy_module = SimpleNamespace(
-        APIConnectionError=type("APIConnectionError", (_BaseError,), {}),
-        APITimeoutError=type("APITimeoutError", (_BaseError,), {}),
-        AuthenticationError=type("AuthenticationError", (_BaseError,), {}),
-        BadRequestError=type("BadRequestError", (_BaseError,), {}),
-        ConflictError=type("ConflictError", (_BaseError,), {}),
-        InternalServerError=type("InternalServerError", (_BaseError,), {}),
-        NotFoundError=type("NotFoundError", (_BaseError,), {}),
-        PermissionDeniedError=type("PermissionDeniedError", (_BaseError,), {}),
-        RateLimitError=type("RateLimitError", (_BaseError,), {}),
-        UnprocessableEntityError=type("UnprocessableEntityError", (_BaseError,), {}),
-    )
-
-    monkeypatch.setitem(sys.modules, "openai", dummy_module)
-    return dummy_module
-
-
-def test_format_api_error_authentication(monkeypatch):
-    """Ensure known OpenAI errors are rendered with friendly hints."""
-    dummy_module = _install_dummy_openai(monkeypatch)
-    error = dummy_module.AuthenticationError("bad key")
-
+def test_format_api_error_authentication():
+    """Ensure known LLM errors are rendered with friendly hints."""
+    error = AuthenticationError("bad key")
     message = format_api_error(error)
 
     assert "Authentication failed" in message
     assert "OPENAI_API_KEY" in message
 
 
-def test_format_api_error_import_error(monkeypatch):
-    """Verify fallback messaging when openai import is unavailable."""
-    monkeypatch.delitem(sys.modules, "openai", raising=False)
-
-    original_import = builtins.__import__
-
-    def _raise_on_openai(name, *args, **kwargs):
-        if name == "openai":
-            raise ImportError("missing dependency")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _raise_on_openai)
+def test_format_api_error_unknown():
+    """Verify fallback messaging for unknown errors."""
 
     class CustomError(Exception):
         pass
 
     error = CustomError("boom")
-
     message = format_api_error(error)
 
     assert message == "CustomError: boom"
 
 
+def test_format_api_error_llm_error():
+    """Test that LLMError base class is handled."""
+    error = LLMError("generic llm error")
+    message = format_api_error(error)
+
+    assert "API Error:" in message
+
+
 @pytest.mark.parametrize(
-    ("error_name", "expected"),
+    ("error_class", "expected"),
     [
-        ("RateLimitError", "Rate limit exceeded"),
-        ("APIConnectionError", "Connection error"),
-        ("APITimeoutError", "Request timeout"),
-        ("BadRequestError", "Bad request"),
-        ("InternalServerError", "Server error"),
-        ("PermissionDeniedError", "Permission denied"),
-        ("NotFoundError", "Resource not found"),
-        ("ConflictError", "Conflict error"),
-        ("UnprocessableEntityError", "Unprocessable entity"),
+        (RateLimitError, "Rate limit exceeded"),
+        (APIConnectionError, "Connection error"),
+        (APITimeoutError, "Request timeout"),
+        (BadRequestError, "Bad request"),
+        (InternalServerError, "Server error"),
+        (PermissionDeniedError, "Permission denied"),
+        (NotFoundError, "Resource not found"),
+        (ConflictError, "Conflict error"),
+        (UnprocessableEntityError, "Unprocessable entity"),
     ],
 )
-def test_format_api_error_known_branches(monkeypatch, error_name, expected):
-    """Exercise the specialised messaging for individual OpenAI errors."""
-    dummy_module = _install_dummy_openai(monkeypatch)
-    error = getattr(dummy_module, error_name)("boom")
-
+def test_format_api_error_known_branches(error_class, expected):
+    """Exercise the specialised messaging for individual LLM errors."""
+    error = error_class("boom")
     message = format_api_error(error)
 
     assert expected in message
