@@ -36,22 +36,11 @@ class ActionExecutor:
         self._mcp_manager = None
 
     def set_mcp_manager(self, manager: Any | None) -> None:
-        """
-        Set the MCP manager for handling MCP tool calls.
+        """Set the MCP manager for handling MCP tool calls.
 
         Args:
-            manager: MCP Manager instance or None to disable MCP
+            manager: MCPManager instance or None to disable MCP
         """
-        if manager is not None:
-            # Try to import Manager to check type
-            try:
-                from .mcp.manager import Manager as MCPManager
-
-                if not isinstance(manager, MCPManager):
-                    raise TypeError(f"Expected MCPManager or None, got {type(manager)}")
-            except ImportError:
-                # If we can't import, just accept it
-                pass
         self._mcp_manager = manager
 
     def execute(
