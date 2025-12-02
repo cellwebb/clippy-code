@@ -2,6 +2,7 @@
 
 import tempfile
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 
@@ -11,9 +12,10 @@ from clippy.permissions import PermissionConfig, PermissionManager
 
 @pytest.fixture
 def executor() -> ActionExecutor:
-    """Create an executor instance."""
+    """Create an executor instance that allows writes to temp directories."""
     manager = PermissionManager()
-    return ActionExecutor(manager)
+    temp_dir = Path(tempfile.gettempdir())
+    return ActionExecutor(manager, allowed_write_roots=[temp_dir])
 
 
 @pytest.fixture
@@ -25,7 +27,8 @@ def executor_direct() -> ActionExecutor:
         deny=set(),
     )
     manager = PermissionManager(config)
-    return ActionExecutor(manager)
+    temp_dir = Path(tempfile.gettempdir())
+    return ActionExecutor(manager, allowed_write_roots=[temp_dir])
 
 
 @pytest.fixture

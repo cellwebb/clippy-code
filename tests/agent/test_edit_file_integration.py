@@ -1,5 +1,6 @@
 """Integration tests for edit_file via agent handle_tool_use."""
 
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,9 @@ from clippy.permissions import PermissionConfig, PermissionManager
 def agent(tmp_path: Path) -> ClippyAgent:
     """Create a ClippyAgent wired with default permissions and executor."""
     permission_manager = PermissionManager(PermissionConfig())
-    executor = ActionExecutor(permission_manager)
+    # Allow writes to temp directories for testing
+    temp_dir = Path(tempfile.gettempdir())
+    executor = ActionExecutor(permission_manager, allowed_write_roots=[temp_dir])
     return ClippyAgent(
         permission_manager=permission_manager,
         executor=executor,

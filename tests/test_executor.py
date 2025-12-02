@@ -3,22 +3,10 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
 from clippy.executor import ActionExecutor
-from clippy.permissions import ActionType, PermissionConfig, PermissionManager
+from clippy.permissions import ActionType, PermissionManager
 
-
-@pytest.fixture
-def permission_manager() -> PermissionManager:
-    """Create a permission manager."""
-    return PermissionManager(PermissionConfig())
-
-
-@pytest.fixture
-def executor(permission_manager: PermissionManager) -> ActionExecutor:
-    """Create an executor instance."""
-    return ActionExecutor(permission_manager)
+# Note: executor and permission_manager fixtures are provided by tests/conftest.py
 
 
 class TestExecutorInitialization:
