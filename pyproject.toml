@@ -25,22 +25,19 @@ classifiers = [
 ]
 
 dependencies = [
+    "httpx>=0.28.0",
     "mcp>=1.18.0",
-    "openai>=2.5.0",
+    "pathspec>=0.12.1",
     "prompt-toolkit>=3.0.52",
+    "pydantic>=2.12.3",
+    "python-dotenv>=1.1.1",
+    "pyyaml>=6.0.3",
+    "questionary>=2.0.1",
+    "rapidfuzz>=3.0.0",
     "requests>=2.31.0",
     "rich>=14.2.0",
-    "python-dotenv>=1.1.1",
-    "pydantic>=2.12.3",
-    "pydantic-ai>=1.0.5",
-    "pyyaml>=6.0.3",
-    "rapidfuzz>=3.0.0",
-    "tiktoken>=0.12.0",
     "tenacity>=9.1.2",
-    "questionary>=2.0.1",
-    "pathspec>=0.12.1",
-    
-    "httpx>=0.28.0",
+    "tiktoken>=0.12.0",
 ]
 
 [project.optional-dependencies]
@@ -51,6 +48,7 @@ dev = [
     "ruff>=0.14.1",
     "mypy>=1.18.2",
     "types-PyYAML>=6.0.12.20250915",
+    "types-requests>=2.32.0",
 ]
 
 [project.scripts]
