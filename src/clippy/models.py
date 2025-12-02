@@ -14,7 +14,7 @@ class ProviderConfig:
 
     name: str
     base_url: str | None
-    api_key_env: str
+    api_key_env: str | None
     description: str
     pydantic_system: str | None = None
 
@@ -96,7 +96,7 @@ class UserProviderManager:
         self,
         name: str,
         base_url: str | None,
-        api_key_env: str,
+        api_key_env: str | None,
         description: str,
         pydantic_system: str | None = None,
     ) -> tuple[bool, str]:
@@ -160,6 +160,8 @@ class UserProviderManager:
         api_key_env: str | None = None,
         description: str | None = None,
         pydantic_system: str | None = None,
+        *,
+        _update_api_key_env: bool = False,
     ) -> tuple[bool, str]:
         """Update an existing user provider.
 
@@ -193,7 +195,7 @@ class UserProviderManager:
         # Update fields if provided
         if base_url is not None:
             data["providers"][actual_name]["base_url"] = base_url
-        if api_key_env is not None:
+        if api_key_env is not None or _update_api_key_env:
             data["providers"][actual_name]["api_key_env"] = api_key_env
         if description is not None:
             data["providers"][actual_name]["description"] = description
@@ -436,7 +438,7 @@ def _load_providers() -> dict[str, ProviderConfig]:
         _providers[provider_name] = ProviderConfig(
             name=provider_name,
             base_url=provider_data.get("base_url"),
-            api_key_env=provider_data.get("api_key_env", "OPENAI_API_KEY"),
+            api_key_env=provider_data.get("api_key_env"),
             description=provider_data.get("description", ""),
             pydantic_system=provider_data.get("pydantic_system"),
         )
@@ -449,7 +451,7 @@ def _load_providers() -> dict[str, ProviderConfig]:
         _providers[provider_name] = ProviderConfig(
             name=provider_name,
             base_url=provider_data.get("base_url"),
-            api_key_env=provider_data.get("api_key_env", "OPENAI_API_KEY"),
+            api_key_env=provider_data.get("api_key_env"),
             description=provider_data.get("description", ""),
             pydantic_system=provider_data.get("pydantic_system"),
         )

@@ -148,10 +148,10 @@ def main() -> None:
         api_key_env = default_provider.api_key_env
         provider_config_to_use = default_provider
 
-    # Get API key from environment
-    api_key = os.getenv(api_key_env)
+    # Get API key from environment (only if required)
+    api_key = os.getenv(api_key_env) if api_key_env else None
 
-    if not api_key:
+    if api_key_env and not api_key:
         console = Console()
         console.print(
             f"[bold red]Error:[/bold red] {api_key_env} not found in environment.\n\n"
@@ -161,7 +161,6 @@ def main() -> None:
             "  3. Set the environment variable\n\n"
             f"Example .env file:\n"
             f"  {api_key_env}=your_api_key_here\n"
-            "  OPENAI_BASE_URL=https://api.cerebras.ai/v1  # Optional, for alternate providers\n"
         )
         sys.exit(1)
 
