@@ -16,6 +16,7 @@ from ..providers import LLMProvider, Spinner
 from ..tools import catalog as tool_catalog
 from .conversation import check_and_auto_compact
 from .errors import format_api_error
+from .exceptions import InterruptedExceptionError
 from .tool_handler import handle_tool_use
 
 if TYPE_CHECKING:
@@ -78,8 +79,6 @@ def run_agent_loop(
     Raises:
         InterruptedExceptionError: If execution is interrupted
     """
-    from .core import InterruptedExceptionError
-
     logger.info(f"Starting agent loop with model: {model}")
 
     # Track spinner between iterations
@@ -125,10 +124,13 @@ def run_agent_loop(
         logger.debug(f"Agent loop iteration {iteration}")
 
         # Check for auto-compaction based on model threshold
-        compacted, compact_message, compact_stats = check_and_auto_compact(
+        compacted, compact_message, compact_stats, new_history = check_and_auto_compact(
             conversation_history, model, provider, getattr(provider, "base_url", None)
         )
-        if compacted:
+        if compacted and new_history:
+            # Update conversation history in place with compacted version
+            conversation_history.clear()
+            conversation_history.extend(new_history)
             logger.info(f"Auto-compaction triggered: {compact_message}")
             _display_auto_compaction_notification(console, compact_stats)
 

@@ -510,13 +510,14 @@ class TestCheckAndAutoCompact:
         ]
 
         # No threshold set for this model
-        compacted, message, stats = check_and_auto_compact(
+        compacted, message, stats, new_history = check_and_auto_compact(
             conversation, "test-model", mock_provider
         )
 
         assert compacted is False
         assert "threshold" in message.lower()
         assert stats == {}
+        assert new_history is None
 
     @patch("clippy.agent.conversation.get_token_count")
     @patch("clippy.agent.conversation.get_model_compaction_threshold")
@@ -541,12 +542,13 @@ class TestCheckAndAutoCompact:
             "model": "test-model",
         }  # Well below threshold
 
-        compacted, message, stats = check_and_auto_compact(
+        compacted, message, stats, new_history = check_and_auto_compact(
             conversation, "test-model", mock_provider
         )
 
         assert compacted is False
         assert "below threshold" in message.lower()
+        assert new_history is None
 
     @patch("clippy.agent.conversation.compact_conversation")
     @patch("clippy.agent.conversation.get_token_count")
@@ -582,13 +584,15 @@ class TestCheckAndAutoCompact:
             ],
         )
 
-        compacted, message, stats = check_and_auto_compact(
+        compacted, message, stats, new_history = check_and_auto_compact(
             conversation, "test-model", mock_provider
         )
 
         # Should have been compacted
         assert compacted is True
         assert "compacted" in message.lower()
+        assert new_history is not None
+        assert len(new_history) == 2  # system + summary
 
     @patch("clippy.agent.conversation.compact_conversation")
     @patch("clippy.agent.conversation.get_token_count")
@@ -620,10 +624,11 @@ class TestCheckAndAutoCompact:
             [],
         )
 
-        compacted, message, stats = check_and_auto_compact(
+        compacted, message, stats, new_history = check_and_auto_compact(
             conversation, "test-model", mock_provider
         )
 
         # Should not compact due to conversation being too short
         assert compacted is False
         assert "too short" in message.lower()
+        assert new_history is None

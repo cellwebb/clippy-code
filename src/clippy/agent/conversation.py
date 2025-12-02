@@ -302,49 +302,52 @@ def check_and_auto_compact(
     model: str,
     provider: LLMProvider,
     base_url: str | None = None,
-) -> tuple[bool, str, dict[str, Any]]:
+) -> tuple[bool, str, dict[str, Any], list[dict[str, Any]] | None]:
     """
     Check if conversation needs auto-compaction based on model threshold and compact if needed.
 
     Args:
-        conversation_history: Current conversation history (modified in place if compacted)
+        conversation_history: Current conversation history (NOT modified)
         model: Model identifier
         provider: LLM provider instance for generating summary
         base_url: Base URL for the provider (optional)
 
     Returns:
-        Tuple of (compacted: bool, message: str, stats: dict)
-        If compacted is True, the conversation_history was modified in place
+        Tuple of (compacted: bool, message: str, stats: dict, new_history: list | None)
+        If compacted is True, new_history contains the compacted conversation.
+        The caller is responsible for updating their conversation history reference.
     """
     # Get the compaction threshold for this model
     threshold = get_model_compaction_threshold(model)
 
     # If no threshold is set, no auto-compaction is needed
     if threshold is None:
-        return False, "No compaction threshold set for this model", {}
+        return False, "No compaction threshold set for this model", {}, None
 
     # Get current token count
     stats = get_token_count(conversation_history, model, base_url)
 
     # If there was an error counting tokens, return it
     if "error" in stats:
-        return False, f"Error counting tokens: {stats['error']}", {}
+        return False, f"Error counting tokens: {stats['error']}", {}, None
 
     current_tokens = stats["total_tokens"]
 
     # If we're below the threshold, no compaction needed
     if current_tokens < threshold:
-        return False, f"Current tokens ({current_tokens:,}) below threshold ({threshold:,})", {}
+        return (
+            False,
+            f"Current tokens ({current_tokens:,}) below threshold ({threshold:,})",
+            {},
+            None,
+        )
 
     # We're at or above the threshold, compact the conversation
     success, message, compact_stats, new_history = compact_conversation(
         conversation_history, provider, model
     )
 
-    # If compaction was successful, update the conversation history in place
     if success and new_history:
-        conversation_history.clear()
-        conversation_history.extend(new_history)
-        return True, message, compact_stats
+        return True, message, compact_stats, new_history
     else:
-        return False, message, compact_stats
+        return False, message, compact_stats, None
