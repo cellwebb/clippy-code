@@ -4,7 +4,8 @@ from typing import Any
 
 # Utility functions available for internal use but not exposed as tools
 from .copy_file import copy_file as _copy_file_util
-from .create_directory import create_directory as _create_directory_util
+from .create_directory import TOOL_SCHEMA as CREATE_DIRECTORY_SCHEMA
+from .create_directory import create_directory
 from .delegate_to_subagent import create_subagent_and_execute
 from .delegate_to_subagent import get_tool_schema as get_delegate_schema
 from .delete_file import delete_file as _delete_file_util
@@ -40,6 +41,7 @@ from .write_file import write_file
 def get_all_tools() -> list[dict[str, Any]]:
     """Get all tool schemas, loading delegate tools dynamically to avoid circular imports."""
     base_tools = [
+        CREATE_DIRECTORY_SCHEMA,
         EDIT_FILE_SCHEMA,
         EXECUTE_COMMAND_SCHEMA,
         FETCH_WEBPAGE_SCHEMA,
@@ -49,6 +51,7 @@ def get_all_tools() -> list[dict[str, Any]]:
         LIST_DIRECTORY_SCHEMA,
         READ_FILE_SCHEMA,
         READ_FILES_SCHEMA,
+        READ_LINES_SCHEMA,
         SEARCH_FILES_SCHEMA,
         THINK_SCHEMA,
         WRITE_FILE_SCHEMA,
@@ -109,6 +112,7 @@ def get_create_parallel_subagents_and_execute() -> Any:
 __all__ = [
     "create_subagent_and_execute",
     "create_parallel_subagents_and_execute",
+    "create_directory",
     "edit_file",
     "execute_command",
     "fetch_webpage",
@@ -131,5 +135,6 @@ __all__ = [
     "_move_file_util",
     "_create_directory_util",
     "_delete_file_util",
+    "CREATE_DIRECTORY_SCHEMA",
     "READ_LINES_SCHEMA",
 ]
