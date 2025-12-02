@@ -74,7 +74,7 @@ def test_load_providers() -> None:
     for name, provider in providers.items():
         assert isinstance(provider, ProviderConfig)
         assert provider.name == name
-        assert isinstance(provider.api_key_env, str)
+        assert provider.api_key_env is None or isinstance(provider.api_key_env, str)
         assert isinstance(provider.description, str)
 
 

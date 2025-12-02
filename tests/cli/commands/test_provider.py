@@ -191,6 +191,7 @@ class TestProviderCommands:
                     base_url="https://api.updated.com/v1",
                     api_key_env="UPDATED_API_KEY",
                     description="Updated Provider",
+                    _update_api_key_env=True,
                 )
                 mock_reload.assert_called_once()
 
