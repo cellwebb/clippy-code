@@ -61,7 +61,7 @@ run:
 
 # Testing
 test:
-	uv run pytest -v
+	uv run pytest -q
 
 cov:
 	uv run pytest --cov=clippy --cov-report=html --cov-report=term
