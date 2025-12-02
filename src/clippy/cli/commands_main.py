@@ -32,45 +32,13 @@ def handle_auto_start_command(
     agent: ClippyAgent, console: Console, command_args: str
 ) -> CommandResult:
     """Handle /auto-start command to manually trigger auto mode."""
+    _ = agent  # Unused but part of handler signature
     if command_args:
         console.print("[yellow]❌ /auto-start doesn't accept any arguments[/yellow]")
         return "continue"
 
-    # Check if auto mode is configured
-    try:
-        from ..agent.auto_mode import (
-            check_auto_mode_dependencies,
-            get_auto_mode_config,
-        )
-    except ImportError:
-        console.print(
-            "[yellow]Auto mode support not available. Install with: "
-            "pip install clippy[auto][/yellow]"
-        )
-        return "continue"
-
-    # Check dependencies
-    missing_deps = check_auto_mode_dependencies()
-    if missing_deps:
-        console.print("[red]❌ Auto mode requires additional dependencies:[/red]")
-        for dep in missing_deps:
-            console.print(f"  [red]• {dep}[/red]")
-        console.print("\n[dim]Install with: pip install clippy[auto][/dim]")
-        return "continue"
-
-    config = get_auto_mode_config()
-    if config is None or not config.enabled:
-        console.print("[red]❌ Auto mode is not enabled[/red]")
-        console.print("[dim]Configure with /auto first[/dim]")
-        return "continue"
-
-    # Start auto mode
-    try:
-        agent.start_auto_mode()
-        console.print("[green]✓ Auto mode started[/green]")
-    except Exception as e:
-        console.print(f"[red]❌ Failed to start auto mode: {e}[/red]")
-
+    console.print("[yellow]Auto mode start/stop not yet implemented[/yellow]")
+    console.print("[dim]Use /auto to configure auto mode settings[/dim]")
     return "continue"
 
 
@@ -78,16 +46,13 @@ def handle_auto_stop_command(
     agent: ClippyAgent, console: Console, command_args: str
 ) -> CommandResult:
     """Handle /auto-stop command to manually stop auto mode."""
+    _ = agent  # Unused but part of handler signature
     if command_args:
         console.print("[yellow]❌ /auto-stop doesn't accept any arguments[/yellow]")
         return "continue"
 
-    try:
-        agent.stop_auto_mode()
-        console.print("[green]✓ Auto mode stopped[/green]")
-    except Exception as e:
-        console.print(f"[red]❌ Failed to stop auto mode: {e}[/red]")
-
+    console.print("[yellow]Auto mode start/stop not yet implemented[/yellow]")
+    console.print("[dim]Use /auto to configure auto mode settings[/dim]")
     return "continue"
 
 
