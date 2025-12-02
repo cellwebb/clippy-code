@@ -13,7 +13,7 @@ make format           # Autofix and format code with ruff
 make lint             # Static analysis with ruff
 make type-check       # Run mypy against src/clippy
 make run              # Launch clippy-code in interactive mode through Makefile
-python -m clippy       # Run in interactive mode
+uv run python -m clippy       # Run in interactive mode
 ```
 
 ## Development Workflow Tips

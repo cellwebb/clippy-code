@@ -155,7 +155,7 @@ source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 uv pip install -e ".[dev]"
 
 # Run clippy in development
-python -m clippy
+uv run python -m clippy
 
 # For normal usage, use uvx clippy-code
 ```

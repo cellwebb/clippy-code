@@ -378,7 +378,7 @@ Use shell scripts for conditional logic:
 
 ### Commands Not Applied
 1. Reload after editing: `/custom reload`
-2. Check JSON syntax: `python -m json.tool ~/.clippy/custom_commands.json`
+2. Check JSON syntax: `uv run python -m json.tool ~/.clippy/custom_commands.json`
 3. Verify command type and required options
 
 ## Integration with Other Tools

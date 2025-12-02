@@ -16,13 +16,13 @@ Claude Code OAuth provides an alternative authentication method that:
 
 ```bash
 # Start the OAuth authentication flow
-python -m clippy auth
+uv run python -m clippy auth
 
 # Run in quiet mode (minimal output)
-python -m clippy auth --quiet
+uv run python -m clippy auth --quiet
 
 # Specify log level
-python -m clippy auth --log-level DEBUG
+uv run python -m clippy auth --log-level DEBUG
 ```
 
 The authentication process will:
@@ -34,7 +34,7 @@ The authentication process will:
 ### 2. Check Authentication Status
 
 ```bash
-python -m clippy auth-status
+uv run python -m clippy auth-status
 ```
 
 This will show whether you have a valid Claude Code OAuth token configured.
@@ -43,13 +43,13 @@ This will show whether you have a valid Claude Code OAuth token configured.
 
 ```bash
 # Interactive mode with Claude Code Sonnet
-python -m clippy --model claude-code:claude-sonnet-4-5
+uv run python -m clippy --model claude-code:claude-sonnet-4-5
 
 # One-shot mode
-python -m clippy --model claude-code:claude-opus-4-5 "Explain quantum computing"
+uv run python -m clippy --model claude-code:claude-opus-4-5 "Explain quantum computing"
 
 # Save as a named model for easier access
-python -m clippy
+uv run python -m clippy
 > /model add claude-code claude-sonnet-4-5 --name claude-sonnet --default
 ```
 
@@ -80,17 +80,17 @@ python -m clippy
 
 ```bash
 # Authenticate and start using Claude Code
-python -m clippy auth
-python -m clippy --model claude-code:claude-sonnet-4-5
+uv run python -m clippy auth
+uv run python -m clippy --model claude-code:claude-sonnet-4-5
 
 # Add Claude Code models to your collection
-python -m clippy
+uv run python -m clippy
 > /model add claude-code claude-sonnet-4-5 --name claude-sonnet --default
 > /model add claude-code claude-opus-4-5 --name claude-opus
 
 # Use in scripts
 export CLAUDE_CODE_ACCESS_TOKEN=$(cat ~/.clippy/.env | grep CLAUDE_CODE_ACCESS_TOKEN | cut -d'=' -f2)
-python -m clippy --model claude-code:claude-sonnet-4-5 "Your prompt here"
+uv run python -m clippy --model claude-code:claude-sonnet-4-5 "Your prompt here"
 ```
 
 ## Troubleshooting
@@ -98,7 +98,7 @@ python -m clippy --model claude-code:claude-sonnet-4-5 "Your prompt here"
 ### Common Issues
 
 1. **"No Claude Code OAuth token found"**
-   - Run `python -m clippy auth` to authenticate
+   - Run `uv run python -m clippy auth` to authenticate
 
 2. **Authentication fails**
    - Check network connection
@@ -116,7 +116,7 @@ python -m clippy --model claude-code:claude-sonnet-4-5 "Your prompt here"
 ### Debug Mode
 
 ```bash
-python -m clippy auth --log-level DEBUG
+uv run python -m clippy auth --log-level DEBUG
 ```
 
 For more detailed troubleshooting, see the full documentation or open an issue on GitHub.

@@ -68,7 +68,7 @@ echo "DEEPSEEK_API_KEY=your_key_here" > .env
 make run
 
 # Or run the module directly
-python -m clippy "list files in the current directory"
+uv run python -m clippy "list files in the current directory"
 ```
 
 ## Development Workflow
@@ -158,7 +158,7 @@ uv run pytest
 # Test the CLI manually
 make run
 # or
-python -m clippy -i
+uv run python -m clippy -i
 ```
 
 4. **Commit your changes**
