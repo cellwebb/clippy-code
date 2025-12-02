@@ -349,16 +349,16 @@ class CustomCommandManager:
         """
         scopes = []
         config_paths = self._get_config_paths()
-        
+
         for config_path in config_paths:
             if not config_path.exists():
                 continue
-                
+
             try:
                 with open(config_path) as f:
                     config_data = json.load(f)
                 commands_config = config_data.get("commands", {})
-                
+
                 if name in commands_config:
                     # Determine scope based on path
                     if config_path.parent.name == ".clippy" and config_path.parent.parent == Path.cwd():
@@ -367,7 +367,7 @@ class CustomCommandManager:
                         scopes.append("global")
             except (json.JSONDecodeError, Exception):
                 continue
-                
+
         return scopes
 
     def remove_command(self, name: str, scope: str) -> bool:
@@ -384,28 +384,28 @@ class CustomCommandManager:
             config_path = Path.cwd() / ".clippy" / "custom_commands.json"
         else:
             config_path = self._get_global_config_path()
-            
+
         if not config_path.exists():
             return False
-            
+
         try:
             with open(config_path) as f:
                 config_data = json.load(f)
-                
+
             commands_config = config_data.get("commands", {})
             if name in commands_config:
                 del commands_config[name]
                 config_data["commands"] = commands_config
-                
+
                 # Save updated config
                 config_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(config_path, "w") as f:
                     json.dump(config_data, f, indent=2)
-                    
+
                 return True
         except (json.JSONDecodeError, Exception):
             return False
-            
+
         return False
 
 
