@@ -60,10 +60,6 @@ class ClippyCommandCompleter(Completer):
                 "description": "Toggle YOLO mode (auto-approve ALL actions)",
                 "completer": None,
             },
-            "providers": {
-                "description": "List available providers",
-                "completer": None,
-            },
             "provider": {
                 "description": "Provider management",
                 "completer": self._create_provider_completer(),
@@ -72,7 +68,7 @@ class ClippyCommandCompleter(Completer):
             "model": {
                 "description": "Model management",
                 "completer": self._create_model_completer(),
-                "subcommands": ["list", "add", "remove", "default", "use", "load", "threshold"],
+                "subcommands": ["list", "add", "remove", "set-default", "use", "load", "threshold"],
             },
             "auto": {
                 "description": "Auto-approval management",
@@ -598,7 +594,7 @@ class ClippyCommandCompleter(Completer):
             ("model", "list"): "Show your saved models",
             ("model", "add"): "Add a new model configuration",
             ("model", "remove"): "Remove a saved model",
-            ("model", "default"): "Set model as default",
+            ("model", "set-default"): "Set model as default (permanent)",
             ("model", "use"): "Try a model without saving",
             ("model", "load"): "Load model (same as direct switch)",
             ("model", "threshold"): "Set compaction threshold",

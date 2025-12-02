@@ -15,7 +15,7 @@ CommandResult = Literal["continue", "break", "run"]
 
 
 def handle_providers_command(console: Console) -> CommandResult:
-    """Handle /providers command."""
+    """Handle /providers command - list all providers."""
     providers_by_source = list_providers_by_source()
     built_in = providers_by_source["built_in"]
     user = providers_by_source["user"]
@@ -91,7 +91,7 @@ def _handle_provider_details(console: Console, provider_name: str) -> CommandRes
 
     if not provider:
         console.print(f"[red]✗ Unknown provider: {provider_name}[/red]")
-        console.print("[dim]Use /providers to see available providers[/dim]")
+        console.print("[dim]Use /provider list to see available providers[/dim]")
         return "continue"
 
     if provider.api_key_env:
@@ -129,7 +129,7 @@ def _handle_provider_remove(console: Console, provider_name: str) -> CommandResu
     provider = get_provider(provider_name)
     if not provider:
         console.print(f"[red]✗ Unknown provider: {provider_name}[/red]")
-        console.print("[dim]Use /providers to see available providers[/dim]")
+        console.print("[dim]Use /provider list to see available providers[/dim]")
         return "continue"
 
     # Check if it's a user provider
@@ -165,7 +165,7 @@ def _handle_provider_edit(console: Console, provider_name: str) -> CommandResult
     provider = get_provider(provider_name)
     if not provider:
         console.print(f"[red]✗ Unknown provider: {provider_name}[/red]")
-        console.print("[dim]Use /providers to see available providers[/dim]")
+        console.print("[dim]Use /provider list to see available providers[/dim]")
         return "continue"
 
     # Check if it's a user provider (only user providers can be edited)

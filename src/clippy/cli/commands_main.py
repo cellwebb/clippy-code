@@ -9,7 +9,7 @@ from .commands.auto import handle_auto_command
 from .commands.init import handle_init_command
 from .commands.mcp import handle_mcp_command
 from .commands.model import handle_model_command
-from .commands.provider import handle_provider_command, handle_providers_command
+from .commands.provider import handle_provider_command
 from .commands.session import (
     CommandResult,
     handle_exit_command,
@@ -50,7 +50,7 @@ def handle_temp_model_command(
     provider_obj = get_provider(provider)
     if not provider_obj:
         console.print(f"[red]✗ Unknown provider: {provider}[/red]")
-        console.print("[dim]Use /providers to see available providers[/dim]")
+        console.print("[dim]Use /provider list to see available providers[/dim]")
         return "continue"
 
     # Switch to the temporary model
@@ -140,10 +140,8 @@ COMMAND_HANDLERS_AGENT_CONSOLE_ARGS: dict[str, Any] = {
     "auto": handle_auto_command,
     "auto-start": handle_auto_start_command,
     "auto-stop": handle_auto_stop_command,
-    "models": handle_model_command,
     "model": handle_model_command,
     "temp_model": handle_temp_model_command,
-    "providers": handle_providers_command,
     "provider": handle_provider_command,
     "mcp": handle_mcp_command,
     "init": handle_init_command,
