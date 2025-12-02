@@ -234,18 +234,6 @@ def test_handle_model_add_remove_and_switch(monkeypatch: pytest.MonkeyPatch) -> 
     commands.handle_model_command(agent, console, "set-default missing")  # Updated command
     assert any("missing" in str(msg) for msg in console.messages)
 
-    provider = SimpleNamespace(
-        name="cerebras",
-        base_url="https://api",
-        api_key_env="CEREBRAS_API_KEY",
-        description="",
-    )
-    monkeypatch.setattr(model_module, "get_provider", lambda name: provider)
-    monkeypatch.delenv("CEREBRAS_API_KEY", raising=False)
-    console.messages.clear()
-    commands.handle_model_command(agent, console, "use cerebras qwen")
-    assert any("✓" in str(msg) for msg in console.messages)  # Updated expectation
-
     user_manager.get_model = (
         lambda name: SimpleNamespace(name="alias", model_id="qwen", provider="cerebras")
         if name == "alias"
@@ -302,12 +290,10 @@ def test_handle_model_help_command(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "/model remove" in messages_text
     assert "/model set-default" in messages_text
     assert "/model switch" in messages_text
-    assert "/model use" in messages_text
     assert "/model reload" in messages_text
 
     # Check that usage information is provided
     assert "Add a new model" in messages_text
-    assert "Temporarily use a model" in messages_text
     assert "List available models" in messages_text
 
 

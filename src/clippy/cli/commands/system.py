@@ -51,7 +51,6 @@ def handle_help_command(console: Console) -> CommandResult:
         "  /model remove <name> - Remove a saved model\n"
         "  /model set-default <name> - Set model as default (permanent)\n"
         "  /model threshold <name> <tokens> - Set compaction threshold\n"
-        "  /model use <provider> <model_id> - Try a model without saving\n\n"
         "[bold]Subagent Configuration:[/bold]\n"
         "  /subagent list - Show subagent type configurations\n"
         "  /subagent set <type> <model> - Set model for a subagent type\n"
