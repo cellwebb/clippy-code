@@ -152,7 +152,7 @@ def _handle_provider_add(console: Console) -> CommandResult:
     except ImportError:
         console.print("[red]❌ questionary is required for the interactive wizard[/red]")
         console.print("[dim]Install with: pip install questionary[/dim]")
-        console.print("[dim]Alternatively, you can manually edit src/clippy/providers.yaml[/dim]")
+        console.print("[dim]Alternatively, you can manually edit ~/.clippy/providers.json[/dim]")
         return "continue"
 
     # Step 1: Choose provider type
@@ -308,48 +308,40 @@ def _save_provider_config(
     api_key_env: str,
     console: Console,
 ) -> tuple[bool, str]:
-    """Save provider configuration to YAML file."""
-    try:
-        import yaml
-    except ImportError:
-        console.print("[red]❌ PyYAML is required for saving provider configurations[/red]")
-        console.print("[dim]Install with: pip install pyyaml[/dim]")
-        return False, "PyYAML is required for saving provider configurations"
-
-    # Get the providers file path
-    providers_file = os.path.join(os.path.dirname(__file__), "..", "..", "..", "providers.yaml")
+    """Save provider configuration using the UserProviderManager."""
+    from ...models import get_user_provider_manager, reload_providers
 
     try:
-        # Load existing providers
-        if os.path.exists(providers_file):
-            with open(providers_file) as f:
-                providers_data = yaml.safe_load(f) or {}
+        # Get the user provider manager
+        user_provider_manager = get_user_provider_manager()
+
+        # Check if provider already exists (for better error messages)
+        existing = user_provider_manager.get_provider(provider_name)
+        is_update = existing is not None
+
+        # Add or update the provider
+        if is_update:
+            success, message = user_provider_manager.update_provider(
+                name=provider_name,
+                base_url=base_url,
+                api_key_env=api_key_env,
+                description=description,
+            )
         else:
-            providers_data = {}
+            success, message = user_provider_manager.add_provider(
+                name=provider_name,
+                base_url=base_url,
+                api_key_env=api_key_env,
+                description=description,
+            )
 
-        # Initialize user_providers if it doesn't exist
-        if "user_providers" not in providers_data:
-            providers_data["user_providers"] = {}
-
-        # Add/update the provider
-        providers_data["user_providers"][provider_name] = {
-            "provider_type": provider_type,
-            "description": description,
-            "base_url": base_url,
-            "api_key_env": api_key_env,
-            "source": "user",
-        }
-
-        # Write back to file
-        with open(providers_file, "w") as f:
-            yaml.dump(providers_data, f, default_flow_style=False, sort_keys=False)
-
-        # Reload providers cache
-        from ...models import reload_providers
-
-        reload_providers()
-
-        return True, f"Provider '{provider_name}' saved successfully"
+        if success:
+            # Reload providers cache to ensure the changes take effect immediately
+            reload_providers()
+            action = "updated" if is_update else "added"
+            return True, f"Provider '{provider_name}' {action} successfully"
+        else:
+            return False, message
 
     except Exception as e:
         return False, f"Failed to save provider configuration: {e}"
