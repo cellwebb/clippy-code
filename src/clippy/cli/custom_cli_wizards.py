@@ -14,9 +14,10 @@ from .custom_commands import get_custom_manager
 
 # Helper functions
 
+
 def _validate_command_name(name: str) -> tuple[bool, str]:
     """Validate a command name.
-    
+
     Returns:
         Tuple of (is_valid, error_message)
     """
@@ -48,7 +49,8 @@ def _load_config(config_path: Path) -> dict[str, Any]:
 
     try:
         with open(config_path) as f:
-            return json.load(f)
+            data: dict[str, Any] = json.load(f)
+            return data
     except (json.JSONDecodeError, Exception):
         return {"commands": {}}
 
@@ -66,7 +68,10 @@ def _save_config(config_path: Path, config: dict[str, Any]) -> bool:
 
 # Type-specific configuration prompts
 
-def _prompt_shell_config(console: Console, defaults: dict[str, Any] | None = None) -> dict[str, Any]:
+
+def _prompt_shell_config(
+    console: Console, defaults: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Interactive prompts for shell command configuration."""
     try:
         import questionary
@@ -83,7 +88,7 @@ def _prompt_shell_config(console: Console, defaults: dict[str, Any] | None = Non
     command = questionary.text(
         "Shell command to execute:",
         default=defaults.get("command", ""),
-        instruction="Use {args} as placeholder for arguments"
+        instruction="Use {args} as placeholder for arguments",
     ).ask()
 
     if command is None:  # User cancelled
@@ -159,7 +164,7 @@ def _prompt_text_config(console: Console, defaults: dict[str, Any] | None = None
         "Text to display:",
         default=defaults.get("text", ""),
         multiline=False,
-        instruction="Use {args}, {user}, {cwd} for variables"
+        instruction="Use {args}, {user}, {cwd} for variables",
     ).ask()
 
     if text is None:
@@ -181,7 +186,9 @@ def _prompt_text_config(console: Console, defaults: dict[str, Any] | None = None
     return config
 
 
-def _prompt_template_config(console: Console, defaults: dict[str, Any] | None = None) -> dict[str, Any]:
+def _prompt_template_config(
+    console: Console, defaults: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Interactive prompts for template command configuration."""
     try:
         import questionary
@@ -199,7 +206,7 @@ def _prompt_template_config(console: Console, defaults: dict[str, Any] | None = 
         "Template text:",
         default=defaults.get("template", ""),
         multiline=False,
-        instruction="Use {args}, {user}, {cwd}, {model}, {provider}, {message_count}"
+        instruction="Use {args}, {user}, {cwd}, {model}, {provider}, {message_count}",
     ).ask()
 
     if template is None:
@@ -221,7 +228,9 @@ def _prompt_template_config(console: Console, defaults: dict[str, Any] | None = 
     return config
 
 
-def _prompt_function_config(console: Console, defaults: dict[str, Any] | None = None) -> dict[str, Any]:
+def _prompt_function_config(
+    console: Console, defaults: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Interactive prompts for function command configuration."""
     try:
         import questionary
@@ -238,7 +247,7 @@ def _prompt_function_config(console: Console, defaults: dict[str, Any] | None = 
     function = questionary.text(
         "Python function path (e.g., module.function):",
         default=defaults.get("function", ""),
-        instruction="Format: module.submodule.function_name"
+        instruction="Format: module.submodule.function_name",
     ).ask()
 
     if function is None:
@@ -250,6 +259,7 @@ def _prompt_function_config(console: Console, defaults: dict[str, Any] | None = 
 
 
 # Main wizard functions
+
 
 def handle_custom_add(console: Console) -> CommandResult:
     """Interactive wizard to add a new custom command."""
@@ -270,7 +280,7 @@ def handle_custom_add(console: Console) -> CommandResult:
                 questionary.Choice("Project (.clippy/custom_commands.json)", value="project"),
                 questionary.Choice("Global (~/.clippy/custom_commands.json)", value="global"),
             ],
-            instruction="Project commands override global commands"
+            instruction="Project commands override global commands",
         ).ask()
 
         if scope is None:
@@ -280,8 +290,7 @@ def handle_custom_add(console: Console) -> CommandResult:
         # Command name
         while True:
             name = questionary.text(
-                "Command name:",
-                instruction="Letters, numbers, hyphens, and underscores only"
+                "Command name:", instruction="Letters, numbers, hyphens, and underscores only"
             ).ask()
 
             if name is None:
@@ -301,8 +310,7 @@ def handle_custom_add(console: Console) -> CommandResult:
 
             if existing_cmd:
                 overwrite = questionary.confirm(
-                    f"Command '{name}' already exists. Overwrite?",
-                    default=False
+                    f"Command '{name}' already exists. Overwrite?", default=False
                 ).ask()
 
                 if not overwrite:
@@ -311,10 +319,7 @@ def handle_custom_add(console: Console) -> CommandResult:
             break
 
         # Description
-        description = questionary.text(
-            "Description:",
-            default=f"Custom command: {name}"
-        ).ask()
+        description = questionary.text("Description:", default=f"Custom command: {name}").ask()
 
         if description is None:
             console.print("[yellow]Cancelled[/yellow]")
@@ -326,9 +331,9 @@ def handle_custom_add(console: Console) -> CommandResult:
             choices=[
                 questionary.Choice("Shell - Execute shell commands", value="shell"),
                 questionary.Choice("Text - Display static text", value="text"),
-                questionary.Choice("Template - Display formatted text with variables", value="template"),
+                questionary.Choice("Template - Display formatted text", value="template"),
                 questionary.Choice("Function - Call a Python function", value="function"),
-            ]
+            ],
         ).ask()
 
         if cmd_type is None:
@@ -349,10 +354,7 @@ def handle_custom_add(console: Console) -> CommandResult:
         config["description"] = description
 
         # Hidden flag
-        hidden = questionary.confirm(
-            "Hide from help menu?",
-            default=False
-        ).ask()
+        hidden = questionary.confirm("Hide from help menu?", default=False).ask()
 
         if hidden is None:
             console.print("[yellow]Cancelled[/yellow]")
@@ -379,10 +381,7 @@ def handle_custom_add(console: Console) -> CommandResult:
             console.print(f"  Function: [dim]{config['function']}[/dim]")
 
         # Confirm
-        confirm = questionary.confirm(
-            "\nCreate this custom command?",
-            default=True
-        ).ask()
+        confirm = questionary.confirm("\nCreate this custom command?", default=True).ask()
 
         if not confirm:
             console.print("[yellow]Cancelled[/yellow]")
@@ -455,7 +454,7 @@ def handle_custom_edit_wizard(console: Console, name: str) -> CommandResult:
                 choices=[
                     questionary.Choice("Project (.clippy/custom_commands.json)", value="project"),
                     questionary.Choice("Global (~/.clippy/custom_commands.json)", value="global"),
-                ]
+                ],
             ).ask()
 
             if scope is None:
@@ -472,8 +471,7 @@ def handle_custom_edit_wizard(console: Console, name: str) -> CommandResult:
 
         # Ask if user wants to change type
         change_type = questionary.confirm(
-            f"Current type is '{cmd_type}'. Change type?",
-            default=False
+            f"Current type is '{cmd_type}'. Change type?", default=False
         ).ask()
 
         if change_type is None:
@@ -486,9 +484,9 @@ def handle_custom_edit_wizard(console: Console, name: str) -> CommandResult:
                 choices=[
                     questionary.Choice("Shell - Execute shell commands", value="shell"),
                     questionary.Choice("Text - Display static text", value="text"),
-                    questionary.Choice("Template - Display formatted text with variables", value="template"),
+                    questionary.Choice("Template - Display formatted text", value="template"),
                     questionary.Choice("Function - Call a Python function", value="function"),
-                ]
+                ],
             ).ask()
 
             if cmd_type is None:
@@ -507,8 +505,7 @@ def handle_custom_edit_wizard(console: Console, name: str) -> CommandResult:
 
         # Description
         description = questionary.text(
-            "Description:",
-            default=existing_config.get("description", f"Custom command: {name}")
+            "Description:", default=existing_config.get("description", f"Custom command: {name}")
         ).ask()
 
         if description is None:
@@ -519,8 +516,7 @@ def handle_custom_edit_wizard(console: Console, name: str) -> CommandResult:
 
         # Hidden flag
         hidden = questionary.confirm(
-            "Hide from help menu?",
-            default=existing_config.get("hidden", False)
+            "Hide from help menu?", default=existing_config.get("hidden", False)
         ).ask()
 
         if hidden is None:
@@ -530,10 +526,7 @@ def handle_custom_edit_wizard(console: Console, name: str) -> CommandResult:
         config["hidden"] = hidden
 
         # Confirm
-        confirm = questionary.confirm(
-            f"\nSave changes to '{name}'?",
-            default=True
-        ).ask()
+        confirm = questionary.confirm(f"\nSave changes to '{name}'?", default=True).ask()
 
         if not confirm:
             console.print("[yellow]Cancelled[/yellow]")
@@ -599,7 +592,7 @@ def handle_custom_delete(console: Console, name: str) -> CommandResult:
                     questionary.Choice("Project (.clippy/custom_commands.json)", value="project"),
                     questionary.Choice("Global (~/.clippy/custom_commands.json)", value="global"),
                     questionary.Choice("Both", value="both"),
-                ]
+                ],
             ).ask()
 
             if scope_to_delete is None:
@@ -615,8 +608,7 @@ def handle_custom_delete(console: Console, name: str) -> CommandResult:
 
         # Confirm deletion
         confirm = questionary.confirm(
-            f"\nAre you sure you want to delete '{name}'?",
-            default=False
+            f"\nAre you sure you want to delete '{name}'?", default=False
         ).ask()
 
         if not confirm:

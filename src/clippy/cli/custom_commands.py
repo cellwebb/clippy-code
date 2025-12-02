@@ -269,48 +269,42 @@ class CustomCommandManager:
 
     def _create_example_config(self, config_path: Path) -> None:
         """Create an example configuration file."""
-        example_config = {
-            "commands": {
-                "git": {
-                    "type": "shell",
-                    "description": "Execute git commands",
-                    "command": "git {args}",
-                    "working_dir": ".",
-                    "timeout": 30,
-                    "dry_run": False,
-                    "dangerous": False,
-                },
-                "whoami": {
-                    "type": "text",
-                    "description": "Show current user and directory",
-                    "text": "User: {user}\nDirectory: {cwd}\nModel: {model}\n",
-                    "formatted": True,
-                },
-                "todo": {
-                    "type": "template",
-                    "description": "Quick todo list template",
-                    "template": (
-                        "📝 TODO List ({user} @ {cwd})\n"
-                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        "{args}\n"
-                        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    ),
-                    "formatted": True,
-                },
-                "stats": {
-                    "type": "function",
-                    "description": "Show session statistics",
-                    "function": "clippy.cli.custom_commands.show_session_stats",
-                },
-            }
-        }
-
         try:
             config_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Create example config with common commands
+            example_config = {
+                "commands": {
+                    "git": {
+                        "type": "shell",
+                        "description": "Run git commands (dry run by default)",
+                        "command": "git {args}",
+                        "dry_run": True,
+                        "dangerous": False,
+                    },
+                    "whoami": {
+                        "type": "text",
+                        "description": "Show current user and directory",
+                        "text": "User: {user}\nDirectory: {cwd}",
+                        "formatted": True,
+                    },
+                    "todo": {
+                        "type": "text",
+                        "description": "Add a todo item to TODO.md",
+                        "text": "- {args}",
+                        "formatted": False,
+                    },
+                    "stats": {
+                        "type": "function",
+                        "description": "Show session statistics",
+                        "function": "clippy.cli.custom_commands.show_session_stats",
+                    },
+                }
+            }
+
             with open(config_path, "w") as f:
-                json.dump(empty_config, f, indent=2)
-            print(f"Created empty custom commands config at: {config_path}")
-            print("See docs/CUSTOM_COMMANDS.md for examples and documentation")
+                json.dump(example_config, f, indent=2)
+            print(f"Created example custom commands config at: {config_path}")
         except Exception as e:
             print(f"Warning: Failed to create config: {e}")
 
@@ -343,7 +337,7 @@ class CustomCommandManager:
 
     def get_command_scope(self, name: str) -> list[str]:
         """Get which scope(s) a command is defined in.
-        
+
         Returns:
             List containing 'project' and/or 'global' if command exists in those scopes.
         """
@@ -361,7 +355,10 @@ class CustomCommandManager:
 
                 if name in commands_config:
                     # Determine scope based on path
-                    if config_path.parent.name == ".clippy" and config_path.parent.parent == Path.cwd():
+                    if (
+                        config_path.parent.name == ".clippy"
+                        and config_path.parent.parent == Path.cwd()
+                    ):
                         scopes.append("project")
                     else:
                         scopes.append("global")
@@ -372,11 +369,11 @@ class CustomCommandManager:
 
     def remove_command(self, name: str, scope: str) -> bool:
         """Remove a command from the specified scope.
-        
+
         Args:
             name: Command name to remove
             scope: Either 'project' or 'global'
-            
+
         Returns:
             True if command was removed, False otherwise
         """
@@ -407,7 +404,6 @@ class CustomCommandManager:
             return False
 
         return False
-
 
 
 # Global instance

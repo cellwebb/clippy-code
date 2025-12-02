@@ -20,13 +20,12 @@ from rich.panel import Panel
 
 from ..models import get_user_manager
 from .commands import CommandResult
-from .custom_commands import get_custom_manager
 from .custom_cli_wizards import (
     handle_custom_add,
     handle_custom_delete,
     handle_custom_edit_wizard,
 )
-
+from .custom_commands import get_custom_manager
 
 
 def handle_custom_command_management(args: str, console: Console) -> CommandResult:
@@ -58,8 +57,6 @@ def handle_custom_command_management(args: str, console: Console) -> CommandResu
         console.print(f"[red]Unknown subcommand: {subcommand}[/red]")
         console.print("[dim]Use /custom help for available subcommands[/dim]")
         return "continue"
-
-
 
 
 def _handle_custom_list(console: Console) -> CommandResult:
@@ -273,4 +270,3 @@ def _handle_custom_help(console: Console) -> CommandResult:
     )
 
     return "continue"
-
