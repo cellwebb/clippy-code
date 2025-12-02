@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from ..executor import ActionExecutor
-from ..permissions import PermissionManager
+from ..permissions import TOOL_ACTION_MAP, PermissionLevel, PermissionManager
 from ..providers import LLMProvider
 from .conversation import create_system_prompt, get_token_count
 from .loop import run_agent_loop
@@ -129,7 +129,7 @@ class SubAgent:
         # Handle custom permissions for subagent
         if config.auto_approve_tools:
             # Create a new permission manager with custom auto-approvals
-            from ..permissions import ActionType, PermissionConfig, PermissionLevel
+            from ..permissions import PermissionConfig
 
             # Create a copy of the parent's config
             # We need to manually copy sets to avoid reference issues
@@ -143,35 +143,10 @@ class SubAgent:
             # Create new manager
             self.permission_manager = PermissionManager(new_config)
 
-            # Add auto-approved tools
-            # We need to map tool names to ActionTypes
-            # This mapping should ideally be shared with tool_handler, but for now we'll
-            # do a best-effort mapping or update the PermissionManager to handle tool names
-
-            # For now, we'll rely on the fact that tool_handler maps tool names to ActionTypes
-            # But PermissionManager works with ActionTypes.
-            # This is a bit tricky because we have tool names here, not ActionTypes.
-
-            # Let's import the mapping logic or duplicate it for the critical ones
-            action_map = {
-                "read_file": ActionType.READ_FILE,
-                "write_file": ActionType.WRITE_FILE,
-                "delete_file": ActionType.DELETE_FILE,
-                "list_directory": ActionType.LIST_DIR,
-                "create_directory": ActionType.CREATE_DIR,
-                "execute_command": ActionType.EXECUTE_COMMAND,
-                "search_files": ActionType.SEARCH_FILES,
-                "get_file_info": ActionType.GET_FILE_INFO,
-                "read_files": ActionType.READ_FILE,
-                "grep": ActionType.GREP,
-                "edit_file": ActionType.EDIT_FILE,
-                "fetch_webpage": ActionType.FETCH_WEBPAGE,
-                "find_replace": ActionType.FIND_REPLACE,
-            }
-
+            # Add auto-approved tools using centralized mapping
             for tool_name in config.auto_approve_tools:
-                if tool_name in action_map:
-                    action_type = action_map[tool_name]
+                if tool_name in TOOL_ACTION_MAP:
+                    action_type = TOOL_ACTION_MAP[tool_name]
                     self.permission_manager.update_permission(
                         action_type, PermissionLevel.AUTO_APPROVE
                     )

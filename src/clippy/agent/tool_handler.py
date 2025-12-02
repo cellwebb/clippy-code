@@ -2,15 +2,14 @@
 
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Protocol
 
-from rich.console import Console
 from rich.markup import escape
 
 from ..diff_utils import format_diff_for_display
 from ..executor import ActionExecutor
 from ..mcp.naming import is_mcp_tool, parse_mcp_qualified_name
-from ..permissions import ActionType, PermissionLevel, PermissionManager
+from ..permissions import TOOL_ACTION_MAP, ActionType, PermissionLevel, PermissionManager
 from ..utils import (
     count_tokens,
     format_over_size_warning,
@@ -20,6 +19,15 @@ from ..utils import (
 from .utils import generate_preview_diff
 
 logger = logging.getLogger(__name__)
+
+
+class ConsoleProtocol(Protocol):
+    """Protocol for console-like objects that support print()."""
+
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        """Print to the console."""
+        ...
+
 
 # Import InterruptedExceptionError from agent to avoid circular import
 # Will be imported at runtime when needed
@@ -69,7 +77,10 @@ def format_mcp_result(result: Any) -> str:
 
 
 def display_tool_request(
-    console: Console, tool_name: str, tool_input: dict[str, Any], diff_content: str | None = None
+    console: ConsoleProtocol,
+    tool_name: str,
+    tool_input: dict[str, Any],
+    diff_content: str | None = None,
 ) -> None:
     """
     Display what tool the agent wants to use.
@@ -124,7 +135,7 @@ def handle_tool_use(
     auto_approve_all: bool,
     permission_manager: PermissionManager,
     executor: ActionExecutor,
-    console: Console,
+    console: ConsoleProtocol,
     conversation_history: list[dict[str, Any]],
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None = None,
     mcp_manager: Any = None,
@@ -155,28 +166,10 @@ def handle_tool_use(
 
     # In YOLO mode, everything is auto-approved
     if yolo_mode:
+        logger.warning(f"YOLO mode: auto-approving {tool_name} (input: {tool_input})")
         auto_approve_all = True
 
-    # Map tool names to action types
-    action_map = {
-        "read_file": ActionType.READ_FILE,
-        "write_file": ActionType.WRITE_FILE,
-        "delete_file": ActionType.DELETE_FILE,
-        "list_directory": ActionType.LIST_DIR,
-        "create_directory": ActionType.CREATE_DIR,
-        "execute_command": ActionType.EXECUTE_COMMAND,
-        "search_files": ActionType.SEARCH_FILES,
-        "get_file_info": ActionType.GET_FILE_INFO,
-        "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
-        "grep": ActionType.GREP,  # Dedicated action type for grep
-        "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
-        "fetch_webpage": ActionType.FETCH_WEBPAGE,  # Add mapping for fetch_webpage tool
-        "find_replace": ActionType.FIND_REPLACE,
-        "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
-        "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
-    }
-
-    # Handle MCP tools with special action types
+    # Handle MCP tools with special action types, otherwise use centralized mapping
     action_type: ActionType
     if is_mcp_tool(tool_name):
         try:
@@ -187,9 +180,21 @@ def handle_tool_use(
         except ValueError:
             action_type = ActionType.MCP_TOOL_CALL
     else:
-        action_type = action_map.get(tool_name, ActionType.READ_FILE)  # Default fallback
+        maybe_action_type = TOOL_ACTION_MAP.get(tool_name)
+        if maybe_action_type is None:
+            logger.error(f"Unknown tool '{tool_name}' has no permission mapping")
+            add_tool_result(
+                conversation_history,
+                tool_use_id,
+                False,
+                f"Unknown tool: {tool_name} (no permission mapping configured)",
+                None,
+                tool_name,
+            )
+            return False
+        action_type = maybe_action_type
 
-    if action_type is None:
+    if action_type is None:  # This check is now redundant but kept for safety
         add_tool_result(
             conversation_history,
             tool_use_id,
@@ -389,7 +394,7 @@ def ask_approval(
     diff_content: str | None,
     action_type: ActionType | None,
     permission_manager: PermissionManager,
-    console: Console,
+    console: ConsoleProtocol,
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None = None,
     mcp_manager: Any = None,
 ) -> bool:

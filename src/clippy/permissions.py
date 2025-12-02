@@ -88,6 +88,29 @@ class PermissionConfig(BaseModel):
         return self.get_permission_level(action_type) == PermissionLevel.DENY
 
 
+# Canonical mapping from tool names to ActionTypes
+# This is the single source of truth - import this instead of duplicating
+TOOL_ACTION_MAP: dict[str, ActionType] = {
+    "read_file": ActionType.READ_FILE,
+    "write_file": ActionType.WRITE_FILE,
+    "delete_file": ActionType.DELETE_FILE,
+    "list_directory": ActionType.LIST_DIR,
+    "create_directory": ActionType.CREATE_DIR,
+    "execute_command": ActionType.EXECUTE_COMMAND,
+    "search_files": ActionType.SEARCH_FILES,
+    "get_file_info": ActionType.GET_FILE_INFO,
+    "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
+    "read_lines": ActionType.READ_FILE,  # Uses the same permission as read_file
+    "grep": ActionType.GREP,
+    "edit_file": ActionType.EDIT_FILE,
+    "fetch_webpage": ActionType.FETCH_WEBPAGE,
+    "find_replace": ActionType.FIND_REPLACE,
+    "think": ActionType.THINK,
+    "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
+    "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
+}
+
+
 class PermissionManager:
     """Manages permissions for agent actions."""
 

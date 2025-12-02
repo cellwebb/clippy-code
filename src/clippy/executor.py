@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
-from .permissions import ActionType, PermissionManager
+from .permissions import TOOL_ACTION_MAP, PermissionManager
 
 # Import tool functions explicitly to avoid module/function conflicts
 from .tools.create_directory import create_directory as _create_directory_util
@@ -25,7 +25,7 @@ from .tools.write_file import write_file
 
 logger = logging.getLogger(__name__)
 # Execution constants
-DEFAULT_COMMAND_TIMEOUT = 300  # 5 minutes in seconds
+DEFAULT_COMMAND_TIMEOUT = 60  # 1 minute in seconds (can be overridden via tool_input)
 
 
 class ActionExecutor:
@@ -76,28 +76,8 @@ class ActionExecutor:
                 logger.error(f"Error executing MCP tool {tool_name}: {e}", exc_info=True)
                 return False, f"Error executing MCP tool {tool_name}: {str(e)}", None
 
-        # Map tool names to action types
-        action_map = {
-            "read_file": ActionType.READ_FILE,
-            "write_file": ActionType.WRITE_FILE,
-            "delete_file": ActionType.DELETE_FILE,
-            "list_directory": ActionType.LIST_DIR,
-            "create_directory": ActionType.CREATE_DIR,
-            "execute_command": ActionType.EXECUTE_COMMAND,
-            "search_files": ActionType.SEARCH_FILES,
-            "get_file_info": ActionType.GET_FILE_INFO,
-            "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
-            "read_lines": ActionType.READ_FILE,  # Uses the same permission as read_file
-            "grep": ActionType.GREP,  # Use dedicated GREP action type
-            "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
-            "fetch_webpage": ActionType.FETCH_WEBPAGE,  # Add mapping for fetch_webpage tool
-            "find_replace": ActionType.FIND_REPLACE,
-            "think": ActionType.THINK,
-            "delegate_to_subagent": ActionType.DELEGATE_TO_SUBAGENT,
-            "run_parallel_subagents": ActionType.RUN_PARALLEL_SUBAGENTS,
-        }
-
-        action_type = action_map.get(tool_name)
+        # Use centralized tool-to-action mapping
+        action_type = TOOL_ACTION_MAP.get(tool_name)
         if not action_type:
             logger.warning(f"Unknown tool requested: {tool_name}")
             return False, f"Unknown tool: {tool_name}", None
