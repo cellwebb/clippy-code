@@ -36,7 +36,13 @@ echo "OPENAI_API_KEY=your_api_key_here" > .env
 echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
 echo "MISTRAL_API_KEY=your_api_key_here" > .env
 echo "CEREBRAS_API_KEY=your_api_key_here" > .env
+echo "GEMINI_API_KEY=your_api_key_here" > .env
 echo "GROQ_API_KEY=your_api_key_here" > .env
+echo "MINIMAX_API_KEY=your_api_key_here" > .env
+echo "OPENROUTER_API_KEY=your_api_key_here" > .env
+echo "SYNTHETIC_API_KEY=your_api_key_here" > .env
+echo "TOGETHER_API_KEY=your_api_key_here" > .env
+echo "ZAI_API_KEY=your_api_key_here" > .env
 ```
 
 ### Basic Usage
@@ -96,7 +102,10 @@ clippy-code provides smart file operations with validation for many file types:
 | `get_file_info` | Get file metadata | ✅ |
 | `read_files` | Read multiple files at once | ✅ |
 | `grep` | Search patterns in files | ✅ |
+| `read_lines` | Read specific lines from a file | ✅ |
 | `edit_file` | Edit files by line (insert/replace/delete/append) | ❌ |
+| `fetch_webpage` | Fetch content from web pages | ❌ |
+| `find_replace` | Multi-file pattern replacement with regex | ❌ |
 
 **write_file** includes syntax validation for Python, JSON, YAML, HTML, CSS, JavaScript, TypeScript, Markdown, Dockerfile, and XML.
 
@@ -104,7 +113,7 @@ clippy-code provides smart file operations with validation for many file types:
 
 ### Supported Providers
 
-clippy-code works with any OpenAI-compatible provider: Anthropic, Chutes, Cerebras, Gemini, Groq, LM Studio, MiniMax, Mistral, Ollama, OpenAI, OpenRouter, Synthetic.new, Together AI, Z.AI, and more.
+clippy-code works with any OpenAI-compatible provider: Anthropic (including Claude Code OAuth), Chutes, Cerebras, Gemini, Groq, LM Studio, MiniMax, Mistral, Ollama, OpenAI, OpenRouter, Synthetic.new, Together AI, Z.AI, and more.
 
 ### Managing Models
 
@@ -124,7 +133,7 @@ clippy-code works with any OpenAI-compatible provider: Anthropic, Chutes, Cerebr
 
 ### Environment Variables
 
-- Provider-specific API keys: `ANTHROPIC_API_KEY`, `CHUTES_API_KEY`, `CEREBRAS_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, etc.
+- Provider-specific API keys: `ANTHROPIC_API_KEY`, `CHUTES_API_KEY`, `CEREBRAS_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `MINIMAX_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `SYNTHETIC_API_KEY`, `TOGETHER_API_KEY`, `ZAI_API_KEY`, `CLAUDE_CODE_ACCESS_TOKEN` (OAuth), etc.
 - `OPENAI_BASE_URL` - Optional base URL override for custom providers
 
 ## Development

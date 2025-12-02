@@ -8,8 +8,11 @@ Get started with clippy-code in 5 minutes!
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install clippy-code from PyPI
-uv tool install clippy-code
+# Install from PyPI
+pip install clippy-code
+
+# Or run directly without installation (recommended)
+uvx clippy-code "create a hello world python script"
 
 # Or install from source
 git clone https://github.com/cellwebb/clippy-code.git
@@ -19,32 +22,28 @@ uv pip install -e .
 
 ## 2. Setup API Keys
 
-For OpenAI (default provider):
+clippy-code supports many LLM providers through OpenAI-compatible APIs:
 
 ```bash
+# OpenAI (default)
 echo "OPENAI_API_KEY=your_key_here" > .env
-```
 
-For other providers:
-
-```bash
-# Cerebras
+# Or choose from many supported providers:
+echo "ANTHROPIC_API_KEY=your_key_here" > .env
 echo "CEREBRAS_API_KEY=your_key_here" > .env
-
-# DeepSeek
-echo "DEEPSEEK_API_KEY=your_key_here" > .env
-
-# Groq
+echo "CHUTES_API_KEY=your_key_here" > .env
+echo "GOOGLE_API_KEY=your_key_here" > .env
 echo "GROQ_API_KEY=your_key_here" > .env
-
-# Mistral
+echo "MINIMAX_API_KEY=your_key_here" > .env
 echo "MISTRAL_API_KEY=your_key_here" > .env
-
-# Together AI
+echo "OPENROUTER_API_KEY=your_key_here" > .env
+echo "SYNTHETIC_API_KEY=your_key_here" > .env
 echo "TOGETHER_API_KEY=your_key_here" > .env
+echo "ZAI_API_KEY=your_key_here" > .env
+echo "CLAUDE_CODE_ACCESS_TOKEN=your_token_here" > .env  # Claude Code OAuth
 ```
 
-For local models like Ollama, you typically don't need an API key:
+For local models like Ollama or LM Studio, you typically don't need an API key:
 
 ```bash
 # Just set the base URL in your environment or use the --base-url flag
@@ -59,18 +58,35 @@ To use external tools via MCP (Model Context Protocol), create an `mcp.json` fil
 # Create the clippy directory
 mkdir -p ~/.clippy
 
-# Copy the example configuration
+# Copy the example configuration (if you have the source)
 cp mcp.example.json ~/.clippy/mcp.json
 
-# Edit it with your API keys
-# For example, to use Context7 for documentation retrieval:
-# Set CTX7_API_KEY environment variable
+# Or create it manually with a basic setup
+cat > ~/.clippy/mcp.json << 'EOF'
+{
+  "mcp_servers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "${CTX7_API_KEY}"]
+    }
+  }
+}
+EOF
+
+# Set environment variables for any MCP servers
+echo "CTX7_API_KEY=your_context7_key_here" >> .env
 ```
+
+Then use `/mcp list` in interactive mode to see available servers and tools.
 
 ## 3. First Command (One-Shot Mode)
 
 ```bash
+# If installed via pip
 clippy "create a hello world python script"
+
+# Or run directly without installation
+uvx clippy-code "create a hello world python script"
 ```
 
 clippy-code will:
@@ -83,7 +99,11 @@ clippy-code will:
 ## 4. Interactive Mode
 
 ```bash
+# If installed via pip
 clippy
+
+# Or run directly without installation  
+uvx clippy-code
 ```
 
 Interactive mode provides a rich conversational experience with advanced features:
@@ -105,9 +125,9 @@ Here's how a typical interactive session looks:
   path: calculator.py
   content: def add(a, b): ...
 
-[?] Approve this action? [(y)es/(n)o/(a)llow]: yes
+[?] Approve this action? [(y)es/(n)o/(a)llow]: y
 
-✓ Successfully wrote to calculator.py
+✅ Successfully wrote to calculator.py
 
 [You] ➜ add tests for it
 
@@ -146,22 +166,24 @@ Here's how a typical interactive session looks:
 
 These run automatically without asking:
 
-- Reading files
-- Listing directories
-- Searching for files
-- Getting file info
-- Reading multiple files
-- Searching within files (grep)
+- `read_file` - Read file contents
+- `list_directory` - List directory contents  
+- `search_files` - Search with glob patterns
+- `get_file_info` - Get file metadata
+- `read_files` - Read multiple files at once
+- `grep` - Search patterns in files
 
 ### Requires Approval
 
 You'll be asked before:
 
-- Writing/modifying files
-- Deleting files
-- Creating directories
-- Running shell commands
-- Editing files line by line
+- `write_file` - Write files with syntax validation
+- `delete_file` - Delete files
+- `create_directory` - Create directories
+- `execute_command` - Run shell commands
+- `edit_file` - Edit files by line (insert/replace/delete/append)
+- `delegate_to_subagent` - Create specialized subagents
+- `run_parallel_subagents` - Run multiple subagents concurrently
 
 ### Approval Options
 
@@ -210,9 +232,20 @@ During interactive sessions, switch models with:
 
 ```bash
 /model list          # Show available models
-/model groq          # Switch to Groq provider
-/model deepseek      # Switch to DeepSeek provider
+/model use cerebras qwen-3-coder-480b  # Try a model without saving
+/model add cerebras qwen-3-coder-480b --name "q3c"  # Save a model configuration
+/model q3c           # Switch to a saved model
 /model ollama        # Switch to Ollama (local) provider
+```
+
+### Provider Management
+
+You can also add custom providers:
+
+```bash
+/provider list       # Show all available providers
+/provider add        # Add a new custom provider
+/provider remove     # Remove a custom provider
 ```
 
 ## 7. Tips
@@ -239,30 +272,71 @@ During interactive sessions, switch models with:
    clippy -y "read all Python files and create a summary"
    ```
 
-5. **Use Document Mode for Better Visualization**:
+5. **Extra Command Line Options**:
+
+   You can use additional flags for more control:
+
    ```bash
-   clippy      # Interactive mode with all features
+   # Verbose logging with retry information
+   clippy -v "debug this issue"
+
+   # Specify a custom base URL for providers
+   clippy --base-url https://api.custom-provider.com/v1 "write code"
+
+   # YOLO mode - auto-approve everything without prompts (use with extreme caution!)
+   clippy --yolo "delete all log files"
+   ```
+
+6. **Use uvx for Easier Testing**:
+   ```bash
+   uvx clippy-code --model groq "debug this function"
    ```
 
 ## Troubleshooting
 
 **Problem**: API key error
-**Solution**: Make sure `.env` file exists with the appropriate API key (OPENAI_API_KEY, CEREBRAS_API_KEY, etc.)
+**Solution**: Make sure `.env` file exists with the appropriate API key. Each provider has its own environment variable:
+- `OPENAI_API_KEY` for OpenAI
+- `ANTHROPIC_API_KEY` for Claude
+- `CEREBRAS_API_KEY` for Cerebras
+- `CHUTES_API_KEY` for Chutes.ai
+- `GOOGLE_API_KEY` for Gemini
+- `GROQ_API_KEY` for Groq
+- `MINIMAX_API_KEY` for MiniMax
+- `MISTRAL_API_KEY` for Mistral
+- `OPENROUTER_API_KEY` for OpenRouter
+- `SYNTHETIC_API_KEY` for Synthetic.new
+- `TOGETHER_API_KEY` for Together AI
+- `ZAI_API_KEY` for Z.AI
+- `CLAUDE_CODE_ACCESS_TOKEN` for Claude Code OAuth
+- And many more!
 
 **Problem**: clippy-code wants to modify the wrong file
-**Solution**: Type `N` to reject, then provide more specific instructions
+**Solution**: Type `n` to reject, then provide more specific instructions
 
 **Problem**: Execution seems stuck
-**Solution**: Press Ctrl+C to interrupt, then try again with a simpler request
+**Solution**: Press Ctrl+C to interrupt, double-ESC to stop immediately, then try again with a simpler request
 
 **Problem**: Want to use a local model
-**Solution**: Ensure the service is running (e.g., Ollama) and set OPENAI_BASE_URL=http://localhost:11434/v1
+**Solution**: Ensure the service is running (e.g., Ollama) and set:
+```bash
+export OPENAI_BASE_URL=http://localhost:11434/v1
+clippy --model ollama
+```
+
+**Problem**: Installation issues
+**Solution**: Try using `uvx` to run without installation:
+```bash
+uvx clippy-code "your command here"
+```
 
 ## Next Steps
 
 - Read the full [README.md](README.md) for detailed documentation
-- Experiment with different types of tasks
-- Try different models and providers
+- Check out [CONTRIBUTING.md](CONTRIBUTING.md) if you want to contribute
+- Set up [MCP integration](docs/MCP.md) for external tools
+- Experiment with different models and providers
+- Try the `/subagent` commands for specialized tasks
 - Customize permissions for your workflow
 - Provide feedback to improve clippy-code!
 
