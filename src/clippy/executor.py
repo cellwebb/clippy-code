@@ -18,6 +18,7 @@ from .tools.grep import grep
 from .tools.list_directory import list_directory
 from .tools.read_file import read_file
 from .tools.read_files import read_files
+from .tools.read_lines import read_lines
 from .tools.search_files import search_files
 from .tools.think import think
 from .tools.write_file import write_file
@@ -85,6 +86,7 @@ class ActionExecutor:
             "search_files": ActionType.SEARCH_FILES,
             "get_file_info": ActionType.GET_FILE_INFO,
             "read_files": ActionType.READ_FILE,  # Uses the same permission as read_file
+            "read_lines": ActionType.READ_FILE,  # Uses the same permission as read_file
             "grep": ActionType.GREP,  # Use dedicated GREP action type
             "edit_file": ActionType.EDIT_FILE,  # Add mapping for edit_file tool
             "fetch_webpage": ActionType.FETCH_WEBPAGE,  # Add mapping for fetch_webpage tool
@@ -129,16 +131,31 @@ class ActionExecutor:
             elif tool_name == "get_file_info":
                 result = get_file_info(tool_input["path"])
             elif tool_name == "read_files":
-                result = read_files(tool_input["paths"])
+                # Handle both 'path' (singular) and 'paths' (plural)
+                paths = tool_input.get("paths")
+                if paths is None:
+                    path = tool_input.get("path")
+                    if path is None:
+                        return False, "read_files requires either 'path' or 'paths' parameter", None
+                    paths = [path] if isinstance(path, str) else path
+                result = read_files(paths)
+            elif tool_name == "read_lines":
+                result = read_lines(
+                    tool_input["path"],
+                    tool_input["line_range"],
+                    tool_input.get("numbering", "auto"),
+                    tool_input.get("context", 0),
+                    tool_input.get("show_line_numbers", True),
+                    tool_input.get("max_lines", 100),
+                )
             elif tool_name == "grep":
                 # Handle both 'path' (singular) and 'paths' (plural)
                 paths = tool_input.get("paths")
                 if paths is None:
-                    # If 'paths' not provided, check for 'path' (singular)
                     path = tool_input.get("path")
                     if path is None:
                         return False, "grep requires either 'path' or 'paths' parameter", None
-                    paths = [path]
+                    paths = [path] if isinstance(path, str) else path
                 result = grep(tool_input["pattern"], paths, tool_input.get("flags", ""))
             elif tool_name == "edit_file":
                 result = edit_file(
@@ -151,10 +168,21 @@ class ActionExecutor:
                     tool_input.get("end_pattern", ""),
                 )
             elif tool_name == "find_replace":
+                # Handle both 'path' (singular) and 'paths' (plural)
+                paths = tool_input.get("paths")
+                if paths is None:
+                    path = tool_input.get("path")
+                    if path is None:
+                        return (
+                            False,
+                            ("find_replace requires either 'path' or 'paths' parameter"),
+                            None,
+                        )
+                    paths = [path] if isinstance(path, str) else path
                 result = find_replace(
                     tool_input["pattern"],
                     tool_input["replacement"],
-                    tool_input["paths"],
+                    paths,
                     tool_input.get("regex", False),
                     tool_input.get("case_sensitive", False),
                     tool_input.get("dry_run", True),
