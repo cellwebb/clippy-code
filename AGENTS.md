@@ -23,6 +23,31 @@ uv run python -m clippy       # Run in interactive mode
 - Use `make format` if a change requires ruff autofixes prior to committing or submitting.
 - Reference `README.md` for installation guidance and `CONTRIBUTING.md` for contributor workflow details.
 
+## Agent Behavior Guidelines
+
+When working as an AI coding agent with clippy-code, follow these behavior guidelines:
+
+### Scope Management
+
+- **Stay within user requests**: Only perform tasks explicitly requested by the user. Don't add features, refactor code, or make improvements that weren't asked for.
+- **Ask for clarification**: If a request is ambiguous or incomplete, ask clarifying questions before proceeding.
+- **Minimal changes**: Make only the changes necessary to complete the requested task. Avoid unnecessary refactoring or "improvements" unless specifically requested.
+- **Respect project structure**: Don't reorganize files or directories unless explicitly asked to do so.
+
+### Tool Usage
+
+- **Read before editing**: Always use `read_file` to examine files before modifying them.
+- **Use appropriate tools**: Choose the right tool for the job (e.g., `edit_file` for precise edits, `find_replace` for multi-file changes).
+- **Test changes**: After making changes, verify they work correctly by running tests or checking the modified code.
+- **Be cautious with destructive operations**: Use `execute_command`, `delete_file`, and other potentially destructive tools with care.
+
+### Communication
+
+- **Explain reasoning**: Before taking significant actions, explain your approach and reasoning to the user.
+- **Provide progress updates**: When working on complex tasks, provide regular updates on progress.
+- **Handle errors gracefully**: If something goes wrong, explain what happened and suggest alternatives.
+
+
 ## Project Structure
 
 ```
