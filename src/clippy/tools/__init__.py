@@ -61,9 +61,12 @@ def get_all_tools() -> list[dict[str, Any]]:
     try:
         delegate_schema = get_delegate_schema()
         base_tools.append(delegate_schema)
-    except Exception:
+    except Exception as e:
         # Skip if schema loading fails
-        pass
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Failed to load delegate_to_subagent schema: {e}")
 
     # Add run_parallel_subagents schema if available
     try:
@@ -71,9 +74,12 @@ def get_all_tools() -> list[dict[str, Any]]:
 
         parallel_schema = get_parallel_schema()
         base_tools.append(parallel_schema)
-    except Exception:
+    except Exception as e:
         # Skip if schema loading fails
-        pass
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.debug(f"Failed to load run_parallel_subagents schema: {e}")
 
     return base_tools
 

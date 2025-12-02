@@ -31,8 +31,12 @@ def get_mcp_tools(mgr: Manager | None) -> list[dict[str, Any]]:
 
     try:
         return mgr.get_all_tools_openai()
-    except Exception:
+    except Exception as e:
         # Gracefully handle MCP errors
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to load MCP tools: {e}")
         return []
 
 
