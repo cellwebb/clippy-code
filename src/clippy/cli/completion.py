@@ -68,7 +68,7 @@ class ClippyCommandCompleter(Completer):
             "model": {
                 "description": "Model management",
                 "completer": self._create_model_completer(),
-                "subcommands": ["list", "add", "remove", "set-default", "use", "load", "threshold"],
+                "subcommands": ["list", "add", "remove", "set-default", "load", "threshold"],
             },
             "auto": {
                 "description": "Auto-approval management",
@@ -443,8 +443,8 @@ class ClippyCommandCompleter(Completer):
                         subcommand = words[1].lower()
                         current_word = ""  # Starting fresh completion
 
-                    # For "/model load" and "/model use", show model names only
-                    if subcommand in ["load", "use"]:
+                    # For "/model load", show model names only
+                    if subcommand in ["load"]:
                         models = list_available_models()
                         completions: list[Completion] = []
 
@@ -595,7 +595,6 @@ class ClippyCommandCompleter(Completer):
             ("model", "add"): "Add a new model configuration",
             ("model", "remove"): "Remove a saved model",
             ("model", "set-default"): "Set model as default (permanent)",
-            ("model", "use"): "Try a model without saving",
             ("model", "load"): "Load model (same as direct switch)",
             ("model", "threshold"): "Set compaction threshold",
             ("provider", "list"): "List available providers",
@@ -649,7 +648,7 @@ class ModelCommandCompleter(Completer):
                     )
                 )
 
-        # Complete provider names if this looks like an "add" or "use" command
+        # Complete provider names if this looks like an "add" command
         if text == "" or len(text) < 3:  # Short prefix, might be provider
             providers = list_available_providers()
             for provider_name, _ in providers:

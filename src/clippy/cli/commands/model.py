@@ -62,11 +62,6 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
             console.print("[red]Usage: /model switch <name>[/red]")
             return "continue"
         return _handle_model_switch(agent, console, parts[1])
-    elif subcommand == "use":
-        if len(parts) < 2:
-            console.print("[red]Usage: /model use <provider> <model_id>[/red]")
-            return "continue"
-        return _handle_model_use(agent, console, parts[1])
     elif subcommand == "reload":
         reload_model_manager()
         console.print("[green]✓ Model manager reloaded[/green]")
@@ -92,7 +87,6 @@ def _handle_model_help(console: Console) -> CommandResult:
                                   - Add a new model (direct arguments)
   [cyan]/model remove <name>[/cyan]       - Remove a model
   [cyan]/model threshold <name> <n>[/cyan] - Set model compaction threshold
-  [cyan]/model use <provider> <model_id>[/cyan] - Temporarily use a model
   [cyan]/model reload[/cyan]              - Reload model manager
 
 [dim]Use /providers to see available providers[/dim]
@@ -603,43 +597,5 @@ def _handle_model_switch(agent: ClippyAgent, console: Console, name: str) -> Com
             console.print(f"[red]✗ Failed to switch model: {msg}[/red]")
     else:
         console.print(f"[red]✗ Could not load configuration for model '{name}'[/red]")
-
-    return "continue"
-
-
-def _handle_model_use(agent: ClippyAgent, console: Console, args: str) -> CommandResult:
-    """Temporarily use a model without saving it."""
-    parts = args.strip().split(maxsplit=1)
-    if len(parts) < 2:
-        console.print("[red]Usage: /model use <provider> <model_id>[/red]")
-        return "continue"
-
-    provider = parts[0]
-    model_id = parts[1]
-
-    # Verify provider exists
-    provider_obj = get_provider(provider)
-    if not provider_obj:
-        console.print(f"[red]✗ Unknown provider: {provider}[/red]")
-        console.print("[dim]Use /providers to see available providers[/dim]")
-        return "continue"
-
-    # Switch to the temporary model
-    provider_obj = get_provider(provider)
-    if provider_obj is None:
-        console.print(f"[red]✗ Unknown provider: {provider}[/red]")
-        return "continue"
-
-    success, message = agent.switch_model(
-        model=model_id,
-        base_url=provider_obj.base_url,
-        provider_config=provider_obj,
-    )
-
-    if success:
-        console.print(f"[green]✓ {message}[/green]")
-        console.print("[dim](Use /model add to save this model permanently)[/dim]")
-    else:
-        console.print(f"[red]✗ {message}[/red]")
 
     return "continue"

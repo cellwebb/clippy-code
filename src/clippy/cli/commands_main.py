@@ -27,48 +27,6 @@ from .commands.system import (
 from .custom_cli import handle_custom_command_management
 
 
-# Temporary model command (for using a model without saving it)
-def handle_temp_model_command(
-    agent: ClippyAgent, console: Console, command_args: str
-) -> CommandResult:
-    """Handle temporary model switching with provider and model_id."""
-    if not command_args:
-        console.print("[red]Usage: /temp_model <provider> <model_id>[/red]")
-        return "continue"
-
-    parts = command_args.strip().split(maxsplit=1)
-    if len(parts) < 2:
-        console.print("[red]Usage: /temp_model <provider> <model_id>[/red]")
-        return "continue"
-
-    provider = parts[0]
-    model_id = parts[1]
-
-    # Verify provider exists
-    from ..models import get_provider
-
-    provider_obj = get_provider(provider)
-    if not provider_obj:
-        console.print(f"[red]✗ Unknown provider: {provider}[/red]")
-        console.print("[dim]Use /provider list to see available providers[/dim]")
-        return "continue"
-
-    # Switch to the temporary model
-    success, message = agent.switch_model(
-        model=model_id,
-        base_url=provider_obj.base_url,
-        provider_config=provider_obj,
-    )
-
-    if success:
-        console.print(f"[green]✓ {message}[/green]")
-        console.print("[dim](Use /model add to save this model permanently)[/dim]")
-    else:
-        console.print(f"[red]✗ {message}[/red]")
-
-    return "continue"
-
-
 # Auto mode configuration
 def handle_auto_start_command(
     agent: ClippyAgent, console: Console, command_args: str
@@ -141,7 +99,6 @@ COMMAND_HANDLERS_AGENT_CONSOLE_ARGS: dict[str, Any] = {
     "auto-start": handle_auto_start_command,
     "auto-stop": handle_auto_stop_command,
     "model": handle_model_command,
-    "temp_model": handle_temp_model_command,
     "provider": handle_provider_command,
     "mcp": handle_mcp_command,
     "init": handle_init_command,
@@ -243,7 +200,6 @@ __all__ = [
     "register_command_handler",
     "get_command_handlers",
     "list_available_commands",
-    "handle_temp_model_command",
     "handle_auto_start_command",
     "handle_auto_stop_command",
     "COMMAND_HANDLERS_AGENT_CONSOLE_ARGS",
