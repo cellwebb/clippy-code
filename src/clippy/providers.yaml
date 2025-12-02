@@ -19,6 +19,11 @@ providers:
     api_key_env: CLAUDE_CODE_ACCESS_TOKEN
     description: Claude Code (OAuth)
     pydantic_system: anthropic
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    api_key_env: DEEPSEEK_API_KEY
+    description: DeepSeek
+    pydantic_system: openai
   gemini:
     base_url: https://generativelanguage.googleapis.com/v1beta
     api_key_env: GOOGLE_API_KEY
