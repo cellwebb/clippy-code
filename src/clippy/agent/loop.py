@@ -19,6 +19,8 @@ from .errors import format_api_error
 from .tool_handler import handle_tool_use
 
 logger = logging.getLogger(__name__)
+# Loop constants
+DEFAULT_MAX_ITERATIONS = 100
 
 
 def run_agent_loop(
@@ -34,7 +36,7 @@ def run_agent_loop(
     mcp_manager: Any = None,
     allowed_tools: list[str] | None = None,
     parent_agent: Any = None,
-    max_iterations: int | None = 100,
+    max_iterations: int | None = DEFAULT_MAX_ITERATIONS,
     max_duration: float | None = None,
 ) -> str:
     """
@@ -164,14 +166,6 @@ def run_agent_loop(
             assistant_message["tool_calls"] = response["tool_calls"]
 
         # Preserve reasoning_content for reasoner models
-        if response.get("reasoning_content"):
-            assistant_message["reasoning_content"] = response["reasoning_content"]
-
-        # Preserve reasoning_content for reasoner models (e.g., DeepSeek reasoner)
-        if response.get("reasoning_content"):
-            assistant_message["reasoning_content"] = response["reasoning_content"]
-
-        # Preserve reasoning_content for DeepSeek reasoner models
         if response.get("reasoning_content"):
             assistant_message["reasoning_content"] = response["reasoning_content"]
 

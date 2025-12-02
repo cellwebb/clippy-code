@@ -12,6 +12,10 @@ from ..prompts import SYSTEM_PROMPT
 from ..providers import LLMProvider
 
 logger = logging.getLogger(__name__)
+# Token counting constants
+DEFAULT_MAX_TOKENS = 128_000
+TOKENS_PER_MESSAGE_OVERHEAD = 4
+TOKENS_PER_NAME_FIELD = 1  # if name field present
 
 
 def create_system_prompt() -> str:
@@ -108,7 +112,7 @@ def get_token_count(
                 total_tokens += tool_call_tokens
 
             # Add overhead for message formatting (~4 tokens per message)
-            message_overhead = 4
+            message_overhead = TOKENS_PER_MESSAGE_OVERHEAD
             total_tokens += message_overhead
 
             # Categorize by role
@@ -135,7 +139,7 @@ def get_token_count(
             context_limit = threshold
             context_source = "threshold"
         else:
-            context_limit = 128000
+            context_limit = DEFAULT_MAX_TOKENS
             context_source = "default"
 
         usage_percent = (total_tokens / context_limit) * 100 if context_limit > 0 else 0.0
