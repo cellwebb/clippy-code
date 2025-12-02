@@ -170,7 +170,9 @@ def test_handle_model_list_and_errors(monkeypatch: pytest.MonkeyPatch) -> None:
 
     console.messages.clear()
     commands.handle_model_command(agent, console, '"unterminated')
-    assert any("Unknown model subcommand" in str(msg) for msg in console.messages)
+    # Unknown subcommands are treated as model names (shortcut for /model switch)
+    # Since the model doesn't exist, we get "not found"
+    assert any("not found" in str(msg) for msg in console.messages)
 
 
 def test_handle_model_add_remove_and_switch(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -235,6 +237,14 @@ def test_handle_model_add_remove_and_switch(monkeypatch: pytest.MonkeyPatch) -> 
         else None
     )
     monkeypatch.setattr(model_module, "get_user_manager", lambda: user_manager)
+    # Also mock get_model_config to return valid config for the switch to work
+    model_config = SimpleNamespace(name="alias", model_id="qwen", provider="cerebras")
+    provider_config = SimpleNamespace(
+        name="cerebras", base_url="https://api", api_key_env="CEREBRAS_API_KEY"
+    )
+    monkeypatch.setattr(
+        model_module, "get_model_config", lambda name: (model_config, provider_config)
+    )
     monkeypatch.setenv("CEREBRAS_API_KEY", "set")
     console.messages.clear()
     commands.handle_model_command(agent, console, "switch alias")  # Updated command
@@ -348,13 +358,12 @@ def test_handle_model_command_error_message_includes_help(monkeypatch: pytest.Mo
     # The usage error message should mention that "help" is one of the available commands
     assert "help" in messages_text.lower()
 
-    # Test malformed quotes error includes help
+    # Test malformed quotes - treated as model name (unknown subcommand shortcut)
     console.messages.clear()
     commands.handle_model_command(agent, console, '"unterminated')
     messages_text = str(console.messages)
-    # Should show error parsing, and the error message should mention
-    # available commands including help
-    assert "help" in messages_text.lower() or "Error parsing arguments" in messages_text
+    # Unknown subcommands are treated as model names, so we get "not found"
+    assert "not found" in messages_text
 
 
 def test_main_help_includes_model_help_command(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -384,13 +384,13 @@ class UserModelManager:
             return True, f"Set compaction threshold for model '{name}' to {threshold:,} tokens"
 
     def switch_model(self, name: str) -> tuple[bool, str]:
-        """Switch to a model by setting it as the current model."""
+        """Switch to a model for the current session without setting it as default."""
         model = self.get_model(name)
         if not model:
             return False, f"Model '{name}' not found"
 
-        # Set this model as the default
-        return self.set_default(name)
+        # Just return success - don't set as default
+        return True, f"Switched to model '{name}' (current session only)"
 
 
 # Global instances

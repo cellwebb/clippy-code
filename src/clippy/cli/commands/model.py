@@ -47,10 +47,15 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
             return "continue"
         return _handle_model_set_default(console, parts[1])
     elif subcommand == "threshold":
-        if len(parts) < 3:
+        if len(parts) < 2:
             console.print("[red]Usage: /model threshold <name> <threshold>[/red]")
             return "continue"
-        return _handle_model_threshold(console, parts[1], parts[2])
+        # parts[1] contains "<name> <threshold>", need to split further
+        threshold_parts = parts[1].strip().split(maxsplit=1)
+        if len(threshold_parts) < 2:
+            console.print("[red]Usage: /model threshold <name> <threshold>[/red]")
+            return "continue"
+        return _handle_model_threshold(console, threshold_parts[0], threshold_parts[1])
     elif subcommand == "switch":
         if len(parts) < 2:
             console.print("[red]Usage: /model switch <name>[/red]")
@@ -66,9 +71,9 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
         console.print("[green]✓ Model manager reloaded[/green]")
         return "continue"
     else:
-        console.print(f"[red]✗ Unknown model subcommand: {subcommand}[/red]")
-        console.print("[dim]Use /model help for available commands[/dim]")
-        return "continue"
+        # Treat unknown subcommand as a model name to switch to
+        # This makes "/model <name>" work the same as "/model switch <name>"
+        return _handle_model_switch(agent, console, subcommand)
 
 
 def _handle_model_help(console: Console) -> CommandResult:
@@ -78,14 +83,14 @@ def _handle_model_help(console: Console) -> CommandResult:
 
   [cyan]/model[/cyan]                     - Show this help
   [cyan]/model list[/cyan]                - List available models
-  [cyan]/model add[/cyan]                    - Add a new model (interactive wizard)
-  [cyan]/model add[/cyan]                    - Interactive wizard to add a new model
+  [cyan]/model <name>[/cyan]              - Switch to a model (shortcut for /model switch)
+  [cyan]/model switch <name>[/cyan]       - Switch to a model (current session only)
+  [cyan]/model set-default <name>[/cyan]  - Set default model (permanent)
+  [cyan]/model add[/cyan]                 - Add a new model (interactive wizard)
   [cyan]/model add <provider> <model_id> [--name <display_name>][/cyan]
                                   - Add a new model (direct arguments)
   [cyan]/model remove <name>[/cyan]       - Remove a model
-  [cyan]/model set-default <name>[/cyan]  - Set default model
-  [cyan]/model threshold <name> <n>[/cyan] - Set model switch threshold
-  [cyan]/model switch <name>[/cyan]       - Switch to a model
+  [cyan]/model threshold <name> <n>[/cyan] - Set model compaction threshold
   [cyan]/model use <provider> <model_id>[/cyan] - Temporarily use a model
   [cyan]/model reload[/cyan]              - Reload model manager
 
@@ -141,7 +146,8 @@ def _handle_model_list(console: Console) -> CommandResult:
 
             console.print(f"  [cyan]{model[0]:20}[/cyan]{threshold_info} {status}")
 
-    console.print("\n[dim]Use /model switch <name> to switch models[/dim]")
+    console.print("\n[dim]Use /model switch <name> to switch models (current session only)[/dim]")
+    console.print("[dim]Use /model set-default <name> to set a model as default (permanent)[/dim]")
     return "continue"
 
 
@@ -386,20 +392,29 @@ def _handle_model_add_wizard(agent: ClippyAgent, console: Console) -> CommandRes
                 default=True,
             ).ask()
             if switch_now:
-                switch_success, switch_message = user_manager.switch_model(display_name)
-                if switch_success:
-                    console.print(f"[green]✓ {switch_message}[/green]")
-                    # Update the agent
-                    model_config, provider_config = get_model_config(display_name)
-                    if model_config and provider_config:
-                        agent.switch_model(
-                            model=model_config.model_id,
-                            base_url=provider_config.base_url,
-                            provider_config=provider_config,
+                # Update the agent directly without setting as default
+                model_config, provider_config = get_model_config(display_name)
+                if model_config and provider_config:
+                    success, msg = agent.switch_model(
+                        model=model_config.model_id,
+                        base_url=provider_config.base_url,
+                        provider_config=provider_config,
+                    )
+                    if success:
+                        console.print(
+                            f"[green]✓ Switched to model '{display_name}' "
+                            f"(current session only)[/green]"
                         )
-                        console.print(f"[green]✓ Agent updated to use '{display_name}'[/green]")
+                        console.print(
+                            f"[dim]Use '/model set-default {display_name}' "
+                            f"to make it your default model[/dim]"
+                        )
+                    else:
+                        console.print(f"[red]✗ Failed to switch model: {msg}[/red]")
                 else:
-                    console.print(f"[red]✗ Failed to switch model: {switch_message}[/red]")
+                    console.print(
+                        f"[red]✗ Could not load configuration for model '{display_name}'[/red]"
+                    )
     else:
         console.print(f"[red]✗ {message}[/red]")
 
@@ -533,26 +548,31 @@ def _handle_model_threshold(console: Console, name: str, threshold_str: str) -> 
 
 
 def _handle_model_switch(agent: ClippyAgent, console: Console, name: str) -> CommandResult:
-    """Switch to a model."""
+    """Switch to a model for the current session only."""
     user_manager = get_user_manager()
-    success, message = user_manager.switch_model(name)
+    model = user_manager.get_model(name)
 
-    if success:
-        console.print(f"[green]✓ {message}[/green]")
-        # Get the model configuration and update the agent
-        model_config, provider_config = get_model_config(name)
-        if model_config and provider_config:
-            success, msg = agent.switch_model(
-                model=model_config.model_id,
-                base_url=provider_config.base_url,
-                provider_config=provider_config,
+    if not model:
+        console.print(f"[red]✗ Model '{name}' not found[/red]")
+        return "continue"
+
+    # Get the model configuration and update the agent
+    model_config, provider_config = get_model_config(name)
+    if model_config and provider_config:
+        success, msg = agent.switch_model(
+            model=model_config.model_id,
+            base_url=provider_config.base_url,
+            provider_config=provider_config,
+        )
+        if success:
+            console.print(f"[green]✓ Switched to model '{name}' (current session only)[/green]")
+            console.print(
+                f"[dim]Use '/model set-default {name}' to make it your default model[/dim]"
             )
-            if not success:
-                console.print(
-                    f"[yellow]⚠ Model switched in config but failed to update agent: {msg}[/yellow]"
-                )
+        else:
+            console.print(f"[red]✗ Failed to switch model: {msg}[/red]")
     else:
-        console.print(f"[red]✗ {message}[/red]")
+        console.print(f"[red]✗ Could not load configuration for model '{name}'[/red]")
 
     return "continue"
 
