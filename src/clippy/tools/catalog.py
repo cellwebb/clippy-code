@@ -1,9 +1,12 @@
 """Tool catalog for merging built-in and MCP tools with enhanced categorization."""
 
+import logging
 from typing import Any
 
 from ..mcp.manager import Manager
 from ..tools import TOOLS as BUILTIN_TOOLS
+
+logger = logging.getLogger(__name__)
 
 
 def get_builtin_tools() -> list[dict[str, Any]]:
@@ -31,12 +34,13 @@ def get_mcp_tools(mgr: Manager | None) -> list[dict[str, Any]]:
 
     try:
         return mgr.get_all_tools_openai()
+    except (ConnectionError, TimeoutError, RuntimeError) as e:
+        # Handle MCP connection/communication errors gracefully
+        logger.warning(f"Failed to load MCP tools ({type(e).__name__}): {e}")
+        return []
     except Exception as e:
-        # Gracefully handle MCP errors
-        import logging
-
-        logger = logging.getLogger(__name__)
-        logger.warning(f"Failed to load MCP tools: {e}")
+        # Catch unexpected errors to prevent MCP issues from crashing the app
+        logger.warning(f"Unexpected error loading MCP tools ({type(e).__name__}): {e}")
         return []
 
 
@@ -165,7 +169,6 @@ def get_tool_recommendations(context: dict[str, Any] | None = None) -> list[str]
 
     # Context-based recommendations
     recent_operations = context.get("recent_operations", [])
-    context.get("current_file", "")
     file_type = context.get("file_type", "")
 
     # Recommend based on file type

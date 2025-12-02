@@ -141,8 +141,9 @@ class LLMProvider:
                     return ClaudeCodeOAuthProvider(api_key=token, base_url=base_url)
         except ImportError:
             logger.warning("Claude Code OAuth module not available")
-        except Exception as e:
-            logger.warning(f"Failed to load Claude Code OAuth token: {e}")
+        except (OSError, ValueError, RuntimeError) as e:
+            # Handle token loading errors: file I/O, invalid token format, or runtime issues
+            logger.warning(f"Failed to load Claude Code OAuth token ({type(e).__name__}): {e}")
 
         # Fall back to provider without token (will fail on first request)
         return ClaudeCodeOAuthProvider(api_key=self.api_key, base_url=base_url)
