@@ -153,7 +153,11 @@ def find_replace(
         return True, message, summary
 
     except Exception as e:
-        return False, f"Error during find/replace operation: {str(e)}", None
+        return (
+            False,
+            f"Error during find/replace operation (pattern: '{pattern}', paths: {paths}): {str(e)}",
+            None,
+        )
 
 
 def collect_files(

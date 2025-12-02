@@ -227,9 +227,9 @@ def grep(pattern: str, paths: list[str], flags: str = "") -> tuple[bool, str, An
         elif result.returncode == 1:  # No matches found (not an error)
             return True, "grep search completed (no matches found)", ""
         else:  # Actual error occurred
-            return False, f"Error in grep/rg command: {output}", None
+            return False, f"Error in grep/rg command (pattern: '{pattern}'): {output}", None
 
     except subprocess.TimeoutExpired:
         return False, "Search timed out after 30 seconds", None
     except Exception as e:
-        return False, f"Failed to execute grep: {str(e)}", None
+        return False, f"Failed to execute grep (pattern: '{pattern}'): {str(e)}", None
