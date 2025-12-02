@@ -249,7 +249,7 @@ def create_parallel_subagents_and_execute(
             return True, message, []
 
         # Create subagent configurations
-        subagent_configs: list[Any] = []
+        subagent_configs: list[SubAgentConfigType] = []
         for i, subagent_config in enumerate(subagents):
             # Get default configuration for the subagent type
             default_config = get_default_config(subagent_config["subagent_type"])
@@ -263,38 +263,38 @@ def create_parallel_subagents_and_execute(
             name = f"{subagent_config['subagent_type']}_{i + 1}_{timestamp}_{unique_id}"
 
             # Override defaults with provided parameters
-            config = default_config.copy()
+            config_dict = default_config.copy()
             # Use global max_iterations if provided and no per-subagent override
             if (
                 "max_iterations" in subagent_config
                 and subagent_config["max_iterations"] is not None
             ):
-                config["max_iterations"] = subagent_config["max_iterations"]
+                config_dict["max_iterations"] = subagent_config["max_iterations"]
             elif max_iterations is not None:
-                config["max_iterations"] = max_iterations
+                config_dict["max_iterations"] = max_iterations
             if "timeout" in subagent_config and subagent_config["timeout"] != 300:
-                config["timeout"] = subagent_config["timeout"]
+                config_dict["timeout"] = subagent_config["timeout"]
             if "allowed_tools" in subagent_config:
-                config["allowed_tools"] = subagent_config["allowed_tools"]
+                config_dict["allowed_tools"] = subagent_config["allowed_tools"]
 
             # Create subagent configuration
             subagent_config_obj = SubAgentConfig(
                 name=name,
                 task=subagent_config["task"],
                 subagent_type=subagent_config["subagent_type"],
-                system_prompt=config.get("system_prompt"),
-                allowed_tools=config.get("allowed_tools"),
+                system_prompt=config_dict.get("system_prompt"),
+                allowed_tools=config_dict.get("allowed_tools"),
                 auto_approve_tools=subagent_config.get("auto_approve_tools"),
-                model=config.get("model"),
-                max_iterations=config.get("max_iterations", 25),
-                timeout=config.get("timeout", 300),
+                model=config_dict.get("model"),
+                max_iterations=config_dict.get("max_iterations", 25),
+                timeout=config_dict.get("timeout", 300),
                 context=subagent_config.get("context", {}),
             )
 
             subagent_configs.append(subagent_config_obj)
 
         # Create subagent instances
-        subagent_instances: list[Any] = []
+        subagent_instances: list[SubAgentType] = []
         for config in subagent_configs:
             subagent = parent_agent.subagent_manager.create_subagent(config)
             subagent_instances.append(subagent)
