@@ -4,6 +4,7 @@ from typing import Literal
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.table import Table
 
 from ...agent import ClippyAgent
 from ...models import (
@@ -117,37 +118,66 @@ def _handle_model_list(console: Console) -> CommandResult:
     except Exception:
         pass  # Current model info not available
 
-    # Group models by provider
-    models_by_provider: dict[str, list[tuple[str, str, bool, int | None, str]]] = {}
-    for model in models:
-        # model[4] is the provider name from the tuple
-        # (name, description, is_default, compaction_threshold, provider)
-        provider = model[4]
-        if provider not in models_by_provider:
-            models_by_provider[provider] = []
-        models_by_provider[provider].append(model)
+    # Create a table with rich formatting
+    table = Table(
+        title="Available Models",
+        show_header=True,
+        header_style="bold cyan",
+        border_style="blue",
+        title_style="bold green",
+    )
 
-    # Display models
-    for provider, provider_models in sorted(models_by_provider.items()):
-        console.print(f"\n[bold cyan]Provider: {provider}[/bold cyan]")
+    # Add columns
+    table.add_column("Model Name", style="cyan", width=25)
+    table.add_column("Provider", style="green", width=15)
+    table.add_column("Threshold", style="yellow", width=12, justify="right")
+    table.add_column("Status", style="magenta", width=25)
 
-        for model in sorted(provider_models, key=lambda m: m[0]):  # m[0] is the name
-            status_indicators = []
-            if current_model and model[0] == current_model.name:
-                status_indicators.append("[green]✓ CURRENT[/green]")
-            if model[2]:  # model[2] is is_default
-                status_indicators.append("[blue]★ DEFAULT[/blue]")
+    # Sort models by provider, then by name
+    sorted_models = sorted(models, key=lambda m: (m[4], m[0]))  # m[4] is provider, m[0] is name
 
-            status = " ".join(status_indicators) if status_indicators else ""
-            if model[3] is not None and model[3] != -1:  # model[3] is compaction_threshold
-                threshold_info = f" [dim]({model[3]})[/dim]"
-            else:
-                threshold_info = ""
+    # Add rows to the table
+    for model in sorted_models:
+        name, description, is_default, compaction_threshold, provider = model
 
-            console.print(f"  [cyan]{model[0]:20}[/cyan]{threshold_info} {status}")
+        # Format threshold
+        if compaction_threshold is not None and compaction_threshold != -1:
+            threshold_str = f"{compaction_threshold:,}"
+        else:
+            threshold_str = "—"
 
-    console.print("\n[dim]Use /model switch <name> to switch models (current session only)[/dim]")
-    console.print("[dim]Use /model set-default <name> to set a model as default (permanent)[/dim]")
+        # Determine status
+        status_parts = []
+        if is_default:
+            status_parts.append("[bold blue]★ DEFAULT[/bold blue]")
+        if current_model and name == current_model.name:
+            status_parts.append("[bold green]✓ CURRENT[/bold green]")
+
+        status = " ".join(status_parts) if status_parts else ""
+
+        # Add row to table
+        table.add_row(name, provider, threshold_str, status)
+
+    # Wrap the table in a panel for better visual appeal
+    panel = Panel(
+        table,
+        title="📊 Model Configuration",
+        border_style="cyan",
+        padding=(1, 2),
+    )
+
+    console.print(panel)
+
+    # Add helpful information below
+    console.print("\n[dim]Legend:[/dim]")
+    console.print("  [bold blue]★ DEFAULT[/bold blue] - Default model (permanent)")
+    console.print("  [bold green]✓ CURRENT[/bold green] - Currently active model (session only)")
+    console.print("  [dim]—[/dim] - No compaction threshold set")
+    console.print("\n[dim]Commands:[/dim]")
+    console.print("  [cyan]/model switch <name>[/cyan] - Switch to a model (current session only)")
+    console.print("  [cyan]/model set-default <name>[/cyan] - Set a model as default (permanent)")
+    console.print("  [cyan]/model threshold <name> <n>[/cyan] - Set model compaction threshold")
+
     return "continue"
 
 

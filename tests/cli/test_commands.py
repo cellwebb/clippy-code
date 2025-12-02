@@ -16,8 +16,19 @@ class DummyConsole:
         self.messages: list[Any] = []
 
     def print(self, message: Any) -> None:
+        # Handle Rich renderable objects
         if hasattr(message, "renderable"):
-            self.messages.append(str(message.renderable))
+            # For Panel objects that contain Tables
+            renderable = message.renderable
+            # Try to render it to get the actual text
+            import io
+
+            from rich.console import Console
+
+            output = io.StringIO()
+            console = Console(file=output, force_terminal=False, width=100)
+            console.print(renderable)
+            self.messages.append(output.getvalue())
         else:
             self.messages.append(str(message))
 
@@ -166,7 +177,11 @@ def test_handle_model_list_and_errors(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda: [("gpt-5", "OpenAI GPT-5", True, None, "openai")],  # Updated tuple format
     )
     commands.handle_model_command(agent, console, "list")
-    assert any("Provider: openai" in str(msg) for msg in console.messages)  # Updated message
+    # Check for table content in the new format
+    messages_text = " ".join(str(msg) for msg in console.messages)
+    assert "gpt-5" in messages_text  # Model name should appear
+    assert "openai" in messages_text  # Provider name should appear
+    assert "★ DEFAULT" in messages_text  # Default status should appear
 
     console.messages.clear()
     commands.handle_model_command(agent, console, '"unterminated')
