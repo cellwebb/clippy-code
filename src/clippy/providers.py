@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sys
 import threading
 import time
@@ -29,6 +30,12 @@ from pydantic_ai.providers.openai import OpenAIProvider
 
 if TYPE_CHECKING:
     from .models import ProviderConfig
+
+# Provider constants
+logger = logging.getLogger(__name__)
+SPINNER_SLEEP_INTERVAL = 0.1  # seconds
+RETRY_DELAY = 1.0  # seconds
+MAX_RETRY_ATTEMPTS = 3
 
 # Module-level storage for reasoning_content to support reasoner models
 _reasoning_storage: dict[int, str] = {}  # message_index -> reasoning_content
@@ -105,7 +112,7 @@ class ClaudeCodeOAuthProvider(AnthropicProvider):
             # Import here to avoid circular imports
             from .oauth.claude_code import ensure_valid_token
 
-            print("\n🔐 Claude Code token expired - attempting automatic re-authentication...")
+            logger.info("🔐 Claude Code token expired - attempting automatic re-authentication...")
 
             # Attempt to re-authenticate
             if ensure_valid_token(quiet=False, force_reauth=True):
@@ -115,7 +122,7 @@ class ClaudeCodeOAuthProvider(AnthropicProvider):
                 new_token = load_stored_token(check_expiry=False)
                 if new_token and hasattr(self._client, "api_key"):
                     self._client.api_key = new_token
-                    print("✅ Re-authentication successful - retrying request...")
+                    logger.info("✅ Re-authentication successful - retrying request...")
 
                     # Update headers with new token
                     if "headers" in kwargs:
@@ -124,7 +131,7 @@ class ClaudeCodeOAuthProvider(AnthropicProvider):
                     # Retry the request
                     return super()._make_request(*args, **kwargs)  # type: ignore
 
-            print("❌ Automatic re-authentication failed")
+            logger.error("❌ Automatic re-authentication failed")
             raise Exception("Claude Code OAuth re-authentication failed")
 
         finally:
@@ -149,7 +156,7 @@ class Spinner:
                 f"\r[📎] {self.message} {self.spinner_chars[i % len(self.spinner_chars)]}"
             )
             sys.stdout.flush()
-            time.sleep(0.1)
+            time.sleep(SPINNER_SLEEP_INTERVAL)
             i += 1
 
     def start(self) -> None:
@@ -387,7 +394,7 @@ class LLMProvider:
                 assistant_content = result.get("content")
                 if assistant_content:
                     cleaned_content = assistant_content.lstrip("\n")
-                    print(f"\n[📎] {cleaned_content}")
+                    logger.info(f"[📎] {cleaned_content}")
                 return result
 
             provider_system = self.provider_config.pydantic_system if self.provider_config else None
@@ -408,8 +415,8 @@ class LLMProvider:
                 and hasattr(self.provider_config, "name")
                 and self.provider_config.name == "proxy"
             ):
-                print(
-                    f"[DEBUG] Using proxy provider - model: {model}, "
+                logger.debug(
+                    f"Using proxy provider - model: {model}, "
                     f"resolved to: {target_model}, base_url: {self.base_url}"
                 )
             try:
@@ -427,16 +434,16 @@ class LLMProvider:
             except Exception as e:
                 # Check if this is the specific pydantic validation error we're seeing
                 if "Input should be 'chat.completion'" in str(e) and "literal_error" in str(e):
-                    print(f"\n[ERROR] Model response validation failed: {e}")
-                    print("This typically occurs when:")
-                    print("1. The API returns an invalid response format")
-                    print("2. The response object is None internally")
-                    print("3. There's an issue with the OpenAI API client")
-                    print("\nTrying to refresh the provider connection...")
+                    logger.error(f"Model response validation failed: {e}")
+                    logger.error("This typically occurs when:")
+                    logger.error("1. The API returns an invalid response format")
+                    logger.error("2. The response object is None internally")
+                    logger.error("3. There's an issue with the OpenAI API client")
+                    logger.info("Trying to refresh the provider connection...")
                     # Try to clear any cached connections and retry once
                     import time
 
-                    time.sleep(1)
+                    time.sleep(RETRY_DELAY)
                     response = model_request_sync(
                         target_model,
                         model_messages,
@@ -451,17 +458,17 @@ class LLMProvider:
 
         # Debug: Check what we actually get from pydantic-ai
         if "deepseek-reasoner" in model.lower():
-            print(f"[DEBUG] Raw response type: {type(response)}")
-            print(
-                f"[DEBUG] Response attributes: "
+            logger.debug(f"Raw response type: {type(response)}")
+            logger.debug(
+                f"Response attributes: "
                 f"{dir(response) if hasattr(response, '__dir__') else 'No __dir__'}"
             )
             if hasattr(response, "__dict__"):
-                print(f"[DEBUG] Response dict keys: {list(response.__dict__.keys())}")
+                logger.debug(f"Response dict keys: {list(response.__dict__.keys())}")
             if hasattr(response, "provider_details"):
-                print(f"[DEBUG] Provider details: {response.provider_details}")
+                logger.debug(f"Provider details: {response.provider_details}")
             if hasattr(response, "thinking"):
-                print(f"[DEBUG] Thinking: {response.thinking}")
+                logger.debug(f"Thinking: {response.thinking}")
 
         result = _convert_response_to_openai(response)
 
@@ -479,7 +486,7 @@ class LLMProvider:
         if assistant_content:
             # Remove leading newlines that cause emoji to appear on separate line
             cleaned_content = assistant_content.lstrip("\n")
-            print(f"\n[📎] {cleaned_content}")
+            logger.info(f"[📎] {cleaned_content}")
 
         return result
 
