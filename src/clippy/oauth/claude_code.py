@@ -351,25 +351,51 @@ def get_token_storage_path() -> Path:
     return Path.home() / ".clippy" / ".env"
 
 
-def load_stored_token() -> str | None:
-    """Load stored access token from .env file."""
+def load_stored_token(check_expiry: bool = True) -> str | None:
+    """Load stored access token from .env file.
+
+    Args:
+        check_expiry: If True, return None if token is expired
+
+    Returns:
+        Access token if valid, None otherwise
+    """
     from dotenv import dotenv_values
 
     # Check environment variable first (highest priority)
     token = os.getenv("CLAUDE_CODE_ACCESS_TOKEN")
-    if token:
-        return token
+    expires_at_str = os.getenv("CLAUDE_CODE_EXPIRES_AT")
 
-    # Then check file
-    env_path = get_token_storage_path()
-    if not env_path.exists():
-        return None
+    # If not in environment, check file
+    if not token:
+        env_path = get_token_storage_path()
+        if not env_path.exists():
+            return None
 
-    env_vars = dotenv_values(str(env_path))
-    return env_vars.get("CLAUDE_CODE_ACCESS_TOKEN")
+        env_vars = dotenv_values(str(env_path))
+        token = env_vars.get("CLAUDE_CODE_ACCESS_TOKEN")
+        expires_at_str = env_vars.get("CLAUDE_CODE_EXPIRES_AT")
+
+    # Check expiry if requested
+    if check_expiry and token and expires_at_str:
+        try:
+            expires_at = float(expires_at_str)
+            # Add 5-minute buffer to refresh before expiry
+            if time.time() > expires_at - 300:
+                logger.info("Claude Code token is expired or expiring soon")
+                return None
+        except ValueError:
+            logger.warning("Invalid expiry timestamp format for Claude Code token")
+
+    return token
 
 
-def save_token(access_token: str) -> bool:
+def is_token_expired() -> bool:
+    """Check if the stored token is expired or expiring soon."""
+    return load_stored_token(check_expiry=True) is None
+
+
+def save_token(access_token: str, expires_at: float | None = None) -> bool:
     """Save access token to .env file and update environment."""
     import os
 
@@ -380,6 +406,11 @@ def save_token(access_token: str) -> bool:
         # Ensure .clippy directory exists
         env_path.parent.mkdir(exist_ok=True)
         set_key(str(env_path), "CLAUDE_CODE_ACCESS_TOKEN", access_token)
+
+        # Save expiry time if provided
+        if expires_at:
+            set_key(str(env_path), "CLAUDE_CODE_EXPIRES_AT", str(expires_at))
+
         # Also update the current environment so the token is immediately available
         os.environ["CLAUDE_CODE_ACCESS_TOKEN"] = access_token
         return True
@@ -400,7 +431,9 @@ def authenticate_and_save(quiet: bool = False) -> bool:
             print("❌ No access token returned from authentication")
         return False
 
-    if not save_token(access_token):
+    expires_at = tokens.get("expires_at")
+
+    if not save_token(access_token, expires_at):
         if not quiet:
             print("❌ Failed to save access token")
         return False
@@ -409,3 +442,23 @@ def authenticate_and_save(quiet: bool = False) -> bool:
         print(f"✓ Access token saved to {get_token_storage_path()}")
 
     return True
+
+
+def ensure_valid_token(quiet: bool = False, force_reauth: bool = False) -> bool:
+    """Ensure a valid Claude Code OAuth token is available.
+
+    Args:
+        quiet: Suppress output
+        force_reauth: Force re-authentication even if token appears valid
+
+    Returns:
+        True if a valid token is available, False otherwise
+    """
+    # Check for existing valid token
+    if not force_reauth:
+        token = load_stored_token(check_expiry=True)
+        if token:
+            return True
+
+    # Token is expired or not available, re-authenticate
+    return authenticate_and_save(quiet=quiet)

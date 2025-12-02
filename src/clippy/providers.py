@@ -30,12 +30,22 @@ from pydantic_ai.providers.openai import OpenAIProvider
 if TYPE_CHECKING:
     from .models import ProviderConfig
 
+# Module-level storage for reasoning_content to support reasoner models
+_reasoning_storage: dict[int, str] = {}  # message_index -> reasoning_content
+
+
+def _is_reasoner_model(model: str) -> bool:
+    """Check if a model is a DeepSeek reasoner model that needs special handling."""
+    model_lower = model.lower()
+    return "reasoner" in model_lower or "deepseek-r1" in model_lower
+
 
 class ClaudeCodeOAuthProvider(AnthropicProvider):
     """Custom Anthropic provider for Claude Code OAuth authentication.
 
     This provider uses the special OAuth token and headers required for Claude Code subscriptions.
     It automatically handles the exact system message requirement and proper authentication headers.
+    It also automatically re-authenticates when the OAuth token expires.
     """
 
     def __init__(
@@ -50,14 +60,75 @@ class ClaudeCodeOAuthProvider(AnthropicProvider):
             base_url=base_url or "https://api.anthropic.com",
             **kwargs,
         )
+        self._reauth_in_progress = False
 
     def _make_request(self, *args: Any, **kwargs: Any) -> Any:
-        """Override to add Claude Code specific headers."""
+        """Override to add Claude Code specific headers and handle auto-reauthentication."""
         # Add the special anthropic-beta header for OAuth
         if "headers" not in kwargs:
             kwargs["headers"] = {}
         kwargs["headers"]["anthropic-beta"] = "oauth-2025-04-20"
-        return super()._make_request(*args, **kwargs)  # type: ignore
+
+        # Try the request
+        try:
+            response = super()._make_request(*args, **kwargs)  # type: ignore
+            return response
+        except Exception as exc:
+            # Check if this is an authentication error
+            if self._is_auth_error(exc) and not self._reauth_in_progress:
+                return self._handle_auth_error_and_retry(args, kwargs)
+            else:
+                raise
+
+    def _is_auth_error(self, exc: Exception) -> bool:
+        """Check if an exception is an authentication error."""
+        exc_str = str(exc).lower()
+        # Look for common authentication error indicators
+        auth_indicators = [
+            "401",
+            "403",
+            "unauthorized",
+            "forbidden",
+            "invalid token",
+            "expired",
+            "authentication failed",
+            "token",
+        ]
+        return any(indicator in exc_str for indicator in auth_indicators)
+
+    def _handle_auth_error_and_retry(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
+        """Handle authentication error by re-authenticating and retrying the request."""
+        # Prevent infinite recursion
+        self._reauth_in_progress = True
+
+        try:
+            # Import here to avoid circular imports
+            from .oauth.claude_code import ensure_valid_token
+
+            print("\n🔐 Claude Code token expired - attempting automatic re-authentication...")
+
+            # Attempt to re-authenticate
+            if ensure_valid_token(quiet=False, force_reauth=True):
+                # Update the API key with the new token
+                from .oauth.claude_code import load_stored_token
+
+                new_token = load_stored_token(check_expiry=False)
+                if new_token and hasattr(self._client, "api_key"):
+                    self._client.api_key = new_token
+                    print("✅ Re-authentication successful - retrying request...")
+
+                    # Update headers with new token
+                    if "headers" in kwargs:
+                        kwargs["headers"]["Authorization"] = f"Bearer {new_token}"
+
+                    # Retry the request
+                    return super()._make_request(*args, **kwargs)  # type: ignore
+
+            print("❌ Automatic re-authentication failed")
+            raise Exception("Claude Code OAuth re-authentication failed")
+
+        finally:
+            self._reauth_in_progress = False
 
 
 class Spinner:
@@ -101,6 +172,78 @@ class Spinner:
             sys.stdout.flush()
 
 
+def _patch_deepseek_reasoner(target_model: Any) -> Any:
+    """Patch a DeepSeek reasoner model to preserve reasoning_content."""
+    if not hasattr(target_model, "_deepseek_patched"):
+        target_model._deepseek_patched = True
+        original_map_messages = target_model._map_messages
+
+        async def patched_map_messages(msgs: Any, mrp: Any) -> Any:
+            """Patched version that adds reasoning_content for DeepSeek."""
+            openai_messages = await original_map_messages(msgs, mrp)
+
+            # Add reasoning_content to assistant messages with tool_calls
+            for i, openai_msg in enumerate(openai_messages):
+                if openai_msg.get("role") == "assistant" and "tool_calls" in openai_msg:
+                    # Check if we have reasoning_marker in the pydantic messages
+                    for j, msg in enumerate(msgs):
+                        if (
+                            hasattr(msg, "parts")
+                            and j < len(msgs)
+                            and isinstance(msgs[j].parts, list)
+                        ):
+                            for part in msgs[j].parts:
+                                if (
+                                    hasattr(part, "content")
+                                    and part.content
+                                    and "[REASONING]" in part.content
+                                ):
+                                    # Extract reasoning content
+                                    start = part.content.find("[REASONING]") + len("[REASONING]")
+                                    end = part.content.find("[/REASONING]", start)
+                                    if end > start:
+                                        reasoning = part.content[start:end].strip()
+                                        openai_msg["reasoning_content"] = reasoning
+                                        break
+
+            return openai_messages
+
+        target_model._map_messages = patched_map_messages
+
+    return target_model
+
+
+def _apply_reasoner_patch(target_model: Any, model: str, messages: Any = None) -> Any:
+    """Apply patch for reasoner models to preserve reasoning_content."""
+    if "reasoner" in model.lower() and not hasattr(target_model, "_reasoner_patched"):
+        target_model._reasoner_patched = True
+        original_map_messages = target_model._map_messages
+
+        async def patched_map_messages(msgs: Any, mrp: Any) -> Any:
+            """Patched _map_messages that adds reasoning_content for reasoner models."""
+            openai_messages = await original_map_messages(msgs, mrp)
+
+            # Try to find reasoning_content for assistant messages with tool_calls
+            for i, openai_msg in enumerate(openai_messages):
+                if (
+                    openai_msg.get("role") == "assistant"
+                    and "tool_calls" in openai_msg
+                    and "reasoning_content" not in openai_msg
+                ):
+                    # Look for reasoning in global storage
+                    for conv_hash, reasoning in _reasoning_storage.items():
+                        # Check if this reasoning applies to any assistant message
+                        if reasoning:
+                            openai_msg["reasoning_content"] = reasoning
+                            break
+
+            return openai_messages
+
+        target_model._map_messages = patched_map_messages
+
+    return target_model
+
+
 class LLMProvider:
     """Adapter that routes chat completions through Pydantic AI."""
 
@@ -115,6 +258,115 @@ class LLMProvider:
         self.base_url = base_url
         self.provider_config = provider_config
 
+    def _create_message_for_reasoner(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str = "deepseek-reasoner",
+    ) -> dict[str, Any]:
+        """Create a chat completion for DeepSeek reasoner models using OpenAI SDK directly.
+
+        DeepSeek reasoner models require special handling for the `reasoning_content` field.
+        When tool calls are made, the API requires that subsequent requests include the
+        `reasoning_content` from the assistant's response. Pydantic AI doesn't preserve
+        this field, so we use the OpenAI SDK directly for these models.
+
+        See: https://api-docs.deepseek.com/guides/reasoning_model
+        """
+        import openai
+
+        # Build client with appropriate configuration
+        client_kwargs: dict[str, Any] = {}
+        if self.api_key:
+            client_kwargs["api_key"] = self.api_key
+        if self.base_url:
+            client_kwargs["base_url"] = self.base_url
+        elif self.provider_config and self.provider_config.base_url:
+            client_kwargs["base_url"] = self.provider_config.base_url
+
+        client = openai.OpenAI(**client_kwargs)
+
+        # Prepare messages - keep reasoning_content for assistant messages with tool_calls
+        # but only within the current turn (after the last user message)
+        api_messages = []
+        last_user_idx = -1
+
+        # Find the last user message index
+        for i, msg in enumerate(messages):
+            if msg.get("role") == "user":
+                last_user_idx = i
+
+        for i, msg in enumerate(messages):
+            role = msg.get("role")
+            api_msg: dict[str, Any] = {"role": role}
+
+            if role == "system":
+                api_msg["content"] = msg.get("content", "")
+            elif role == "user":
+                api_msg["content"] = msg.get("content", "")
+            elif role == "assistant":
+                content = msg.get("content")
+                if content:
+                    api_msg["content"] = content
+
+                # Include tool_calls if present
+                if msg.get("tool_calls"):
+                    api_msg["tool_calls"] = msg["tool_calls"]
+
+                    # Include reasoning_content ONLY for messages after the last user message
+                    # (within the current tool-calling turn)
+                    if i > last_user_idx and msg.get("reasoning_content"):
+                        api_msg["reasoning_content"] = msg["reasoning_content"]
+            elif role == "tool":
+                api_msg["role"] = "tool"
+                api_msg["tool_call_id"] = msg.get("tool_call_id", "")
+                api_msg["content"] = msg.get("content", "")
+
+            api_messages.append(api_msg)
+
+        # Prepare request kwargs
+        request_kwargs: dict[str, Any] = {
+            "model": model,
+            "messages": api_messages,
+        }
+
+        # Add tools if provided
+        if tools:
+            request_kwargs["tools"] = tools
+
+        # Make the API call
+        response = client.chat.completions.create(**request_kwargs)
+
+        # Extract the response
+        choice = response.choices[0]
+        message = choice.message
+
+        result: dict[str, Any] = {
+            "role": "assistant",
+            "content": message.content,
+            "finish_reason": choice.finish_reason,
+        }
+
+        # Capture tool_calls if present
+        if message.tool_calls:
+            result["tool_calls"] = [
+                {
+                    "id": tc.id,
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    },
+                }
+                for tc in message.tool_calls
+            ]
+
+        # Capture reasoning_content - this is the key field for DeepSeek reasoner
+        if hasattr(message, "reasoning_content") and message.reasoning_content:
+            result["reasoning_content"] = message.reasoning_content
+
+        return result
+
     def create_message(
         self,
         messages: list[dict[str, Any]],
@@ -128,6 +380,16 @@ class LLMProvider:
         spinner.start()
 
         try:
+            # Use direct OpenAI SDK for DeepSeek reasoner models
+            # These models require special handling for reasoning_content field
+            if _is_reasoner_model(model):
+                result = self._create_message_for_reasoner(messages, tools, model)
+                assistant_content = result.get("content")
+                if assistant_content:
+                    cleaned_content = assistant_content.lstrip("\n")
+                    print(f"\n[📎] {cleaned_content}")
+                return result
+
             provider_system = self.provider_config.pydantic_system if self.provider_config else None
             model_messages = _convert_openai_messages(messages, provider_system)
             tool_definitions = _convert_tools(tools)
@@ -139,15 +401,79 @@ class LLMProvider:
 
             model_identifier, model_object = self._resolve_model(model)
             target_model = model_object or self._default_provider_identifier(model_identifier)
-            response = model_request_sync(
-                target_model,
-                model_messages,
-                model_request_parameters=params,
-            )
+
+            # Debug: Print model resolution info
+            if (
+                self.provider_config is not None
+                and hasattr(self.provider_config, "name")
+                and self.provider_config.name == "proxy"
+            ):
+                print(
+                    f"[DEBUG] Using proxy provider - model: {model}, "
+                    f"resolved to: {target_model}, base_url: {self.base_url}"
+                )
+            try:
+                response = model_request_sync(
+                    target_model,
+                    model_messages,
+                    model_request_parameters=params,
+                )
+                # Check if response is None (which causes the pydantic validation error)
+                if response is None:
+                    raise ValueError(
+                        "Model returned None response - this may indicate an issue "
+                        "with the OpenAI API client or provider"
+                    )
+            except Exception as e:
+                # Check if this is the specific pydantic validation error we're seeing
+                if "Input should be 'chat.completion'" in str(e) and "literal_error" in str(e):
+                    print(f"\n[ERROR] Model response validation failed: {e}")
+                    print("This typically occurs when:")
+                    print("1. The API returns an invalid response format")
+                    print("2. The response object is None internally")
+                    print("3. There's an issue with the OpenAI API client")
+                    print("\nTrying to refresh the provider connection...")
+                    # Try to clear any cached connections and retry once
+                    import time
+
+                    time.sleep(1)
+                    response = model_request_sync(
+                        target_model,
+                        model_messages,
+                        model_request_parameters=params,
+                    )
+                    if response is None:
+                        raise ValueError("Model returned None response even after retry")
+                else:
+                    raise
         finally:
             spinner.stop()
 
+        # Debug: Check what we actually get from pydantic-ai
+        if "deepseek-reasoner" in model.lower():
+            print(f"[DEBUG] Raw response type: {type(response)}")
+            print(
+                f"[DEBUG] Response attributes: "
+                f"{dir(response) if hasattr(response, '__dir__') else 'No __dir__'}"
+            )
+            if hasattr(response, "__dict__"):
+                print(f"[DEBUG] Response dict keys: {list(response.__dict__.keys())}")
+            if hasattr(response, "provider_details"):
+                print(f"[DEBUG] Provider details: {response.provider_details}")
+            if hasattr(response, "thinking"):
+                print(f"[DEBUG] Thinking: {response.thinking}")
+
         result = _convert_response_to_openai(response)
+
+        # Store reasoning_content for reasoner models so _map_messages can access it
+        if "reasoner" in model.lower() and result.get("reasoning_content"):
+            # Get the conversation length to find the index for the next message
+            if hasattr(response, "__dict__") and hasattr(
+                response.__dict__.get("usage", {}), "total_tokens"
+            ):
+                # Use a hash of the conversation to store reasoning
+                conv_hash = hash(str(messages))
+                _reasoning_storage[conv_hash] = result["reasoning_content"]
 
         assistant_content = result.get("content")
         if assistant_content:
@@ -244,6 +570,20 @@ class LLMProvider:
 
                 # Special handling for Claude Code OAuth
                 if system == "claude-code":
+                    # Ensure we have a valid OAuth token before creating provider
+                    from .oauth.claude_code import ensure_valid_token, load_stored_token
+
+                    # Try to ensure we have a valid token (quietly at provider creation)
+                    if not ensure_valid_token(quiet=True):
+                        # If we can't get a token, we'll let the request handle it later
+                        # but we should still try to load whatever token we have
+                        pass
+
+                    # Get the current token for the provider
+                    current_token = load_stored_token(check_expiry=False)
+                    if current_token:
+                        provider_kwargs["api_key"] = current_token
+
                     # Use custom provider class for Claude Code OAuth
                     provider: AnthropicProvider = ClaudeCodeOAuthProvider(**provider_kwargs)
                 else:
@@ -311,6 +651,14 @@ def _convert_openai_messages(
             text = _to_text(content)
             if text:
                 response_parts.append(TextPart(content=text))
+
+            # Preserve reasoning_content for reasoner models
+            reasoning_content = message.get("reasoning_content")
+            if reasoning_content:
+                # Store reasoning_content as a special text part that we can extract later
+                response_parts.append(
+                    TextPart(content=f"[REASONING]{reasoning_content}[/REASONING]")
+                )
 
             for tool_call in message.get("tool_calls", []) or []:
                 function_data = tool_call.get("function", {})
@@ -414,6 +762,11 @@ def _convert_response_to_openai(response: ModelResponse) -> dict[str, Any]:
 
     content = "".join(content_chunks) if content_chunks else None
 
+    # Get thinking content for DeepSeek reasoner models
+    reasoning_content = None
+    if hasattr(response, "thinking") and response.thinking:
+        reasoning_content = response.thinking
+
     result: dict[str, Any] = {
         "role": "assistant",
         "content": content,
@@ -422,6 +775,10 @@ def _convert_response_to_openai(response: ModelResponse) -> dict[str, Any]:
 
     if tool_calls:
         result["tool_calls"] = tool_calls
+
+    # Preserve reasoning_content for DeepSeek reasoner models
+    if reasoning_content is not None:
+        result["reasoning_content"] = reasoning_content
 
     return result
 

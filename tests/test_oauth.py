@@ -200,7 +200,7 @@ def test_authenticate_and_save_success() -> None:
 
         assert result is True
         mock_flow.assert_called_once_with(quiet=True)
-        mock_save.assert_called_once_with("final_token_abc")
+        mock_save.assert_called_once_with("final_token_abc", None)
 
 
 def test_authenticate_and_save_failure() -> None:
