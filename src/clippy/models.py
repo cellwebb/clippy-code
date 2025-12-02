@@ -227,21 +227,10 @@ class UserModelManager:
         self._ensure_default_models()
 
     def _ensure_default_models(self) -> None:
-        """Create default model configuration if none exists."""
+        """Create empty model configuration if none exists."""
         if not self.models_file.exists():
-            default_models = {
-                "models": [
-                    {
-                        "name": "gpt-5",
-                        "provider": "openai",
-                        "model_id": "gpt-5",
-                        "description": "openai/gpt-5",
-                        "is_default": True,
-                        "compaction_threshold": None,
-                    }
-                ]
-            }
-            self._save_models(default_models)
+            empty_models: dict[str, Any] = {"models": []}
+            self._save_models(empty_models)
 
     def _load_models(self) -> dict[str, Any]:
         """Load user models from JSON file."""

@@ -138,13 +138,9 @@ def test_user_model_manager_with_temp_dir() -> None:
         assert temp_config_dir.exists()
         assert manager.models_file.exists()
 
-        # Should have default model (gpt-5)
+        # Should have no models by default (setup wizard handles this)
         models = manager.list_models()
-        assert len(models) == 1
-        assert models[0].name == "gpt-5"
-        assert models[0].provider == "openai"
-        assert models[0].model_id == "gpt-5"
-        assert models[0].is_default is True
+        assert len(models) == 0
 
 
 def test_user_model_manager_add_model() -> None:
@@ -166,7 +162,7 @@ def test_user_model_manager_add_model() -> None:
 
         # Verify it was added
         models = manager.list_models()
-        assert len(models) == 2  # gpt-5 (default) + my-llama
+        assert len(models) == 1  # Only my-llama
 
         # Get the specific model
         llama = manager.get_model("my-llama")
@@ -184,11 +180,18 @@ def test_user_model_manager_add_duplicate() -> None:
         temp_config_dir = Path(tmpdir)
         manager = UserModelManager(config_dir=temp_config_dir)
 
-        # Try to add a model with existing name
-        success, message = manager.add_model(
-            name="gpt-5",
+        # First add a model
+        manager.add_model(
+            name="test-model",
             provider="openai",
-            model_id="gpt-5",
+            model_id="gpt-4o",
+        )
+
+        # Try to add another model with the same name
+        success, message = manager.add_model(
+            name="test-model",
+            provider="anthropic",
+            model_id="claude-3-5-sonnet",
         )
 
         assert success is False
@@ -273,11 +276,6 @@ def test_user_model_manager_set_default() -> None:
         assert default.name == "my-model"
         assert default.is_default is True
 
-        # Verify old default is no longer default
-        gpt5_model = manager.get_model("gpt-5")
-        assert gpt5_model is not None
-        assert gpt5_model.is_default is False
-
 
 def test_user_model_manager_get_default() -> None:
     """Test getting the default model."""
@@ -285,10 +283,22 @@ def test_user_model_manager_get_default() -> None:
         temp_config_dir = Path(tmpdir)
         manager = UserModelManager(config_dir=temp_config_dir)
 
+        # No models initially
         default = manager.get_default_model()
+        assert default is None
 
+        # Add a model
+        manager.add_model(
+            name="test-model",
+            provider="openai",
+            model_id="gpt-4o",
+            is_default=True,
+        )
+
+        # Now should have a default
+        default = manager.get_default_model()
         assert default is not None
-        assert default.name == "gpt-5"
+        assert default.name == "test-model"
         assert default.is_default is True
 
 
@@ -335,13 +345,25 @@ def test_get_default_model_config() -> None:
 
         clippy.models._user_manager = manager
 
+        # No models initially
         model, provider = get_default_model_config()
+        assert model is None
+        assert provider is None
 
+        # Add a model
+        manager.add_model(
+            name="test-model",
+            provider="openai",
+            model_id="gpt-4o",
+            is_default=True,
+        )
+
+        # Now should have a default
+        model, provider = get_default_model_config()
         assert model is not None
         assert provider is not None
         assert model.is_default is True
-        # Should default to "gpt-5" in a clean environment
-        assert model.name == "gpt-5"
+        assert model.name == "test-model"
         assert model.provider == "openai"
         assert provider.name == "openai"
 
@@ -363,8 +385,8 @@ def test_list_available_models() -> None:
 
         models = list_available_models()
 
-        # Should have 3 models: gpt-5 (default) + model1 + model2
-        assert len(models) >= 2
+        # Should have 2 models: model1 + model2
+        assert len(models) == 2
 
         # Check structure
         for model_config in models:
@@ -412,7 +434,7 @@ def test_json_format() -> None:
         # Verify structure
         assert "models" in data
         assert isinstance(data["models"], list)
-        assert len(data["models"]) == 2  # gpt-5 + test
+        assert len(data["models"]) == 1  # Only test model
 
         # Verify each model has required fields
         for model in data["models"]:
