@@ -64,7 +64,7 @@ test:
 	uv run pytest -q
 
 cov:
-	uv run pytest --cov=clippy --cov-report=html --cov-report=term
+	uv run pytest -q --cov=clippy --cov-report=html --cov-report=term
 	@echo ""
 	@echo "Coverage report generated in htmlcov/index.html"
 
