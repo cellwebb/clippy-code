@@ -9,6 +9,8 @@
 
 clippy-code is an AI-powered development assistant that works with any OpenAI-compatible API provider. It features robust permission controls, streaming responses, and multiple interface modes for different workflows.
 
+![example](assets/example.png)
+
 ## 🚀 Quick Start
 
 ### Installation
