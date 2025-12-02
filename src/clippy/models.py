@@ -393,10 +393,25 @@ class UserModelManager:
         return True, f"Switched to model '{name}' (current session only)"
 
 
-# Global instances
+# Module-level cache for lazy initialization
+# These are accessed through getter functions to ensure proper initialization.
+# For CLI applications, this simple caching pattern is sufficient.
+# Use reset_all_caches() in tests to clear state between test cases.
 _providers: dict[str, ProviderConfig] = {}
 _user_manager: UserModelManager | None = None
 _user_provider_manager: UserProviderManager | None = None
+
+
+def reset_all_caches() -> None:
+    """Reset all module-level caches.
+
+    This should be called in tests to ensure clean state between test cases.
+    In production, use reload_providers() or reload_model_manager() for targeted reloads.
+    """
+    global _providers, _user_manager, _user_provider_manager
+    _providers.clear()
+    _user_manager = None
+    _user_provider_manager = None
 
 
 def get_user_provider_manager() -> UserProviderManager:
