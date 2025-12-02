@@ -1,6 +1,7 @@
 """Main ActionExecutor class that coordinates all operations."""
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
@@ -28,12 +29,85 @@ logger = logging.getLogger(__name__)
 DEFAULT_COMMAND_TIMEOUT = 60  # 1 minute in seconds (can be overridden via tool_input)
 
 
+def validate_write_path(path: str, allowed_roots: list[Path] | None = None) -> tuple[bool, str]:
+    """Validate that a path is safe for write operations.
+
+    Write operations are restricted to the current working directory and its
+    subdirectories (plus any additional allowed roots) to prevent accidental
+    modification of system files.
+
+    Args:
+        path: The path to validate
+        allowed_roots: Additional allowed root directories. If None, only CWD is allowed.
+
+    Returns:
+        Tuple of (is_valid, error_message). If valid, error_message is empty.
+    """
+    try:
+        # Resolve the path to absolute, following symlinks
+        resolved_path = Path(path).resolve()
+        cwd = Path.cwd().resolve()
+
+        # Build list of allowed roots
+        roots = [cwd]
+        if allowed_roots:
+            roots.extend(r.resolve() for r in allowed_roots)
+
+        # Check if the resolved path is within any allowed root
+        for root in roots:
+            try:
+                resolved_path.relative_to(root)
+                return True, ""
+            except ValueError:
+                continue
+
+        # Path is outside all allowed roots
+        return False, (
+            f"Write operations restricted to current directory. "
+            f"Path '{path}' resolves outside of '{cwd}'"
+        )
+    except (OSError, RuntimeError) as e:
+        return False, f"Invalid path '{path}': {e}"
+
+
+def validate_write_paths(
+    paths: list[str], allowed_roots: list[Path] | None = None
+) -> tuple[bool, str]:
+    """Validate multiple paths for write operations.
+
+    Args:
+        paths: List of paths to validate
+        allowed_roots: Additional allowed root directories
+
+    Returns:
+        Tuple of (all_valid, first_error_message)
+    """
+    for path in paths:
+        is_valid, error = validate_write_path(path, allowed_roots)
+        if not is_valid:
+            return False, error
+    return True, ""
+
+
 class ActionExecutor:
     """Executes actions with permission checking."""
 
-    def __init__(self, permission_manager: PermissionManager):
+    def __init__(
+        self,
+        permission_manager: PermissionManager,
+        allowed_write_roots: list[Path] | None = None,
+    ):
+        """Initialize the executor.
+
+        Args:
+            permission_manager: Permission manager for checking action permissions
+            allowed_write_roots: Additional directories where write operations are allowed.
+                By default, only the current working directory is allowed.
+                Set to include temp directories for testing.
+        """
         self.permission_manager = permission_manager
         self._mcp_manager = None
+        self._allowed_write_roots = allowed_write_roots
 
     def set_mcp_manager(self, manager: Any | None) -> None:
         """Set the MCP manager for handling MCP tool calls.
@@ -95,6 +169,10 @@ class ActionExecutor:
             if tool_name == "read_file":
                 result = read_file(tool_input["path"])
             elif tool_name == "write_file":
+                # Validate path is within allowed roots
+                is_valid, error = validate_write_path(tool_input["path"], self._allowed_write_roots)
+                if not is_valid:
+                    return False, error, None
                 result = write_file(
                     tool_input["path"],
                     tool_input["content"],
@@ -139,6 +217,10 @@ class ActionExecutor:
                     paths = [path] if isinstance(path, str) else path
                 result = grep(tool_input["pattern"], paths, tool_input.get("flags", ""))
             elif tool_name == "edit_file":
+                # Validate path is within allowed roots
+                is_valid, error = validate_write_path(tool_input["path"], self._allowed_write_roots)
+                if not is_valid:
+                    return False, error, None
                 result = edit_file(
                     tool_input["path"],
                     tool_input["operation"],
@@ -160,6 +242,11 @@ class ActionExecutor:
                             None,
                         )
                     paths = [path] if isinstance(path, str) else path
+                # Validate paths when not in dry_run mode
+                if not tool_input.get("dry_run", True):
+                    is_valid, error = validate_write_paths(paths, self._allowed_write_roots)
+                    if not is_valid:
+                        return False, error, None
                 result = find_replace(
                     tool_input["pattern"],
                     tool_input["replacement"],
@@ -173,8 +260,16 @@ class ActionExecutor:
                     tool_input.get("backup", False),
                 )
             elif tool_name == "create_directory":
+                # Validate path is within allowed roots
+                is_valid, error = validate_write_path(tool_input["path"], self._allowed_write_roots)
+                if not is_valid:
+                    return False, error, None
                 result = _create_directory_util(tool_input["path"])
             elif tool_name == "delete_file":
+                # Validate path is within allowed roots
+                is_valid, error = validate_write_path(tool_input["path"], self._allowed_write_roots)
+                if not is_valid:
+                    return False, error, None
                 result = _delete_file_util(tool_input["path"])
             elif tool_name == "think":
                 result = think(tool_input["thought"])

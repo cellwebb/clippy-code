@@ -1,28 +1,14 @@
 """Tests for the create_directory tool."""
 
-import tempfile
-from collections.abc import Generator
 from pathlib import Path
 
 import pytest
 
 from clippy.executor import ActionExecutor
-from clippy.permissions import ActionType, PermissionConfig, PermissionManager
+from clippy.permissions import ActionType, PermissionConfig
 from clippy.tools.create_directory import create_directory
 
-
-@pytest.fixture
-def executor() -> ActionExecutor:
-    """Create an executor instance."""
-    manager = PermissionManager()
-    return ActionExecutor(manager)
-
-
-@pytest.fixture
-def temp_dir() -> Generator[str, None, None]:
-    """Create a temporary directory for testing."""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        yield tmpdir
+# Note: executor and temp_dir fixtures are provided by tests/tools/conftest.py
 
 
 def test_create_directory(executor: ActionExecutor, temp_dir: str) -> None:
