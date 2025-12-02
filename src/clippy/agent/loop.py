@@ -5,7 +5,7 @@ import logging
 import sys
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from rich.markup import escape
 from rich.panel import Panel
@@ -18,7 +18,21 @@ from .conversation import check_and_auto_compact
 from .errors import format_api_error
 from .tool_handler import handle_tool_use
 
+if TYPE_CHECKING:
+    from ..mcp.manager import Manager
+    from .core import ClippyAgent
+
 logger = logging.getLogger(__name__)
+
+
+class ConsoleProtocol(Protocol):
+    """Protocol for console-like objects that support print()."""
+
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        """Print to the console."""
+        ...
+
+
 # Loop constants
 DEFAULT_MAX_ITERATIONS = 100
 
@@ -29,13 +43,13 @@ def run_agent_loop(
     model: str,
     permission_manager: PermissionManager,
     executor: ActionExecutor,
-    console: Any,  # Console or SubAgentConsoleWrapper
+    console: ConsoleProtocol,
     auto_approve_all: bool,
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None,
     check_interrupted: Callable[[], bool],
-    mcp_manager: Any = None,
+    mcp_manager: "Manager | None" = None,
     allowed_tools: list[str] | None = None,
-    parent_agent: Any = None,
+    parent_agent: "ClippyAgent | None" = None,
     max_iterations: int | None = DEFAULT_MAX_ITERATIONS,
     max_duration: float | None = None,
 ) -> str:
@@ -250,7 +264,7 @@ def run_agent_loop(
     # Note: No maximum iterations limit - loop runs until agent completes or is interrupted
 
 
-def _display_auto_compaction_notification(console: Any, stats: dict[str, Any]) -> None:
+def _display_auto_compaction_notification(console: ConsoleProtocol, stats: dict[str, Any]) -> None:
     """
     Display a subtle but informative auto-compaction notification.
 

@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
@@ -23,7 +24,13 @@ from .conversation import (
 from .loop import run_agent_loop
 from .subagent_manager import SubAgentManager
 
+if TYPE_CHECKING:
+    from ..mcp.manager import Manager
+
 logger = logging.getLogger(__name__)
+
+# Type alias for approval callback
+ApprovalCallback = Callable[[str, dict[str, Any], str | None], bool]
 
 
 class InterruptedExceptionError(Exception):
@@ -43,8 +50,8 @@ class ClippyAgent:
         api_key: str | None = None,
         model: str | None = None,
         base_url: str | None = None,
-        approval_callback: Any = None,
-        mcp_manager: Any = None,
+        approval_callback: ApprovalCallback | None = None,
+        mcp_manager: Manager | None = None,
         max_concurrent_subagents: int = 3,
         provider_config: ProviderConfig | None = None,
     ) -> None:
@@ -469,34 +476,9 @@ class ClippyAgent:
             return False, "MCP manager not available"
 
         try:
-            # Restart MCP manager (implementation depends on MCP manager interface)
-            success = self.mcp_manager.restart()
-            if success:
-                return True, "MCP manager restarted successfully"
-            else:
-                return False, "Failed to restart MCP manager"
+            # Stop and restart MCP manager
+            self.mcp_manager.stop()
+            self.mcp_manager.start()
+            return True, "MCP manager restarted successfully"
         except Exception as e:
             return False, f"Error restarting MCP manager: {e}"
-
-    def start_auto_mode(self) -> None:
-        """Start auto mode (placeholder implementation)."""
-        # This would start some kind of automated execution mode
-        # Implementation depends on what auto mode should do
-        pass
-
-    def stop_auto_mode(self) -> None:
-        """Stop auto mode (placeholder implementation)."""
-        # This would stop the automated execution mode
-        # Implementation depends on what auto mode should do
-        pass
-
-    def reload_model(self) -> None:
-        """Reload the current model configuration.
-
-        This is a placeholder for model reloading functionality.
-        In the current implementation, models are switched directly,
-        so this method is maintained for compatibility.
-        """
-        # In the current architecture, model switching is done directly
-        # This method is maintained for backward compatibility
-        pass
