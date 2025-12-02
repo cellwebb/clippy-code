@@ -5,8 +5,9 @@ from .conversation import (
     create_system_prompt,
     get_token_count,
 )
-from .core import ClippyAgent, InterruptedExceptionError
+from .core import ClippyAgent
 from .errors import format_api_error
+from .exceptions import InterruptedExceptionError
 from .tool_handler import add_tool_result, ask_approval, display_tool_request, handle_tool_use
 from .utils import generate_preview_diff, validate_python_syntax
 

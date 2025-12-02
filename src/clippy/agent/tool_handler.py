@@ -16,6 +16,7 @@ from ..utils import (
     get_max_tool_result_tokens,
     smart_truncate_tool_result,
 )
+from .exceptions import InterruptedExceptionError
 from .utils import generate_preview_diff
 
 logger = logging.getLogger(__name__)
@@ -27,10 +28,6 @@ class ConsoleProtocol(Protocol):
     def print(self, *args: Any, **kwargs: Any) -> None:
         """Print to the console."""
         ...
-
-
-# Import InterruptedExceptionError from agent to avoid circular import
-# Will be imported at runtime when needed
 
 
 def format_mcp_result(result: Any) -> str:
@@ -417,9 +414,6 @@ def ask_approval(
     Raises:
         InterruptedExceptionError: If user interrupts execution
     """
-    # Import here to avoid circular dependency
-    from .core import InterruptedExceptionError
-
     # Use callback if provided (for document mode)
     if approval_callback:
         try:

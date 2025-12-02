@@ -21,6 +21,7 @@ from .conversation import (
     create_system_prompt,
     get_token_count,
 )
+from .exceptions import InterruptedExceptionError
 from .loop import run_agent_loop
 from .subagent_manager import SubAgentManager
 
@@ -32,11 +33,8 @@ logger = logging.getLogger(__name__)
 # Type alias for approval callback
 ApprovalCallback = Callable[[str, dict[str, Any], str | None], bool]
 
-
-class InterruptedExceptionError(Exception):
-    """Exception raised when user interrupts execution."""
-
-    pass
+# Re-export for backward compatibility
+__all__ = ["ClippyAgent", "InterruptedExceptionError", "ApprovalCallback"]
 
 
 class ClippyAgent:
