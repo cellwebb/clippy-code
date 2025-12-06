@@ -11,7 +11,7 @@ def get_tool_schema() -> dict[str, Any]:
     """Get the tool schema."""
     # Import here to avoid circular imports
     from ..agent.subagent_types import list_subagent_types
-    
+
     return {
         "type": "function",
         "function": {
