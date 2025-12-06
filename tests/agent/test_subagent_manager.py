@@ -486,7 +486,7 @@ class TestSubAgentManager:
             task="Failure task",
             subagent_type="general",
         )
-        mock_failure.run.side_effect = Exception("Test error")
+        mock_failure.run.side_effect = RuntimeError("Test error")
 
         mock_subagent_class.side_effect = [mock_success, mock_failure]
 

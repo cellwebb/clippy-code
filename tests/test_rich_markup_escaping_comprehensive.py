@@ -223,7 +223,7 @@ def test_mcp_manager_markup_handling():
     try:
         with patch("clippy.mcp.manager.stdio_client") as mock_stdio:
             mock_context = AsyncMock()
-            mock_context.__aenter__.side_effect = Exception(
+            mock_context.__aenter__.side_effect = ConnectionError(
                 "Connection failed: [/yellow] unmatched closing tag"
             )
             mock_stdio.return_value = mock_context

@@ -296,7 +296,7 @@ class TestExecutorMCPTools:
     def test_mcp_tool_execution_error(self, executor: ActionExecutor) -> None:
         """Test handling of MCP tool execution errors."""
         mock_manager = MagicMock()
-        mock_manager.execute.side_effect = Exception("MCP Error")
+        mock_manager.execute.side_effect = RuntimeError("MCP Error")
         executor.set_mcp_manager(mock_manager)
 
         success, message, content = executor.execute("mcp__server__tool", {})

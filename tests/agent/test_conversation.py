@@ -421,7 +421,7 @@ class TestCompactConversation:
         self, mock_provider: MagicMock, sample_conversation: list[dict[str, Any]]
     ) -> None:
         """Test handling of provider errors during summarization."""
-        mock_provider.create_message.side_effect = Exception("API Error")
+        mock_provider.create_message.side_effect = ConnectionError("API Error")
 
         success, message, stats, new_history = compact_conversation(
             sample_conversation, mock_provider, "gpt-4", keep_recent=2
