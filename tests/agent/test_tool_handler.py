@@ -301,6 +301,8 @@ def test_handle_tool_use_delegate_to_subagent(
 
     # Create a mock parent agent with save_conversation method
     class MockParentAgent:
+        yolo_mode = False  # Add missing yolo_mode attribute
+
         def save_conversation(self):
             return (True, "Conversation saved")
 
@@ -364,6 +366,8 @@ def test_handle_tool_use_run_parallel_subagents(
 
     # Create a mock parent agent with save_conversation method
     class MockParentAgent:
+        yolo_mode = False  # Add missing yolo_mode attribute
+
         def save_conversation(self):
             return (True, "Conversation saved")
 
