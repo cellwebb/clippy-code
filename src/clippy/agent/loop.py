@@ -5,7 +5,7 @@ import logging
 import sys
 import time
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any
 
 from rich.markup import escape
 from rich.panel import Panel
@@ -22,7 +22,6 @@ from .tool_handler import handle_tool_use
 
 if TYPE_CHECKING:
     from ..mcp.manager import Manager
-    from .core import ClippyAgent
 
 logger = logging.getLogger(__name__)
 
