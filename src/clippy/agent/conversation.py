@@ -17,6 +17,27 @@ DEFAULT_MAX_TOKENS = 128_000
 TOKENS_PER_MESSAGE_OVERHEAD = 4
 TOKENS_PER_NAME_FIELD = 1  # if name field present
 
+# Cache for tiktoken encodings to avoid repeated lookups
+_encoding_cache: dict[str, tiktoken.Encoding] = {}
+
+
+def _get_encoding(model: str) -> tiktoken.Encoding:
+    """Get tiktoken encoding for a model, with caching.
+
+    Args:
+        model: Model identifier
+
+    Returns:
+        tiktoken.Encoding instance for the model
+    """
+    if model not in _encoding_cache:
+        try:
+            _encoding_cache[model] = tiktoken.encoding_for_model(model)
+        except KeyError:
+            # Fall back to cl100k_base for unknown models
+            _encoding_cache[model] = tiktoken.get_encoding("cl100k_base")
+    return _encoding_cache[model]
+
 
 def create_system_prompt() -> str:
     """
@@ -37,7 +58,7 @@ def create_system_prompt() -> str:
                 agents_content = doc_path.read_text(encoding="utf-8")
                 # Append the agent documentation content to the system prompt
                 return f"{SYSTEM_PROMPT}\n\nPROJECT_DOCUMENTATION:\n{agents_content}"
-            except Exception as e:
+            except (OSError, UnicodeDecodeError) as e:
                 logger.warning(f"Failed to read {doc_file}: {e}")
                 # Continue to next file if reading fails
                 continue
@@ -72,13 +93,8 @@ def get_token_count(
         - tool_messages: Number of tool messages
     """
     try:
-        # Try to get the appropriate encoding for the model
-        # Default to cl100k_base which works for GPT-4, GPT-3.5-turbo, etc.
-        try:
-            encoding = tiktoken.encoding_for_model(model)
-        except KeyError:
-            # Fall back to cl100k_base for unknown models
-            encoding = tiktoken.get_encoding("cl100k_base")
+        # Get encoding from cache (handles fallback internally)
+        encoding = _get_encoding(model)
 
         # Initialize counters
         total_tokens = 0
@@ -162,7 +178,7 @@ def get_token_count(
             "tool_messages": tool_messages,
         }
 
-    except Exception as e:
+    except (TypeError, KeyError, ValueError, json.JSONDecodeError) as e:
         # Return error info if token counting fails
         return {
             "error": str(e),
@@ -292,8 +308,13 @@ markers, or brackets. Keep it brief but informative (aim for 200-400 words).""",
 
         return True, success_msg, stats, new_history
 
-    except Exception as e:
+    except (TypeError, KeyError, ValueError, IndexError) as e:
+        # Data processing errors
         logger.error(f"Error during conversation compaction: {e}", exc_info=True)
+        return False, f"Error compacting conversation: {e}", {}, []
+    except Exception as e:
+        # API/provider errors - catch broadly since provider errors can be any type
+        logger.error(f"Provider error during conversation compaction: {e}", exc_info=True)
         return False, f"Error compacting conversation: {e}", {}, []
 
 

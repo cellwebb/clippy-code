@@ -1,6 +1,7 @@
 """Model configuration and management system for LLM providers."""
 
 import json
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -400,6 +401,7 @@ class UserModelManager:
 _providers: dict[str, ProviderConfig] = {}
 _user_manager: UserModelManager | None = None
 _user_provider_manager: UserProviderManager | None = None
+_lock = threading.Lock()  # Protects all module-level state above
 
 
 def reset_all_caches() -> None:
@@ -409,17 +411,19 @@ def reset_all_caches() -> None:
     In production, use reload_providers() or reload_model_manager() for targeted reloads.
     """
     global _providers, _user_manager, _user_provider_manager
-    _providers.clear()
-    _user_manager = None
-    _user_provider_manager = None
+    with _lock:
+        _providers.clear()
+        _user_manager = None
+        _user_provider_manager = None
 
 
 def get_user_provider_manager() -> UserProviderManager:
     """Get the user provider manager instance."""
     global _user_provider_manager
-    if _user_provider_manager is None:
-        _user_provider_manager = UserProviderManager()
-    return _user_provider_manager
+    with _lock:
+        if _user_provider_manager is None:
+            _user_provider_manager = UserProviderManager()
+        return _user_provider_manager
 
 
 def _load_providers() -> dict[str, ProviderConfig]:
@@ -429,38 +433,43 @@ def _load_providers() -> dict[str, ProviderConfig]:
     """
     global _providers
 
-    if _providers:
-        return _providers
+    with _lock:
+        if _providers:
+            return _providers
 
-    # Load built-in providers from YAML
-    yaml_path = Path(__file__).parent / "providers.yaml"
-    with open(yaml_path) as f:
-        built_in_config = yaml.safe_load(f)
+        # Load built-in providers from YAML
+        yaml_path = Path(__file__).parent / "providers.yaml"
+        with open(yaml_path) as f:
+            built_in_config = yaml.safe_load(f)
 
-    # First, load built-in providers
-    for provider_name, provider_data in built_in_config["providers"].items():
-        _providers[provider_name] = ProviderConfig(
-            name=provider_name,
-            base_url=provider_data.get("base_url"),
-            api_key_env=provider_data.get("api_key_env"),
-            description=provider_data.get("description", ""),
-            pydantic_system=provider_data.get("pydantic_system"),
-        )
+        # First, load built-in providers
+        for provider_name, provider_data in built_in_config["providers"].items():
+            _providers[provider_name] = ProviderConfig(
+                name=provider_name,
+                base_url=provider_data.get("base_url"),
+                api_key_env=provider_data.get("api_key_env"),
+                description=provider_data.get("description", ""),
+                pydantic_system=provider_data.get("pydantic_system"),
+            )
 
-    # Then, load and merge user providers (these override built-in ones)
+        # Then, load and merge user providers (these override built-in ones)
+        # Note: get_user_provider_manager() also uses _lock, but threading.Lock is reentrant-safe
+        # when called from the same thread. For cross-thread safety, we release and reacquire.
+
     user_manager = get_user_provider_manager()
     user_providers = user_manager.list_providers()
 
-    for provider_name, provider_data in user_providers.items():
-        _providers[provider_name] = ProviderConfig(
-            name=provider_name,
-            base_url=provider_data.get("base_url"),
-            api_key_env=provider_data.get("api_key_env"),
-            description=provider_data.get("description", ""),
-            pydantic_system=provider_data.get("pydantic_system"),
-        )
+    with _lock:
+        for provider_name, provider_data in user_providers.items():
+            _providers[provider_name] = ProviderConfig(
+                name=provider_name,
+                base_url=provider_data.get("base_url"),
+                api_key_env=provider_data.get("api_key_env"),
+                description=provider_data.get("description", ""),
+                pydantic_system=provider_data.get("pydantic_system"),
+            )
 
-    return _providers
+        return _providers
 
 
 def get_providers() -> dict[str, ProviderConfig]:
@@ -477,9 +486,10 @@ def get_provider(name: str) -> ProviderConfig | None:
 def get_user_manager() -> UserModelManager:
     """Get the user model manager instance."""
     global _user_manager
-    if _user_manager is None:
-        _user_manager = UserModelManager()
-    return _user_manager
+    with _lock:
+        if _user_manager is None:
+            _user_manager = UserModelManager()
+        return _user_manager
 
 
 def get_model_config(name: str) -> tuple[UserModelConfig | None, ProviderConfig | None]:
@@ -618,8 +628,9 @@ def reload_providers() -> dict[str, ProviderConfig]:
         Dictionary of provider configurations
     """
     global _providers, _user_provider_manager
-    _providers.clear()  # Clear the cache
-    _user_provider_manager = None  # Clear user provider manager cache
+    with _lock:
+        _providers.clear()  # Clear the cache
+        _user_provider_manager = None  # Clear user provider manager cache
     return _load_providers()
 
 
@@ -633,7 +644,8 @@ def reload_model_manager() -> UserModelManager:
         Fresh UserModelManager instance
     """
     global _user_manager
-    _user_manager = None  # Clear the cache
+    with _lock:
+        _user_manager = None  # Clear the cache
     return get_user_manager()
 
 

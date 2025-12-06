@@ -3,6 +3,7 @@
 import hashlib
 import json
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -286,26 +287,29 @@ class SubagentCache:
 
 # Global cache instance
 _global_cache: SubagentCache | None = None
+_global_cache_lock = threading.Lock()
 
 
 def get_global_cache() -> SubagentCache:
     """Get the global cache instance."""
     global _global_cache
-    if _global_cache is None:
-        # Load configuration from environment
-        import os
+    with _global_cache_lock:
+        if _global_cache is None:
+            # Load configuration from environment
+            import os
 
-        max_size = int(os.getenv("CLIPPY_SUBAGENT_CACHE_SIZE", "100"))
-        ttl = int(os.getenv("CLIPPY_SUBAGENT_CACHE_TTL", "3600"))
+            max_size = int(os.getenv("CLIPPY_SUBAGENT_CACHE_SIZE", "100"))
+            ttl = int(os.getenv("CLIPPY_SUBAGENT_CACHE_TTL", "3600"))
 
-        _global_cache = SubagentCache(max_size=max_size, default_ttl=ttl)
-        logger.info(f"Initialized global subagent cache: max_size={max_size}, ttl={ttl}s")
+            _global_cache = SubagentCache(max_size=max_size, default_ttl=ttl)
+            logger.info(f"Initialized global subagent cache: max_size={max_size}, ttl={ttl}s")
 
-    return _global_cache
+        return _global_cache
 
 
 def reset_global_cache() -> None:
     """Reset the global cache instance."""
     global _global_cache
-    _global_cache = None
+    with _global_cache_lock:
+        _global_cache = None
     logger.info("Reset global subagent cache")
