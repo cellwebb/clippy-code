@@ -595,6 +595,11 @@ def _handle_model_switch(agent: ClippyAgent, console: Console, name: str) -> Com
             )
         else:
             console.print(f"[red]✗ Failed to switch model: {msg}[/red]")
+    elif model_config and not provider_config:
+        # Model exists but provider doesn't
+        console.print(f"[red]✗ Could not load configuration for model '{name}'[/red]")
+        console.print(f"[red]  Provider '{model_config.provider}' not found[/red]")
+        console.print("[dim]Use '/provider add' to add the provider or edit the model[/dim]")
     else:
         console.print(f"[red]✗ Could not load configuration for model '{name}'[/red]")
 
