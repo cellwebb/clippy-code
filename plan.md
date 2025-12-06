@@ -305,11 +305,11 @@ graph TD
 | 1.3 Specific exceptions | ✅ | |
 | 1.4 Extract constants | ✅ | |
 | 2.1 Shell injection fix | ✅ | |
-| 2.2 Protocol types | ⬜ | |
-| 2.3 Docstrings | ⬜ | |
+| 2.2 Protocol types | ✅ | |
+| 2.3 Docstrings | ✅ | |
 | 2.4 MCP cleanup | ✅ | |
-| 3.1 Remove hasattr | ⬜ | |
-| 3.2 Circular imports | ⬜ | |
+| 3.1 Remove hasattr | ✅ | |
+| 3.2 Circular imports | ✅ | |
 | 3.3 Consolidate tests | ⬜ | |
 | 3.4 Security tests | ⬜ | |
 | 4.1 Provider docs | ⬜ | |
