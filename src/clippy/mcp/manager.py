@@ -17,6 +17,11 @@ from .trust import TrustStore
 
 logger = logging.getLogger(__name__)
 
+# Timeout constants (in seconds)
+MCP_OPERATION_TIMEOUT = 30.0  # Timeout for async MCP operations
+EVENT_LOOP_SHUTDOWN_TIMEOUT = 5.0  # Timeout for event loop thread to stop
+STDERR_THREAD_TIMEOUT = 1.0  # Timeout for stderr logging thread cleanup
+
 
 class Manager:
     """Manages MCP server connections and tool execution."""
@@ -67,7 +72,7 @@ class Manager:
             raise RuntimeError("Event loop not started")
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         try:
-            return future.result(timeout=30.0)  # reasonable timeout to prevent hangs
+            return future.result(timeout=MCP_OPERATION_TIMEOUT)
         except Exception:
             # If the future is still pending, cancel it to prevent hanging
             if not future.done():
@@ -173,7 +178,7 @@ class Manager:
             if self._loop:
                 self._loop.call_soon_threadsafe(self._loop.stop)
             if self._loop_thread:
-                self._loop_thread.join(timeout=5.0)
+                self._loop_thread.join(timeout=EVENT_LOOP_SHUTDOWN_TIMEOUT)
 
     async def _async_stop(self) -> None:
         """Stop the MCP manager and close connections (async implementation)."""
@@ -205,7 +210,7 @@ class Manager:
 
             if server_id in self._stderr_threads:
                 thread = self._stderr_threads[server_id]
-                thread.join(timeout=1.0)
+                thread.join(timeout=STDERR_THREAD_TIMEOUT)
 
             if server_id in self._stderr_pipes:
                 read_fd, write_fd = self._stderr_pipes[server_id]
@@ -467,7 +472,7 @@ class Manager:
 
         if server_id in self._stderr_threads:
             thread = self._stderr_threads[server_id]
-            thread.join(timeout=1.0)
+            thread.join(timeout=STDERR_THREAD_TIMEOUT)
             self._stderr_threads.pop(server_id, None)
 
         if server_id in self._stderr_pipes:
