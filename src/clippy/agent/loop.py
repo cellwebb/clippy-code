@@ -17,6 +17,7 @@ from ..tools import catalog as tool_catalog
 from .conversation import check_and_auto_compact
 from .errors import format_api_error
 from .exceptions import InterruptedExceptionError
+from .protocols import AgentProtocol, ConsoleProtocol
 from .tool_handler import handle_tool_use
 
 if TYPE_CHECKING:
@@ -24,14 +25,6 @@ if TYPE_CHECKING:
     from .core import ClippyAgent
 
 logger = logging.getLogger(__name__)
-
-
-class ConsoleProtocol(Protocol):
-    """Protocol for console-like objects that support print()."""
-
-    def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print to the console."""
-        ...
 
 
 # Loop constants
@@ -50,7 +43,7 @@ def run_agent_loop(
     check_interrupted: Callable[[], bool],
     mcp_manager: "Manager | None" = None,
     allowed_tools: list[str] | None = None,
-    parent_agent: "ClippyAgent | None" = None,
+    parent_agent: AgentProtocol | None = None,
     max_iterations: int | None = DEFAULT_MAX_ITERATIONS,
     max_duration: float | None = None,
 ) -> str:

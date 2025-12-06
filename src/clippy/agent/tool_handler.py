@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import Callable
-from typing import Any, Protocol
+from typing import Any
 
 from rich.markup import escape
 
@@ -17,17 +17,10 @@ from ..utils import (
     smart_truncate_tool_result,
 )
 from .exceptions import InterruptedExceptionError
+from .protocols import AgentProtocol, ConsoleProtocol
 from .utils import generate_preview_diff
 
 logger = logging.getLogger(__name__)
-
-
-class ConsoleProtocol(Protocol):
-    """Protocol for console-like objects that support print()."""
-
-    def print(self, *args: Any, **kwargs: Any) -> None:
-        """Print to the console."""
-        ...
 
 
 def format_mcp_result(result: Any) -> str:
@@ -136,7 +129,7 @@ def handle_tool_use(
     conversation_history: list[dict[str, Any]],
     approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None = None,
     mcp_manager: Any = None,
-    parent_agent: Any = None,
+    parent_agent: AgentProtocol | None = None,
 ) -> bool:
     """
     Handle a tool use request.
@@ -158,7 +151,7 @@ def handle_tool_use(
     """
     # Check for YOLO mode (override everything)
     yolo_mode = False
-    if parent_agent is not None and hasattr(parent_agent, "yolo_mode"):
+    if parent_agent is not None:
         yolo_mode = parent_agent.yolo_mode
 
     # In YOLO mode, everything is auto-approved
