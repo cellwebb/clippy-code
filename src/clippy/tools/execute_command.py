@@ -120,9 +120,15 @@ def execute_command(
         # Handle timeout value
         timeout_arg = None if timeout == 0 else timeout
 
+        # Parse command safely to avoid shell injection
+        try:
+            args = shlex.split(cmd)
+        except ValueError as e:
+            return False, f"Invalid command syntax: {e}", None
+
         result = subprocess.run(
-            cmd,
-            shell=True,
+            args,
+            shell=False,  # SECURE: Use exec mode instead of shell
             capture_output=True,
             text=True,
             cwd=working_dir,
