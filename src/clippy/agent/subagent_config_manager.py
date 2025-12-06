@@ -3,7 +3,10 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .subagent_types import Subagent
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +95,7 @@ class SubagentConfigManager:
         """
         # Import here to avoid circular imports
         from .subagent_types import list_subagent_types
-        
+
         valid_types = list_subagent_types()
         if subagent_type not in valid_types:
             raise ValueError(
@@ -208,7 +211,7 @@ class SubagentConfigManager:
         """
         # Import here to avoid circular imports
         from .subagent_types import SUBAGENT_TYPES
-        
+
         # Check if name already exists (built-in or user)
         if name in SUBAGENT_TYPES.keys() or name in self._user_subagents:
             return False, f"Subagent '{name}' already exists"
@@ -241,7 +244,7 @@ class SubagentConfigManager:
         """
         # Import here to avoid circular imports
         from .subagent_types import SUBAGENT_TYPES
-        
+
         # Cannot remove built-in subagents
         if name in SUBAGENT_TYPES.keys():
             return False, f"Cannot remove built-in subagent '{name}'"
@@ -271,7 +274,7 @@ class SubagentConfigManager:
         """
         # Import here to avoid circular imports
         from .subagent_types import Subagent
-        
+
         subagents = []
         for name, config in self._user_subagents.items():
             if not isinstance(config, dict):
@@ -296,7 +299,7 @@ class SubagentConfigManager:
         """
         # Import here to avoid circular imports
         from .subagent_types import SUBAGENT_TYPES
-        
+
         names = list(SUBAGENT_TYPES.keys())
         names.extend(self._user_subagents.keys())
         return names
