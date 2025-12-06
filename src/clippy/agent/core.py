@@ -38,8 +38,28 @@ __all__ = ["ClippyAgent", "InterruptedExceptionError", "ApprovalCallback"]
 
 
 class ClippyAgent:
-    """AI coding assistant powered by OpenAI-compatible LLMs - here to help you with
-    that paperclip!"""
+    """AI coding assistant powered by OpenAI-compatible LLMs.
+
+    The primary agent interface that manages conversation state, tool execution,
+    and interactions with LLM providers. Supports model switching, conversation
+    persistence, and subagent delegation for complex tasks.
+
+    Attributes:
+        permission_manager: Permission manager controlling tool access
+        executor: Action executor for running tools
+        model: Current LLM model identifier
+        api_key: API key for the current provider
+        base_url: Base URL for OpenAI-compatible API
+        provider_config: Provider-specific configuration
+        console: Rich console instance for output
+        conversation_history: List of conversation messages in OpenAI format
+        interrupted: Flag indicating if execution was interrupted
+        approval_callback: Optional callback for approval requests
+        mcp_manager: Optional MCP manager for external tools
+        yolo_mode: Flag for auto-approving all actions
+        subagent_manager: Manager for subagent operations
+        conversations_dir: Directory for saving conversations
+    """
 
     def __init__(
         self,
