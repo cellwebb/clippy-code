@@ -5,8 +5,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from clippy.agent.subagent_types import SUBAGENT_TYPES, Subagent, list_subagent_types
-
 logger = logging.getLogger(__name__)
 
 
@@ -92,6 +90,9 @@ class SubagentConfigManager:
         Raises:
             ValueError: If subagent_type is not valid
         """
+        # Import here to avoid circular imports
+        from .subagent_types import list_subagent_types
+        
         valid_types = list_subagent_types()
         if subagent_type not in valid_types:
             raise ValueError(
@@ -151,7 +152,8 @@ class SubagentConfigManager:
             Dictionary with configuration for each subagent type,
             including whether it has a model override
         """
-        from clippy.agent.subagent_types import get_subagent_config
+        # Import here to avoid circular imports
+        from .subagent_types import get_subagent_config, list_subagent_types
 
         configs = {}
         for subagent_type in list_subagent_types():
@@ -204,6 +206,9 @@ class SubagentConfigManager:
         Returns:
             Tuple of (success: bool, message: str)
         """
+        # Import here to avoid circular imports
+        from .subagent_types import SUBAGENT_TYPES
+        
         # Check if name already exists (built-in or user)
         if name in SUBAGENT_TYPES.keys() or name in self._user_subagents:
             return False, f"Subagent '{name}' already exists"
@@ -234,6 +239,9 @@ class SubagentConfigManager:
         Returns:
             Tuple of (success: bool, message: str)
         """
+        # Import here to avoid circular imports
+        from .subagent_types import SUBAGENT_TYPES
+        
         # Cannot remove built-in subagents
         if name in SUBAGENT_TYPES.keys():
             return False, f"Cannot remove built-in subagent '{name}'"
@@ -255,12 +263,15 @@ class SubagentConfigManager:
         else:
             return False, f"Unknown subagent: {name}"
 
-    def get_user_subagents(self) -> list[Subagent]:
+    def get_user_subagents(self) -> list["Subagent"]:
         """Get list of user-defined subagents.
 
         Returns:
             List of user-defined Subagent objects
         """
+        # Import here to avoid circular imports
+        from .subagent_types import Subagent
+        
         subagents = []
         for name, config in self._user_subagents.items():
             if not isinstance(config, dict):
@@ -283,6 +294,9 @@ class SubagentConfigManager:
         Returns:
             List of all subagent names
         """
+        # Import here to avoid circular imports
+        from .subagent_types import SUBAGENT_TYPES
+        
         names = list(SUBAGENT_TYPES.keys())
         names.extend(self._user_subagents.keys())
         return names

@@ -3,14 +3,15 @@
 import logging
 from typing import Any
 
-from ..agent.subagent_types import list_subagent_types
-
 logger = logging.getLogger(__name__)
 
 
 # Tool schema for delegate_to_subagent
 def get_tool_schema() -> dict[str, Any]:
     """Get the tool schema."""
+    # Import here to avoid circular imports
+    from ..agent.subagent_types import list_subagent_types
+    
     return {
         "type": "function",
         "function": {

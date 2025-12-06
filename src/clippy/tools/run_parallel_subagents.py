@@ -4,8 +4,6 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from ..agent.subagent_types import list_subagent_types
-
 logger = logging.getLogger(__name__)
 
 # Module-level references for test mocking
@@ -42,6 +40,9 @@ def _ensure_imports() -> None:
 # Tool schema for run_parallel_subagents
 def get_tool_schema() -> dict[str, Any]:
     """Get the tool schema."""
+    # Import here to avoid circular imports
+    from ..agent.subagent_types import list_subagent_types
+    
     return {
         "type": "function",
         "function": {

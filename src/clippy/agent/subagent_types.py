@@ -212,11 +212,15 @@ def list_subagents() -> list[Subagent]:
         )
 
     # Add user-defined subagents from config
-    from .subagent_config_manager import get_subagent_config_manager
+    try:
+        from .subagent_config_manager import get_subagent_config_manager
 
-    config_manager = get_subagent_config_manager()
-    user_subagents = config_manager.get_user_subagents()
-    subagents.extend(user_subagents)
+        config_manager = get_subagent_config_manager()
+        user_subagents = config_manager.get_user_subagents()
+        subagents.extend(user_subagents)
+    except (ImportError, AttributeError):
+        # Config manager not available, just return built-in subagents
+        pass
 
     return subagents
 
