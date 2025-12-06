@@ -12,7 +12,7 @@ class AgentProtocol(Protocol):
 
     # Core conversation state
     yolo_mode: bool
-    conversation_history: list[dict]
+    conversation_history: list[dict[str, Any]]
 
     # Provider configuration
     model: str
@@ -26,11 +26,23 @@ class AgentProtocol(Protocol):
     # MCP manager (optional)
     mcp_manager: Any | None
 
-    def switch_model(self, model: str) -> None:
-        """Switch to a different model.
+    def switch_model(
+        self,
+        model: str | None = None,
+        base_url: str | None = None,
+        api_key: str | None = None,
+        provider_config: ProviderConfig | None = None,
+    ) -> tuple[bool, str]:
+        """Switch to a different model or provider.
 
         Args:
-            model: New model identifier
+            model: New model identifier (if None, keeps current)
+            base_url: New base URL (if None, keeps current)
+            api_key: New API key (if None, keeps current)
+            provider_config: New provider config (if None, keeps current)
+
+        Returns:
+            Tuple of (success: bool, message: str)
         """
         ...
 
