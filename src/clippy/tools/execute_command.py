@@ -1,7 +1,42 @@
 """Execute command tool implementation."""
 
+import re
+import shlex
 import subprocess
+from re import Pattern
 from typing import Any
+
+# Execution constants
+DEFAULT_COMMAND_TIMEOUT = 300  # 5 minutes in seconds
+
+# Dangerous command patterns - both literal strings and regex patterns
+DANGEROUS_LITERAL_PATTERNS = [
+    ":(){ :|:& };:",  # Fork bomb
+    ":(){ :|: & };:",  # Fork bomb variant
+]
+
+# Regex patterns for dangerous commands
+# These catch variations that literal matching would miss
+DANGEROUS_REGEX_PATTERNS = [
+    # rm -rf / or rm -fr / with various spacing and flags
+    r"\brm\s+(-[rRfF]+\s+)+/\s*$",
+    r"\brm\s+(-[rRfF]+\s+)+/[^/]",  # rm -rf /etc, etc.
+    # mkfs commands
+    r"\bmkfs\b",
+    # dd writing to block devices
+    r"\bdd\b.*\bof=/dev/[sh]d",
+    r"\bdd\b.*\bif=/dev/(zero|random|urandom).*\bof=/",
+    # Dangerous curl/wget pipes
+    r"\b(curl|wget)\b.+\|\s*(sudo\s+)?(ba)?sh",
+    # chmod 777 on root
+    r"\bchmod\s+(-[rR]+\s+)?777\s+/\s*$",
+    # Overwriting important system files
+    r">\s*/etc/(passwd|shadow|sudoers)",
+    r">\s*/dev/[sh]d[a-z]",
+]
+
+# Compile regex patterns for efficiency
+_compiled_dangerous_patterns: list[Pattern[str]] = [re.compile(p) for p in DANGEROUS_REGEX_PATTERNS]
 
 # Tool schema for OpenAI-compatible APIs
 TOOL_SCHEMA = {
@@ -33,25 +68,54 @@ TOOL_SCHEMA = {
 }
 
 
-def execute_command(cmd: str, working_dir: str = ".", timeout: int = 300) -> tuple[bool, str, Any]:
-    """Execute a shell command."""
+def _is_dangerous_command(cmd: str) -> tuple[bool, str]:
+    """Check if a command matches any dangerous patterns.
+
+    Args:
+        cmd: Command string to check
+
+    Returns:
+        Tuple of (is_dangerous, matched_pattern_description)
+    """
+    # Check literal patterns first (exact substring match)
+    for literal in DANGEROUS_LITERAL_PATTERNS:
+        if literal in cmd:
+            return True, f"literal pattern: {literal}"
+
+    # Check regex patterns
+    for regex in _compiled_dangerous_patterns:
+        if regex.search(cmd):
+            return True, f"regex pattern: {regex.pattern}"
+
+    return False, ""
+
+
+def execute_command(
+    cmd: str, working_dir: str = ".", timeout: int = DEFAULT_COMMAND_TIMEOUT
+) -> tuple[bool, str, Any]:
+    """Execute a shell command.
+
+    Security notes:
+    - Commands are executed with shell=True to support pipes, redirects, etc.
+    - Dangerous patterns are blocked (rm -rf /, fork bombs, etc.)
+    - Directory traversal in working_dir is blocked
+    - Commands run with the user's permissions (no privilege escalation)
+    """
     try:
+        # Validate command syntax with shlex (catches unterminated quotes, etc.)
+        try:
+            shlex.split(cmd)
+        except ValueError as e:
+            return False, f"Invalid command syntax: {e}", None
+
         # Add safety check for directory traversal
         if ".." in working_dir:
             return False, "Directory traversal not allowed in working_dir", None
 
-        # Safety check for dangerous commands
-        dangerous_patterns = [
-            "rm -rf /",
-            "rm -fr /",
-            ":(){ :|:& };:",  # Fork bomb
-            "mkfs",
-            "dd if=/dev/zero",
-        ]
-
-        for pattern in dangerous_patterns:
-            if pattern in cmd:
-                return False, f"Command contains blocked dangerous pattern: {pattern}", None
+        # Safety check for dangerous commands using enhanced pattern matching
+        is_dangerous, matched = _is_dangerous_command(cmd)
+        if is_dangerous:
+            return False, f"Command blocked by security filter ({matched})", None
 
         # Handle timeout value
         timeout_arg = None if timeout == 0 else timeout
@@ -75,5 +139,5 @@ def execute_command(cmd: str, working_dir: str = ".", timeout: int = 300) -> tup
         else:
             timeout_msg = f"{timeout} seconds"
         return False, f"Command timed out after {timeout_msg}", None
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         return False, f"Failed to execute command: {str(e)}", None
