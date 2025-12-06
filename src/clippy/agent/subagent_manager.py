@@ -312,7 +312,7 @@ class SubAgentManager:
                             if monitor:
                                 monitor.mark_completed(subagent.config.name, result)
 
-                        except Exception as e:
+                        except (RuntimeError, ValueError, KeyError, AttributeError) as e:
                             logger.error(
                                 f"Subagent '{subagent.config.name}' failed with exception: {e}"
                             )

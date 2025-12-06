@@ -155,7 +155,7 @@ def run_agent_loop(
                 tools=tools,
                 model=model,
             )
-        except Exception as e:
+        except (ConnectionError, TimeoutError, RuntimeError, ValueError) as e:
             # Handle API errors gracefully
             error_message = format_api_error(e)
             console.print(

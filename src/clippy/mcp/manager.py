@@ -160,7 +160,7 @@ class Manager:
                 if self.console:
                     self.console.print(f"[green]✓ Connected to MCP server '{server_id}'[/green]")
 
-            except Exception as e:
+            except (ConnectionError, TimeoutError, RuntimeError, ValueError) as e:
                 logger.warning(f"Failed to connect to MCP server '{server_id}': {e}")
                 if self.console:
                     error_msg = (

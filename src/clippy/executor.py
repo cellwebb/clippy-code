@@ -146,7 +146,7 @@ class ActionExecutor:
                 server_id, tool = parse_mcp_qualified_name(tool_name)
                 logger.debug(f"Delegating to MCP manager: server={server_id}, tool={tool}")
                 return self._mcp_manager.execute(server_id, tool, tool_input, bypass_trust_check)
-            except Exception as e:
+            except (ConnectionError, RuntimeError, ValueError, KeyError, TimeoutError) as e:
                 logger.error(f"Error executing MCP tool {tool_name}: {e}", exc_info=True)
                 return False, f"Error executing MCP tool {tool_name}: {str(e)}", None
 
@@ -294,6 +294,6 @@ class ActionExecutor:
                 logger.warning(f"Tool execution failed: {tool_name} - {result[1]}")
             return result
 
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, AttributeError, TypeError) as e:
             logger.error(f"Exception during tool execution: {tool_name} - {e}", exc_info=True)
             return False, f"Error executing {tool_name}: {str(e)}", None

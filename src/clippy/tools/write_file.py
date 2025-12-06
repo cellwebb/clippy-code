@@ -63,5 +63,5 @@ def write_file(path: str, content: str, skip_validation: bool = False) -> tuple[
     except OSError as e:
         msg = f"File system error: {str(e)} | Check disk space and path"
         return False, msg, None
-    except Exception as e:
+    except (UnicodeError, ValueError, TypeError) as e:
         return False, f"Unexpected error writing {path}: {str(e)}", None

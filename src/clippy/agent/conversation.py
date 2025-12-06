@@ -312,8 +312,8 @@ markers, or brackets. Keep it brief but informative (aim for 200-400 words).""",
         # Data processing errors
         logger.error(f"Error during conversation compaction: {e}", exc_info=True)
         return False, f"Error compacting conversation: {e}", {}, []
-    except Exception as e:
-        # API/provider errors - catch broadly since provider errors can be any type
+    except (ConnectionError, TimeoutError, RuntimeError) as e:
+        # API/provider errors
         logger.error(f"Provider error during conversation compaction: {e}", exc_info=True)
         return False, f"Error compacting conversation: {e}", {}, []
 
