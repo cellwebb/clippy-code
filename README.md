@@ -99,7 +99,7 @@ clippy-code provides smart file operations with validation for many file types:
 | `delete_file` | Delete files | ❌ |
 | `list_directory` | List directory contents | ✅ |
 | `create_directory` | Create directories | ❌ |
-| `execute_command` | Run shell commands | ❌ |
+| `execute_command` | Run shell commands (output hidden by default, set `CLIPPY_SHOW_COMMAND_OUTPUT=true` to show) | ❌ |
 | `search_files` | Search with glob patterns | ✅ |
 | `get_file_info` | Get file metadata | ✅ |
 | `read_files` | Read multiple files at once | ✅ |
@@ -134,6 +134,9 @@ clippy-code works with any OpenAI-compatible provider: Anthropic (including Clau
 
 - Provider-specific API keys: `ANTHROPIC_API_KEY`, `CHUTES_API_KEY`, `CEREBRAS_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `MINIMAX_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `SYNTHETIC_API_KEY`, `TOGETHER_API_KEY`, `ZAI_API_KEY`, `CLAUDE_CODE_ACCESS_TOKEN` (OAuth), etc.
 - `OPENAI_BASE_URL` - Optional base URL override for custom providers
+- `CLIPPY_SHOW_COMMAND_OUTPUT` - Control whether to show output from `execute_command` tool (default: `false`, set to `true` to show output)
+- `CLIPPY_COMMAND_TIMEOUT` - Default timeout for command execution in seconds (default: `300`)
+- `CLIPPY_MAX_TOOL_RESULT_TOKENS` - Maximum number of tokens to allow in tool results (default: `10000`)
 
 ## Development
 

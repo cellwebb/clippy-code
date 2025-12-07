@@ -6,6 +6,7 @@ from typing import Any
 
 from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from .permissions import TOOL_ACTION_MAP, PermissionManager
+from .settings import get_settings
 
 # Import tool functions explicitly to avoid module/function conflicts
 from .tools.create_directory import create_directory as _create_directory_util
@@ -182,8 +183,10 @@ class ActionExecutor:
                 result = list_directory(tool_input["path"], tool_input.get("recursive", False))
             elif tool_name == "execute_command":
                 timeout = tool_input.get("timeout", DEFAULT_COMMAND_TIMEOUT)
+                settings = get_settings()
+                show_output = tool_input.get("show_output", settings.show_command_output)
                 result = execute_command(
-                    tool_input["command"], tool_input.get("working_dir", "."), timeout
+                    tool_input["command"], tool_input.get("working_dir", "."), timeout, show_output
                 )
             elif tool_name == "search_files":
                 result = search_files(tool_input["pattern"], tool_input.get("path", "."))

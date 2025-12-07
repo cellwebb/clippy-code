@@ -61,6 +61,15 @@ TOOL_SCHEMA = {
                     ),
                     "default": 300,
                 },
+                "show_output": {
+                    "type": "boolean",
+                    "description": (
+                        "Whether to display the command output. Defaults to false. "
+                        "Can be controlled globally with CLIPPY_SHOW_COMMAND_OUTPUT "
+                        "environment variable."
+                    ),
+                    "default": False,
+                },
             },
             "required": ["command"],
         },
@@ -91,7 +100,10 @@ def _is_dangerous_command(cmd: str) -> tuple[bool, str]:
 
 
 def execute_command(
-    cmd: str, working_dir: str = ".", timeout: int = DEFAULT_COMMAND_TIMEOUT
+    cmd: str,
+    working_dir: str = ".",
+    timeout: int = DEFAULT_COMMAND_TIMEOUT,
+    show_output: bool = False,
 ) -> tuple[bool, str, Any]:
     """Execute a shell command.
 
@@ -100,6 +112,15 @@ def execute_command(
     - Dangerous patterns are blocked (rm -rf /, fork bombs, etc.)
     - Directory traversal in working_dir is blocked
     - Commands run with the user's permissions (no privilege escalation)
+
+    Args:
+        cmd: Command string to execute
+        working_dir: Working directory for command execution
+        timeout: Command timeout in seconds (0 for no timeout)
+        show_output: Whether to display command output in the result
+
+    Returns:
+        Tuple of (success: bool, message: str, result: Any)
     """
     try:
         # Validate command syntax with shlex (catches unterminated quotes, etc.)
@@ -135,6 +156,11 @@ def execute_command(
             timeout=timeout_arg,
         )
         output = result.stdout + result.stderr
+
+        # Hide output if requested
+        if not show_output:
+            output = "[Output hidden by setting]"
+
         if result.returncode == 0:
             return True, "Command executed successfully", output
         else:
