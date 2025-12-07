@@ -1,4 +1,4 @@
-.PHONY: help install dev clean run test cov format lint type-check check all bump-patch bump-minor bump-major
+.PHONY: help install dev clean run test test-cov cov cov-term format lint type-check check all bump-patch bump-minor bump-major
 
 # Python interpreter (can be overridden with: make PYTHON=python3.12 bump-patch)
 PYTHON ?= python3
@@ -17,7 +17,9 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  make test         Run tests with pytest"
-	@echo "  make cov          Run tests with coverage report"
+	@echo "  make test-cov     Run tests with coverage report"
+	@echo "  make cov          Show coverage report in browser"
+	@echo "  make cov-term     Show coverage report in terminal"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  make format       Autofix and format code with ruff"
@@ -63,10 +65,27 @@ run:
 test:
 	uv run pytest -q
 
-cov:
+test-cov:
 	uv run pytest -q --cov=clippy --cov-report=html --cov-report=term
 	@echo ""
 	@echo "Coverage report generated in htmlcov/index.html"
+
+cov:
+	@if [ -f htmlcov/index.html ]; then \
+		echo "Coverage report available at: $$(pwd)/htmlcov/index.html"; \
+		echo "Opening coverage report..."; \
+		uv run python -c "import webbrowser; webbrowser.open('htmlcov/index.html')" 2>/dev/null || echo "Open the file manually: $$(pwd)/htmlcov/index.html"; \
+	else \
+		echo "No coverage report found. Run 'make test-cov' first to generate coverage data."; \
+	fi
+
+cov-term:
+	@if [ -f .coverage ]; then \
+		echo "Coverage report (terminal):"; \
+		uv run python -c "import coverage; cov = coverage.Coverage(); cov.load(); cov.report()" 2>/dev/null || echo "Run 'make test-cov' to generate coverage data."; \
+	else \
+		echo "No coverage data found. Run 'make test-cov' first to generate coverage data."; \
+	fi
 
 # Code quality
 format:
