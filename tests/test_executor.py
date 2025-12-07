@@ -182,7 +182,7 @@ class TestExecutorBasicActions:
     def test_execute_command(self, executor: ActionExecutor) -> None:
         """Test executing execute_command action."""
         success, message, content = executor.execute(
-            "execute_command", {"command": "echo hello", "working_dir": "."}
+            "execute_command", {"command": "echo hello", "working_dir": ".", "show_output": True}
         )
 
         assert success is True

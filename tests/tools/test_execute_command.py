@@ -29,9 +29,10 @@ def temp_dir() -> Generator[str, None, None]:
 
 def test_execute_command(executor: ActionExecutor) -> None:
     """Test executing a shell command."""
-    # Execute a simple command
+    # Execute a simple command with explicit show_output=True since default is now False
     success, message, content = executor.execute(
-        "execute_command", {"command": "echo 'Hello from command'", "working_dir": "."}
+        "execute_command",
+        {"command": "echo 'Hello from command'", "working_dir": ".", "show_output": True},
     )
 
     assert success is True
@@ -53,7 +54,7 @@ def test_execute_command_failure(executor: ActionExecutor, monkeypatch: pytest.M
     monkeypatch.setattr(EXECUTE_COMMAND_MODULE.subprocess, "run", fake_run)
 
     success, message, content = executor.execute(
-        "execute_command", {"command": "false", "working_dir": "."}
+        "execute_command", {"command": "false", "working_dir": ".", "show_output": True}
     )
 
     assert success is False
