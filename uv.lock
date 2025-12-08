@@ -131,7 +131,7 @@ wheels = [
 
 [[package]]
 name = "clippy-code"
-version = "4.17.2"
+version = "4.17.3"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
