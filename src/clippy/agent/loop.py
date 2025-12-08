@@ -180,6 +180,13 @@ def run_agent_loop(
         # Add to conversation history
         conversation_history.append(assistant_message)
 
+        # Print assistant's text response to the user
+        if response.get("content"):
+            content = response["content"]
+            if isinstance(content, str) and content.strip():
+                cleaned_content = content.lstrip("\n")
+                console.print(f"\n[bold blue][📎][/bold blue] {escape(cleaned_content)}")
+
         # Save conversation automatically after each assistant message
         if parent_agent is not None:
             success, message = parent_agent.save_conversation()
@@ -238,14 +245,12 @@ def run_agent_loop(
                     logger.info(f"Tool executed successfully: {tool_name}")
 
         # If no tool calls, we're done
-        # (content was already streamed by the provider)
         if not has_tool_calls:
             logger.info(f"Agent loop completed successfully after {iteration} iteration(s)")
             content = response.get("content", "")
             return content if isinstance(content, str) else ""
 
         # Check finish reason
-        # (content was already streamed by the provider)
         if response.get("finish_reason") == "stop":
             logger.info(f"Agent loop stopped (finish_reason=stop) after {iteration} iteration(s)")
             content = response.get("content", "")
