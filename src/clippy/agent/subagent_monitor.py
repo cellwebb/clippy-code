@@ -55,6 +55,9 @@ class StuckDetectionConfig:
     # Progress check interval (seconds)
     check_interval: float = 10.0
 
+    # Thread join timeout for stopping monitoring (seconds)
+    thread_join_timeout: float = 5.0
+
 
 class SubagentMonitor:
     """
@@ -123,7 +126,7 @@ class SubagentMonitor:
         with self.lock:
             self.monitoring_active = False
             if self.monitor_thread:
-                self.monitor_thread.join(timeout=5.0)
+                self.monitor_thread.join(timeout=self.config.thread_join_timeout)
                 self.monitor_thread = None
 
             stats = self.get_statistics()
