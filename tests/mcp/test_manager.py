@@ -75,7 +75,7 @@ def test_manager_start(mock_stdio_client, mock_client_session) -> None:
     # Give the background thread time to complete
     import time
 
-    time.sleep(0.1)
+    time.sleep(0.01)  # Reduced from 0.1s to 0.01s
 
     # Verify stdio_client was called
     mock_stdio_client.assert_called_once()
@@ -191,7 +191,7 @@ def test_manager_manual_trust(mock_stdio_client, mock_client_session) -> None:
     # Give the background thread time to complete
     import time
 
-    time.sleep(0.1)
+    time.sleep(0.01)  # Reduced from 0.1s to 0.01s
 
     # After successful connection, should still NOT be auto-trusted
     assert manager.is_trusted("test-server") is False

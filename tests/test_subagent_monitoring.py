@@ -36,7 +36,12 @@ class TestSubagentMonitor:
 
     def test_start_stop_monitoring(self) -> None:
         """Test starting and stopping monitoring."""
-        monitor = SubagentMonitor()
+        # Use fast configuration for testing
+        config = StuckDetectionConfig(
+            check_interval=0.01,  # Very fast check interval
+            thread_join_timeout=0.01,  # Quick thread join timeout
+        )
+        monitor = SubagentMonitor(config)
 
         # Create mock subagents
         subagents = []
@@ -70,7 +75,12 @@ class TestSubagentMonitor:
 
     def test_heartbeat_updates(self) -> None:
         """Test heartbeat update functionality."""
-        monitor = SubagentMonitor()
+        # Use fast configuration for testing
+        config = StuckDetectionConfig(
+            check_interval=0.01,  # Very fast check interval
+            thread_join_timeout=0.01,  # Quick thread join timeout
+        )
+        monitor = SubagentMonitor(config)
 
         # Create mock subagent
         config = SubAgentConfig(name="test_sub", task="test", subagent_type="general")
@@ -81,7 +91,7 @@ class TestSubagentMonitor:
 
         # Update heartbeat
         initial_heartbeat = monitor.progress_trackers["test_sub"].last_heartbeat
-        time.sleep(0.1)  # Small delay to ensure time difference
+        time.sleep(0.01)  # Reduced delay to ensure time difference
         monitor.update_heartbeat("test_sub", 5)
 
         tracker = monitor.progress_trackers["test_sub"]
@@ -94,10 +104,11 @@ class TestSubagentMonitor:
         """Test stuck subagent detection."""
         # Use very short timeouts for testing
         config = StuckDetectionConfig(
-            stuck_timeout=1.0,
-            heartbeat_timeout=0.5,
-            check_interval=0.2,
+            stuck_timeout=0.1,
+            heartbeat_timeout=0.05,
+            check_interval=0.02,
             max_stuck_checks=2,
+            thread_join_timeout=0.01,  # Quick thread join timeout
         )
         monitor = SubagentMonitor(config)
 
@@ -108,8 +119,8 @@ class TestSubagentMonitor:
 
         monitor.start_monitoring([subagent])
 
-        # Wait long enough for subagent to be considered stuck
-        time.sleep(1.5)
+        # Wait long enough for subagent to be considered stuck (reduced from 1.5s)
+        time.sleep(0.2)
 
         # Check that the monitor detected and handled the stuck subagent
         stats = monitor.get_statistics()
@@ -123,7 +134,12 @@ class TestSubagentMonitor:
 
     def test_mark_completed(self) -> None:
         """Test marking subagents as completed."""
-        monitor = SubagentMonitor()
+        # Use fast configuration for testing
+        config = StuckDetectionConfig(
+            check_interval=0.01,  # Very fast check interval
+            thread_join_timeout=0.01,  # Quick thread join timeout
+        )
+        monitor = SubagentMonitor(config)
 
         # Create mock subagent and result
         config = SubAgentConfig(name="test_sub", task="test", subagent_type="general")
@@ -151,7 +167,12 @@ class TestSubagentMonitor:
 
     def test_statistics(self) -> None:
         """Test monitoring statistics."""
-        monitor = SubagentMonitor()
+        # Use fast configuration for testing
+        config = StuckDetectionConfig(
+            check_interval=0.01,  # Very fast check interval
+            thread_join_timeout=0.01,  # Quick thread join timeout
+        )
+        monitor = SubagentMonitor(config)
 
         # Create mock subagents with different states
         subagents = []

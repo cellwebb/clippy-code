@@ -201,13 +201,13 @@ class TestSubAgent:
 
         # Mock a long-running task that times out
         def slow_task(*args, **kwargs):
-            time.sleep(2)  # Simulate slow task
+            time.sleep(0.2)  # Reduced from 2s to 0.2s
             return "Should not reach here"
 
         mock_run_loop.side_effect = slow_task
 
         # Set very short timeout
-        subagent.config.timeout = 0.1
+        subagent.config.timeout = 0.05
 
         # Execute subagent (should timeout)
         result = subagent.run()

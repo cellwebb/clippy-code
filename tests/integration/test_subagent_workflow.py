@@ -297,7 +297,7 @@ class TestSubagentWorkflowIntegration:
         def slow_task(*args, **kwargs):
             import time
 
-            time.sleep(2)  # Simulate slow task
+            time.sleep(0.2)  # Reduced from 2s to 0.2s
             return "Should not reach here"
 
         with patch("clippy.agent.subagent.run_agent_loop", side_effect=slow_task):
@@ -315,7 +315,7 @@ class TestSubagentWorkflowIntegration:
                 name="slow_subagent",
                 task="Slow task",
                 subagent_type="general",
-                timeout=0.1,  # Very short timeout
+                timeout=0.05,  # Very short timeout
             )
 
             subagent = manager.create_subagent(config)

@@ -30,18 +30,18 @@ def test_execute_command_no_timeout():
 
 def test_execute_command_timeout_exceeded():
     """Test command that exceeds timeout."""
-    # Command that sleeps longer than the timeout
-    success, message, result = execute_command("sleep 2", ".", 1, False)
+    # Command that sleeps longer than the timeout (reduced from 2s to 0.3s)
+    success, message, result = execute_command("sleep 0.3", ".", 0.1, False)
     assert success is False
-    assert "timed out after 1 seconds" in message
+    assert "timed out after 0.1 seconds" in message
 
 
 def test_execute_command_timeout_message_formatting():
     """Test timeout message formatting for different timeout values."""
-    # Test bounded timeout
-    success, message, result = execute_command("sleep 1", ".", 0.5)
+    # Test bounded timeout (reduced from 1s to 0.3s)
+    success, message, result = execute_command("sleep 0.3", ".", 0.1)
     assert success is False
-    assert "timed out after 0.5 seconds" in message
+    assert "timed out after 0.1 seconds" in message
 
     # Test unlimited timeout message (would only show if timeout was somehow exceeded)
     # We can't actually test this since unlimited timeout shouldn't timeout,
