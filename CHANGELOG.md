@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.18.1] - 2025-12-09
+
+### Added
+
+- New command completion for /model remove and /model threshold commands
+
+### Changed
+
+- Improve model command help text formatting and organization
+- Separate built-in indicator into dedicated column in model list display
+- Update provider reference from /providers to /provider list
+- Streamline version bumping process with git tag automation and pre-bump validation
+
+### Fixed
+
+- Resolve path handling issues in find_replace tool for absolute and relative glob patterns
+
 ## [4.18.0] - 2025-12-09
 
 ### What's New
