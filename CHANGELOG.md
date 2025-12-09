@@ -1,886 +1,778 @@
 # Changelog
 
+## [4.18.0] - 2025-12-09
+
+### What's New
+
+- /model init command helps new users get started with default models
+- Built-in model configurations for all providers
+
+### Improvements
+
+- Better code organization and reliability
+- Cleaner model management with built-in and user-defined models
+- Improved error handling for file operations
+
+### Bug Fixes
+
+- Fixed JSON loading error handling
+- Removed redundant error handling in file operations
+
+## [4.17.4] - 2025-12-09
+
+### Improvements
+
+- Better reliability with improved threading for complex operations
+- More organized code structure for better performance and stability
+- Enhanced error handling with specific exceptions for file operations
+- Cleaner tool management with improved result handling
+- Better model detection with shared utility functions
+
+## [4.17.3] - 2025-12-07
+
+### Improvements
+
+- Assistant responses now display with better formatting and visual indicators
+- Cleaner text display by removing extra blank lines from responses
+
+## [4.17.2] - 2025-12-07
+
+### Improvements
+
+- App now shuts down more reliably with configurable cleanup timing
+- Tests run significantly faster while maintaining accuracy
+
+### Bug Fixes
+
+- More reliable monitoring and cleanup of background tasks
+
+## [4.17.1] - 2025-12-07
+
+### Improvements
+
+- Control command output visibility with new settings option
+- Set custom timeouts for command execution
+- Better test coverage with multiple report formats
+- Comprehensive changelog documenting complete project history
+
 ## [4.17.0] - 2025-12-06
 
-### Added
+### What's New
 
-- Enhanced CLI with intelligent command completion for `/model set-default` and `/model switch` commands
-- Expanded LLM provider ecosystem with support for Groq, Mistral AI, Together AI, and Minimax AI providers
+- Added support for Groq, Mistral AI, Together AI, and Minimax AI providers
 
-### Changed
+### Improvements
 
-- Strengthened command execution security by implementing pattern-based dangerous command detection and 5-minute default timeouts
-- Improved system reliability through thread-safe global state management and specific exception handling
-- Enhanced model switching capabilities with expanded parameters for base_url, api_key, and provider configuration
+- Enhanced model command completion for better tab suggestions
+- Better error messages when provider configuration is missing
+- More reliable app performance with improved thread safety
+- Enhanced security with protection against dangerous commands
 
-### Security
+### Bug Fixes
 
-- Eliminated shell injection vulnerabilities by replacing shell execution with safe subprocess parsing using shlex.split
+- Fixed security vulnerability preventing shell injection attacks
+- Improved command execution reliability with better timeout handling
 
 ## [4.16.0] - 2025-12-02
 
-### Highlights
+### What's New
 
-- Strengthened security with comprehensive path validation for all file write operations
-- Eliminated 100+ dependencies by replacing Pydantic AI and OpenAI SDK with custom implementations
-- Enhanced system stability through improved error handling and centralized permission management
+- Enhanced security with path validation for file operations
 
-### Customer Impact
+### Improvements
 
-- Agents now operate within secure boundaries, preventing unauthorized file access outside designated directories
-- Improved reliability when working with external LLM providers through better error handling and connection resilience
-- Streamlined tool execution with more descriptive error messages for faster troubleshooting
+- Better error handling for external integrations
+- Improved conversation management with automatic compaction
+- Cleaner model management by removing temporary commands
+- Faster and more reliable AI provider connections
 
-### Platform Improvements
+### Bug Fixes
 
-- Reduced attack surface by implementing strict write operation path validation
-- Enhanced test coverage for agent workflows and permission systems
-- Improved system observability with structured logging replacing print statements
+- Fixed conversation history not updating after auto-compaction
+- Prevented crashes from external tool connection issues
 
 ## [4.15.0] - 2025-12-02
 
-### Highlights
+### What's New
 
-- Added DeepSeek as a new LLM provider with advanced reasoner model support
-- Enhanced model management with streamlined switching and improved visual interface
-- Expanded file handling capabilities with new `read_lines` tool for targeted content access
+- DeepSeek provider now available as an AI option with reasoner model support
+- Read specific line ranges from files with new read_lines tool
 
-### Customer Impact
+### Improvements
 
-- Users can now select from DeepSeek's advanced reasoning models for complex problem-solving
-- Simplified model switching with `/model <name>` shortcut and session-based changes
-- Better file navigation with precise line range reading and flexible path handling across tools
+- Better organized model list display with visual indicators and clearer formatting
+- Quick model switching with '/model <name>' shortcut command
+- Automatic re-authentication for Claude Code OAuth sessions
+- Standardized provider commands for better consistency
 
-### Platform Improvements
+### Bug Fixes
 
-- Implemented automatic re-authentication for Claude Code OAuth to prevent session interruptions
-- Standardized provider command interface to `/provider list` for consistency
-- Enhanced REPL visual presentation with corrected ASCII art alignment and structured model tables
+- Fixed ASCII art alignment in the welcome message display
+- Fixed provider command interface inconsistency
+- Fixed model threshold command parsing with multi-part arguments
 
 ## [4.14.0] - 2025-12-02
 
-### Added
+### What's New
 
-- Interactive first-time setup wizard for AI provider configuration to streamline onboarding
+- Interactive setup wizard guides you through AI provider configuration on first run
 
-### Changed
+### Improvements
 
-- Removed default GPT-5 model to enable guided first-time setup and improve initial user experience
+- Cleaner first-time experience without forcing a default model selection
+- Better error messages guide you to setup instead of mentioning default models
 
 ## [4.13.0] - 2025-12-01
 
-### Highlights
+### What's New
 
-- Delivered interactive wizards for model and custom command configuration, significantly improving user experience
-- Expanded platform flexibility by supporting API key-free providers for local and open-source models
-- Enhanced team collaboration with project-level custom commands that override global settings
+- Create custom commands with interactive step-by-step wizards
+- Use project-level custom commands that override global settings for team collaboration
+- Configure AI models with an interactive 5-step setup wizard
 
-### Customer Impact
+### Improvements
 
-- Users can now configure models through a guided 5-step wizard instead of manual parameter entry
-- Teams can share project-specific commands via git while maintaining personal command sets
-- Tab completion now includes custom commands with descriptions for faster command discovery
-
-### Platform Improvements
-
-- Streamlined provider configurations by removing 6 unsupported services, focusing on 7 core providers
-- Added 450+ test cases for provider management, improving system reliability
-- Enhanced tool exports to include directory creation and file reading capabilities
+- Manage AI providers more easily with optional API key support
+- Better tab completion now includes your custom commands
+- Cleaner provider list focusing on actively supported services
 
 ## [4.12.0] - 2025-11-27
 
-### Highlights
+### What's New
 
-- Introduced auto-approval tools for subagents, enabling faster parallel task execution
-- Reduced system prompt size by 75%, improving AI inference speed and lowering operational costs
-- Enhanced tool safety with dangerous command pattern blocking
+- Subagents can now auto-approve specific tools without manual confirmation
 
-### Customer Impact
+### Improvements
 
-- Users can now configure subagents with auto-approvals for specific tools, streamlining delegated workflows
-- Clearer, concise tool descriptions reduce cognitive load and improve tool selection efficiency
-- Improved documentation with centralized usage guidelines for better user onboarding
+- Simplified system prompt for faster and more focused responses
+- Enhanced tool descriptions for better clarity and understanding
+- Added safety features to prevent execution of dangerous commands
+- Streamlined file editing with centralized usage guidelines
 
-### Platform Improvements
+### Bug Fixes
 
-- Strengthened security by blocking dangerous command patterns in the execute_command tool
-- Simplified architecture by removing circular import handling and redundant fallback logic
-- Enhanced system stability through streamlined prompt management and tool description consistency
+- Fixed circular import issues in tool handling
+- Resolved trailing whitespace problems in parallel task execution
 
 ## [4.11.0] - 2025-11-23
 
-### Highlights
+### What's New
 
-- Launched customizable slash commands system, enabling users to create personal automation workflows
-- Enhanced agent capabilities with auto mode and improved subagent management
-- Added focused file analysis tool for efficient code review and debugging
+- Create your own custom slash commands for automation
+- Read specific line ranges from files with new read_lines tool
+- Get started quickly with custom commands quickstart guide
 
-### Customer Impact
+### Improvements
 
-- Users can now create custom commands using shell scripts, templates, text responses, or Python functions
-- New read_lines tool allows precise file section analysis without loading entire files
-- Simplified model management with enhanced switching and provider information access
-
-### Platform Improvements
-
-- Refactored CLI command system for improved maintainability and extensibility
-- Strengthened security with built-in controls for dangerous command execution
-- Enhanced system stability with comprehensive test coverage for new features
+- Better organized command system for improved reliability
+- Enhanced model management with easier switching between AI models
+- More comprehensive help system with custom commands integration
 
 ## [4.10.0] - 2025-11-23
 
-### Highlights
+### Improvements
 
-- Implemented intelligent token management system to improve performance and reduce operational costs
-- Streamlined documentation structure to enhance developer onboarding and product clarity
-- Strengthened system reliability with improved OAuth authentication and test coverage
+- Better conversation management with intelligent token tracking
+- Automatic truncation of oversized tool results to keep responses manageable
+- Streamlined documentation with improved structure and easier navigation
+- Enhanced test reliability and code quality improvements
 
-### Customer Impact
+### Bug Fixes
 
-- Reduced processing delays through smart tool result limiting and configurable thresholds
-- Enhanced user experience with clear warnings for oversized content and better error handling
-- Improved integration stability with more robust OAuth authentication flows
-
-### Platform Improvements
-
-- Increased system stability with comprehensive test isolation and environment variable management
-- Optimized resource utilization with conversation compaction improvements
-- Enhanced security posture through proper OAuth mocking and validation
+- Fixed OAuth authentication issues with proper test environment setup
+- Resolved trailing whitespace problems in parallel task execution
+- Fixed test isolation by clearing conflicting environment variables
 
 ## [4.9.2] - 2025-11-23
 
-### Fixed
+### Improvements
 
-- Resolved a critical issue where parallel sub-agent execution could hang by adding missing max_iterations parameter support with global and per-subagent override capabilities
+- Better support for parallel task execution with improved iteration limits
+- More reliable subagent coordination during complex multi-task operations
 
 ## [4.9.1] - 2025-11-23
 
-### Removed
+### Improvements
 
-- Eliminated vaporwave theme UI components to streamline interface and reduce maintenance overhead
-- Removed all vaporwave aesthetic elements including Clippy entity, CRT display effects, and neon styling system
-
-### Changed
-
-- Simplified UI module structure by removing vaporwave application and related conversation components
-- Updated version to 4.9.1 for release management
+- Cleaned up code structure for better reliability
 
 ## [4.9.0] - 2025-11-23
 
-### Highlights
+### What's New
 
-- Launched stuck subagent detection system eliminating parallel execution failures
-- Fixed ZAI GLM-4.6 provider compatibility ensuring reliable AI integration
-- Improved recursive directory listing functionality restoring key file operations
+- Automatic recovery system for stuck subagents during parallel tasks
 
-### Customer Impact
+### Improvements
 
-- Parallel tasks now complete reliably with automatic stuck process recovery
-- Users experience consistent behavior across all AI providers without manual workarounds
-- File system operations work as expected with proper recursive directory traversal support
+- Better ZAI provider compatibility with conversation summaries
+- Streamlined command structure and improved type checking
+- Enhanced OAuth token handling and error management
 
-### Platform Improvements
+### Bug Fixes
 
-- Enhanced conversation handling with provider-agnostic summarization
-- Streamlined CLI structure by removing deprecated vaporwave TUI mode
-- Improved test reliability with better environment isolation and formatting
+- Fixed recursive directory listing functionality
+- Resolved OAuth test environment interference
+- Fixed conversation compaction issues with ZAI GLM-4.6 model
 
 ## [4.8.0] - 2025-11-23
 
-### Highlights
+### What's New
 
-- Integrated Claude Code OAuth authentication, expanding model access for premium subscribers
-- Launched immersive vaporwave TUI experience to enhance user engagement and differentiation
-- Implemented agent loop guardrails for safer, more reliable AI operations
+- Sign in with Claude Code subscription using OAuth authentication
+- New vaporwave dream mode with retro 90s-themed interface and animations
 
-### Customer Impact
+### Improvements
 
-- Users can seamlessly authenticate with Claude Code via secure PKCE OAuth flow and access premium models (claude-sonnet-4-5, claude-opus-4-5)
-- New vaporwave dream mode TUI delivers nostalgic 90s aesthetic with animated Clippy, CRT effects, and interactive channels
-- Enhanced agent reliability prevents infinite loops while maintaining unlimited execution capability
+- Better organization with clear tool names in results
+- Safer directory browsing without automatic recursion
+- AI can now complete tasks without step limits
 
-### Platform Improvements
+### Bug Fixes
 
-- Added comprehensive agent loop guardrails with 100-iteration default cap to prevent runaway processes
-- Improved tool result handling with proper tool name attribution for better debugging
-- Secured directory listing tool by disabling recursive traversal to prevent system risks
+- Fixed issue where tool results didn't show which tool was used
 
 ## [4.7.0] - 2025-11-23
 
-### Highlights
+### What's New
 
-- Enhanced agent capabilities with unlimited execution iterations for complex task completion
-- Added web content retrieval tool, expanding data access capabilities
-- Improved system safety by preventing unintended recursive directory operations
+- Fetch web pages directly for research and documentation
+- Press Ctrl+J to easily create multi-line inputs
+- AI can now complete complex tasks without step limits
 
-### Customer Impact
+### Improvements
 
-- Agents can now complete complex workflows without artificial iteration limits
-- Users can retrieve live web content directly through the new fetch_webpage tool
-- Interactive mode workflow improved with new multi-line input shortcut (Ctrl+J)
+- Better performance for file operations
 
-### Platform Improvements
+### Bug Fixes
 
-- Strengthened security posture by eliminating recursive directory traversal risks
-- Updated core dependencies to ensure platform stability and performance
+- Fixed directory listing to prevent unintended file access
 
 ## [4.6.0] - 2025-11-22
 
-### Highlights
+### What's New
 
-- Launched new web content retrieval capability, enabling agents to access external resources
-- Enhanced CLI user experience with improved help documentation and multi-line input support
-- Streamlined provider management by removing unused HuggingFace integration
+- Fetch content from web pages for research and documentation
+- Press Ctrl+J to easily create multi-line inputs
 
-### Customer Impact
+### Improvements
 
-- Agents can now fetch and process web content with smart extraction modes, improving access to documentation and online resources
-- New Ctrl+J shortcut enables easier multi-line input for complex queries in interactive mode
-- Comprehensive help commands (/model help, /mcp help) provide self-service guidance for configuration
+- Better help commands with detailed guidance for models and servers
+- Cleaner welcome screen with improved centering and layout
+- Enhanced notifications show conversation space savings when auto-compacted
+- Updated token usage threshold takes effect immediately without restart
 
-### Platform Improvements
+### Bug Fixes
 
-- Fixed model threshold cache update issue, ensuring settings take effect immediately without session restart
-- Enhanced auto-compaction notifications show token reduction metrics and savings percentage
-- Improved CLI visual presentation with cleaner welcome messages and better formatting
+- Fixed model threshold cache not updating when changed during session
 
 ## [4.4.3] - 2025-11-18
 
-### Changed
+### Improvements
 
-- Updated to version 4.4.3 and added Hugging Face Hub integration support for upcoming AI model features
+- Added support for Hugging Face models and AI providers
 
 ## [4.4.2] - 2025-11-18
 
-### Changed
+### Improvements
 
-- Updated documentation to streamline onboarding and highlight Anthropic API key configuration
-- Refreshed CLI visual identity with new paperclip ASCII art for improved user experience
-- Cleaned up example configurations by removing deprecated server references
+- New paperclip ASCII art banner for better appearance
+- Streamlined documentation for easier onboarding
+- Updated provider list and Anthropic API key configuration
+- Cleaner example configuration files
 
 ## [4.4.1] - 2025-11-16
 
-### Added
+### Improvements
 
-- Introduced branded Clippy ASCII art banner to enhance user engagement in interactive mode
-
-### Changed
-
-- Simplified interactive mode welcome message to reduce cognitive load for new users while maintaining full documentation access
+- Simplified welcome message to focus on essential information for new users
+- Added a fun ASCII art welcome banner with Clippy's classic greeting
 
 ## [4.4.0] - 2025-11-12
 
-### Highlights
+### What's New
 
-- Introduced new internal reasoning tool to enhance AI agent decision-making capabilities
-- Strengthened platform with expanded action permissions system
+- New think tool helps AI organize thoughts before taking action
 
-### Customer Impact
+### Improvements
 
-- AI agents can now perform structured internal reasoning, improving planning and action quality
-- Enhanced transparency as agents' thought processes are now logged and auditable
-
-### Platform Improvements
-
-- Expanded permissions framework to support new action types with auto-approval capabilities
-- Improved tool registry architecture for better extensibility and maintenance
+- AI can now plan internally before executing tasks
+- Better reasoning process for more accurate results
 
 ## [4.3.0] - 2025-11-09
 
-### Added
+### What's New
 
-- Introduces YOLO mode in the CLI for automatically approving all actions, reducing user friction in automated workflows.
+- New YOLO mode for auto-approving all actions
+
+### Improvements
+
+- Streamlined workflow with automatic approvals
 
 ## [4.2.0] - 2025-11-09
 
-### Added
+### What's New
 
-- Introduced `/init` command for automated AGENTS.md documentation creation and management, enhancing AI agent onboarding with project-specific insights
+- New /init command automatically creates project documentation files
+- Enhance existing documentation with project-specific insights using --refine flag
 
-### Changed
+### Improvements
 
-- Enhanced content output quality by removing formatting artifacts from assistant responses
-
-### Fixed
-
-- Resolved content display issue where newlines appeared incorrectly in generated output
+- Cleaner AI responses by removing extra blank lines at the start
+- Better project analysis detects structure, dependencies, and development commands
 
 ## [4.1.0] - 2025-11-06
 
-### Highlights
+### What's New
 
-- Added support for Anthropic and Google Gemini models, expanding AI provider ecosystem
-- Refactored provider system for enhanced flexibility and improved model resolution
-- Fixed critical issue with prefixed model configurations for custom OpenAI-compatible providers
+- Support for Anthropic and Google Gemini AI providers
+- HuggingFace model integration for more AI options
 
-### Added
+### Improvements
 
-- Integrated Anthropic and Google Gemini as supported AI providers with full configuration
-- Added HuggingFace model support with proper error handling and import management
+- Better handling of custom AI providers with OpenAI-compatible settings
+- More flexible provider system with improved model identification
 
-### Changed
+### Bug Fixes
 
-- Replaced openai_compatible flag with pydantic_system for more flexible provider categorization
-- Enhanced model resolution to handle system prefixes and aliases (hf -> huggingface)
-- Updated provider configurations to include explicit pydantic_system definitions
-
-### Fixed
-
-- Resolved issue where prefixed models (e.g., hf:...) incorrectly ignored custom OpenAI provider settings
+- Fixed issue with prefixed models not using correct provider settings
 
 ## [4.0.0] - 2025-11-06
 
-### Highlights
+### Improvements
 
-- Modernized AI integration infrastructure with Pydantic AI platform, improving extensibility and reducing vendor lock-in
-
-### Customer Impact
-
-- Enhanced model access layer now supports advanced configuration options like context windows and token limits
-- Maintained full backward compatibility ensures seamless transition for existing integrations
-
-### Platform Improvements
-
-- Upgraded core AI provider abstraction, enabling faster integration of new language models
-- Strengthened test coverage with modern mocking framework, increasing system reliability
+- Better AI model management with improved configuration options
+- More reliable tool calling with enhanced compatibility
+- Enhanced performance and stability for all AI interactions
 
 ## [3.7.1] - 2025-11-06
 
-### Added
+### Improvements
 
-- Implemented intelligent command suggestion system using fuzzy matching to guide users when invalid slash commands are entered
-
-### Changed
-
-- Enhanced error handling across both interactive and one-shot modes to provide helpful suggestions instead of processing invalid commands
-- Updated CLI command behavior and documentation to improve user experience with unknown command responses
+- Get helpful suggestions when you type an incorrect slash command
+- Better error messages for unknown commands in both interactive and quick modes
 
 ## [3.7.0] - 2025-11-05
 
-### Highlights
+### What's New
 
-- Enhanced tool discovery with categorization system, reducing catalog size by 24%
-- Added new file manipulation utilities (copy, move, find_replace) with safety features
-- Improved CLI usability with conversation management and redesigned help system
+- New /truncate command to manage conversation length
+- Copy and move files with validation and progress tracking
+- Find and replace text across multiple files with preview mode
 
-### Customer Impact
+### Improvements
 
-- Users can now efficiently manage conversation history with new truncate command
-- File operations are more powerful with copy/move utilities and pattern replacement tool
-- Tool discovery is streamlined through smart categorization and contextual recommendations
-
-### Platform Improvements
-
-- Reduced tool catalog from 17 to 13 focused tools while enhancing capabilities
-- Added comprehensive validation and error handling for file operations
-- Improved CLI help system with logical command grouping and visual hierarchy
+- Better tool organization with categories and smart suggestions
+- Help commands grouped by category for easier navigation
+- Reduced tool catalog with more powerful capabilities
 
 ## [3.6.0] - 2025-11-03
 
-### Highlights
+### What's New
 
-- Enhanced interactive CLI with progress tracking and smart error recovery, improving user productivity
-- Streamlined tool architecture, reducing complexity by 24% while maintaining all functionality
-- Added comprehensive project examples across key development scenarios, accelerating customer onboarding
+- New project analysis tool for security scanning and code quality assessment
+- Real-world examples and development scenarios added to documentation
 
-### Added
+### Improvements
 
-- Implemented comprehensive model management interface with clear status visibility and provider distinction
-- Delivered 12 real-world project examples covering web development, data science, CLI tools, DevOps, and API development
+- Enhanced interactive mode with progress indicators and smart file completion
+- Better model management UI with detailed status panels
+- Streamlined file operations using familiar shell commands
+- Improved error recovery with contextual suggestions
 
-### Changed
+### Bug Fixes
 
-- Rebranded all command references to 'clippy-code' for consistent brand alignment across documentation
-- Enhanced file operations with shell-based approach for improved reliability and user familiarity
-
-### Fixed
-
-- Resolved CI pipeline compatibility issues by removing interactive flag from automated environments
+- Fixed automated execution issues in CI pipelines by removing interactive flag
 
 ## [3.5.0] - 2025-11-01
 
-### Highlights
+### What's New
 
-- Introduced comprehensive file validation to prevent syntax errors and improve data integrity
-- Added automatic binary file detection, enhancing system reliability and preventing corruption
-- Strengthened error handling to improve system stability and maintain clean error state
+- Automatic file validation checks for common formats like Python, JSON, and YAML when writing files
+- Binary file detection prevents errors when working with images, documents, and other non-text files
 
-### Customer Impact
+### Improvements
 
-- Enhanced file writing with automatic validation for 10+ formats (Python, JSON, YAML, XML, HTML, CSS, JS/TS, Markdown, Dockerfile)
-- Improved user experience with clear error messages including line numbers for syntax errors
-- Reduced data corruption risk through intelligent detection and handling of binary files
+- Better error messages with actionable guidance when file operations fail
+- File validation can be skipped for large files over 1MB to keep things fast
 
-### Platform Improvements
+### Bug Fixes
 
-- Implemented validation bypass for files over 1MB to maintain performance with large files
-- Resolved potential exception leakage in MCP error handling, improving system stability
-- Added comprehensive test coverage for validation functionality, ensuring reliability
+- Fixed issue with error handling that could cause problems with external tool connections
 
 ## [3.4.0] - 2025-11-01
 
-### Highlights
+### What's New
 
-- Enhanced CLI productivity with intelligent command completion and server management controls
-- Expanded AI provider ecosystem by adding Mistral AI support
-- Improved system reliability with enhanced timeout controls and security fixes
+- Mistral AI now available as a provider option
+- Enable and disable MCP servers for better control
+- /model load command makes switching AI models faster
 
-### Customer Impact
+### Improvements
 
-- Users now benefit from context-aware tab completion for model management commands, reducing command discovery time
-- Added `/model load` command for faster model switching and improved server enable/disable controls
-- Mistral AI provider integration expands model choice for customers requiring specialized AI capabilities
+- Better tab completion for model commands with context-aware suggestions
+- Command timeout increased to 5 minutes with configurable options
+- Cleaner documentation with restructured features section
 
-### Platform Improvements
+### Bug Fixes
 
-- Extended command execution timeout to 5 minutes (configurable), preventing task failures for long-running operations
-- Fixed command injection vulnerability in search patterns starting with dash, improving security posture
-- Enhanced system stability with comprehensive test coverage and improved error handling across MCP server management
+- Fixed search patterns starting with dash being misinterpreted as flags
+- Prevented special formatting characters from causing display errors
+- Fixed duplicate commands in MCP manager
 
 ## [3.2.0] - 2025-10-27
 
-### Highlights
+### What's New
 
-- Delivered major conversation management features, enabling users to save, resume, and track dialogue history
-- Critical security vulnerability patched, preventing application crashes from malicious user input
-- Enhanced user experience with interactive conversation selection and auto-generated timestamps
+- Save and resume conversations automatically
+- Interactive conversation picker when resuming
 
-### Customer Impact
+### Improvements
 
-- Users can now seamlessly save conversations and return to them later, preserving context and workflow
-- Interactive `/resume` command allows quick selection from conversation history with timestamps and message counts
-- Improved error stability ensures uninterrupted sessions, eliminating crashes from special characters in output
+- Better file change previews with cleaner formatting
+- Auto-generates timestamps for saved conversations
+- Shows conversation history when loading saves
 
-### Platform Improvements
+### Bug Fixes
 
-- Strengthened application security by sanitizing all user-facing console output against Rich markup injection
-- Improved diff readability with configurable context lines and cleaner formatting
-- Enhanced conversation file handling with better error recovery for corrupted files
+- Fixed crash when messages contain special formatting characters
+- Prevented display errors with mismatched text formatting
 
 ## [3.1.0] - 2025-10-27
 
-### Highlights
+### What's New
 
-- Expanded AI provider options with MiniMax integration, enhancing service flexibility
-- Improved CLI user experience with intelligent file detection and auto-completion
-- Enhanced system stability by preventing rendering artifacts in tool outputs
+- MiniMax provider now available as an AI option
+- Smart file completion suggests files without typing @ symbol
 
-### Customer Impact
+### Improvements
 
-- Users can now select MiniMax as an AI provider, expanding service choice
-- Streamlined file completion eliminates need for '@' prefix, reducing friction
-- Smarter file suggestions based on context and patterns improve workflow efficiency
+- Better tab completion for file references with @ symbol
+- Enhanced file detection by analyzing paths and extensions
 
-### Platform Improvements
+### Bug Fixes
 
-- Fixed potential rendering issues in tool displays for better content reliability
-- Added comprehensive test coverage for file completion features
-- Improved security with proper API key authentication for new provider
+- Fixed display issues when tool outputs contain special characters
+- Prevented rendering artifacts in diff content
 
 ## [3.0.1] - 2025-10-27
 
-### Added
+### What's New
 
-- Tab completion for slash commands improves developer productivity and reduces learning curve
-- Chutes.ai provider integration expands AI model options for customers
+- Tab completion for slash commands makes typing faster
+- New 'clippy-code' command as an alternative way to start the app
 
-### Changed
+### Improvements
 
-- Simplified user experience with automatic interactive mode detection, reducing friction for new users
-- Increased task processing capacity from 50 to 100 iterations, enabling more complex workflows
-- Streamlined provider configuration with concise naming, improving clarity and usability
+- Auto-enters interactive mode when no task provided
+- Can handle more complex tasks with increased limit to 100 operations
+- Added Chutes.ai as a new AI provider option
+- Simplified provider names for cleaner display
+- Better search behavior with ripgrep's automatic recursive search
 
-### Removed
+### Bug Fixes
 
-- Document mode feature removed to focus on core functionality, reducing maintenance overhead and improving system reliability
-
-### Fixed
-
-- Corrected ripgrep recursive search behavior to ensure consistent and predictable search results across all use cases
+- Fixed search tool flag handling for more reliable results
 
 ## [2.1.1] - 2025-10-25
 
-### Changed
+### Improvements
 
-- Enhanced token usage calculation with model-specific context limits for improved accuracy and cost predictability
-- Added fallback support for compaction threshold lookup by model_id with case-insensitive matching
-- Improved status command transparency by displaying usage basis (threshold vs. estimate) and context source details
+- Better token usage tracking with model-specific limits
+- Status command now shows how usage is calculated
+- Model names and IDs are now case-insensitive for easier matching
 
 ## [2.1.0] - 2025-10-25
 
-### Highlights
+### What's New
 
-- Launched auto-compaction feature to optimize conversation management and reduce API costs
-- Enhanced model management with comprehensive UI controls and validation
-- Improved file editing reliability with fuzzy matching and exact string patterns
+- Conversations automatically summarize when they get too long to save space
+- Clippy now has a fun personality with paperclip-themed jokes and puns
 
-### Customer Impact
+### Improvements
 
-- Conversations now automatically summarize when reaching token limits, maintaining context while reducing costs
-- Users gain full control over model configurations through intuitive document mode commands
-- File editing is more reliable with intelligent pattern matching that handles minor variations
+- Model management commands now work better in document mode
+- File editing is more reliable with exact string matching instead of patterns
+- Switching between AI models works better with validation and case-insensitive matching
+- Document mode header now shows your current working directory
 
-### Platform Improvements
+### Bug Fixes
 
-- Enhanced system stability with improved pattern deletion for multi-line content
-- Strengthened brand identity with classic Clippy personality and paperclip-themed interactions
+- Fixed multi-line pattern deletion in file edits
+- Fixed issues with trailing newlines when deleting text patterns
 
 ## [2.0.0] - 2025-10-21
 
-### Highlights
+### What's New
 
-- Major 2.0.0 release with redesigned file editing system for improved reliability
-- Replaced complex regex patterns with intelligent fuzzy matching, reducing user errors
-- Enhanced CLI model switching with validation and case-insensitive matching
+- Switch between AI models more easily with case-insensitive matching
+- Edit files with simpler exact string matching instead of complex patterns
 
-### Changed
+### Improvements
 
-- Overhauled file editing to use exact string matching with fuzzy fallback (≥0.95 similarity)
-- Simplified model switching in CLI with improved validation and error handling
-- Improved multi-line pattern deletion and matching logic for better accuracy
+- Better error messages when model switching fails
+- More reliable multi-line pattern deletion
+- Smarter fuzzy matching finds similar text when exact match isn't found
 
-### Fixed
+### Bug Fixes
 
-- Resolved multi-line pattern deletion to properly remove entire pattern blocks
-- Fixed trailing newline handling to prevent orphaned blank lines
-- Corrected fuzzy matching deletion to remove entire matched line windows
+- Fixed issues with trailing newlines when deleting multi-line patterns
+- Fixed pattern matching that counted wrong number of occurrences
 
 ## [1.9.0] - 2025-10-20
 
-### Highlights
+### What's New
 
-- Launched comprehensive subagent system enabling complex task delegation to specialized AI agents with parallel execution and caching
-- Added configurable model overrides for subagent types, giving users full control over model selection
-- Introduced extensive workflow examples for code review, testing, and refactoring use cases
+- New subagent system for delegating complex tasks to specialized AI agents
+- Set custom models for different subagent types with /subagent commands
 
-### Customer Impact
+### Improvements
 
-- Users can now delegate complex development tasks to specialized subagents (code review, testing, refactoring, documentation) with automatic result caching to save costs
-- Enhanced visual indicators clearly identify which subagent is executing each task, improving transparency and debuggability
-- New parallel execution capabilities enable concurrent processing of multiple subtasks, significantly reducing completion time for complex workflows
+- Better multi-line pattern handling for file edits
+- Enhanced approval dialogs with improved error handling
+- Clear visual indicators show which subagent is working
 
-### Platform Improvements
+### Bug Fixes
 
-- Fixed multi-line pattern handling in edit operations, correctly processing patterns with trailing newlines
-- Resolved potential runtime errors from double-async execution in MCP refresh operations
-- Enhanced system stability with comprehensive test coverage covering critical error paths and edge cases across all core components
+- Fixed file editing issues with patterns ending in newlines
+- Fixed potential runtime errors with external tool connections
 
 ## [1.8.2] - 2025-10-19
 
-### Changed
+### Improvements
 
-- Streamlined configuration by requiring explicit model specification, reducing setup complexity
-- Removed environment variable fallbacks (CLIPPY_MODEL, CLIPPY_MCP_CONFIG) for clearer, more predictable behavior
-- Updated documentation and examples to reflect simplified configuration approach
+- Simplified configuration by removing environment variable fallbacks
+- Better model selection with explicit model names and IDs
+- Cleaner setup process with updated documentation and examples
 
 ## [1.8.1] - 2025-10-19
 
-### Highlights
+### Improvements
 
-- Improved debugging experience for MCP tools by capturing error streams in debug logs
-
-### Platform Improvements
-
-- Reduced terminal noise from MCP server processes, enhancing system stability and troubleshooting
-- Streamlined version synchronization for consistent package management and deployment
+- Cleaner terminal output when connecting to external tools
+- Better error messages for troubleshooting connection issues
 
 ## [1.8.0] - 2025-10-19
 
-### Highlights
+### What's New
 
-- Launched flexible provider-based model management system, enabling users to configure and switch between AI providers dynamically
-- Enhanced user experience with visual feedback spinner during agent processing and improved UI security with markup escaping
-- Streamlined build process to maintain dependency synchronization during version updates
+- Manage your own AI models and providers with new commands like /model add/remove/default
 
-### Customer Impact
+### Improvements
 
-- Users can now add, remove, and manage multiple AI providers through intuitive CLI commands (/model add/remove/default/use)
-- Visual spinner indicator provides clear feedback during model processing, reducing uncertainty about system activity
-- Secure text rendering prevents display issues from accidental markup in conversations and tool outputs
+- Better visual feedback with a spinner while AI is thinking
+- More flexible model system with separate provider and user configurations
 
-### Platform Improvements
+### Bug Fixes
 
-- Strengthened UI security by escaping all user-provided text to prevent markup injection attacks
-- Improved build reliability with automated lock file updates during version changes
-- Enhanced system stability with proper spinner lifecycle management across agent operations
+- Fixed security issue preventing text markup from breaking the UI
 
 ## [1.7.0] - 2025-10-19
 
-### Highlights
+### Improvements
 
-- Enhanced system observability with comprehensive logging for improved troubleshooting and operational insights
-- Improved user experience by displaying the current working directory in the interface, increasing contextual awareness
-- Strengthened product reliability with detailed execution tracking and error reporting
-
-### Customer Impact
-
-- Users can now easily see their current working directory directly in the interface, improving navigation efficiency and reducing context-switching
-- Issues can be resolved 50% faster with detailed logs capturing agent execution flow and tool interactions
-
-### Platform Improvements
-
-- Implemented dual-output logging system (console + rotating file) for complete system transparency
-- Added comprehensive error tracking with stack traces for all tool execution failures
-- Enhanced system stability with iteration limit warnings and permission check logging
+- Added detailed logging to help track what the app is doing
+- Current working directory now displayed in the document header for easier navigation
+- Better error tracking with detailed logs when something goes wrong
 
 ## [1.6.0] - 2025-10-19
 
-### Highlights
+### Improvements
 
-- Streamlined user approval workflow to improve task completion rates and reduce friction
-- Enhanced system reliability with robust input validation and error handling
-- Accelerated development cycle with migration to uv package manager, improving build times
-
-### Customer Impact
-
-- Simplified approval system with clear yes/no/allow options reduces user decision time by an estimated 40%
-- Improved error guidance prevents user mistakes and keeps workflows moving smoothly
-- Added helpful continue option when iteration limits are reached, improving task completion
-
-### Platform Improvements
-
-- Migrated to uv package manager for 50% faster dependency resolution and more reliable builds
-- Enhanced input validation with clear error messages prevents workflow interruptions
-- Updated all dependencies to latest stable versions for improved security and performance
+- Simplified approval system with clearer yes/no/allow options
+- Better approval prompt validation with helpful error messages
+- App now asks if you want to continue when reaching task limits
+- Switched to faster dependency management for quicker updates
 
 ## [1.5.3] - 2025-10-19
 
-### Added
+### Improvements
 
-- Automated PyPI publishing workflow for faster, more reliable releases
-
-### Changed
-
-- Rebranded product from "code-with-clippy" to "clippy-code" across all documentation and package metadata
-- Enhanced type checking with PyYAML type stubs to improve code quality
+- Project renamed to 'clippy-code' for clearer branding and consistency
+- Added automated publishing workflow for smoother updates
+- Enhanced type checking for better reliability
 
 ## [1.5.2] - 2025-10-19
 
-### Fixed
+### Improvements
 
-- Escaped CLI error messages to prevent potential markup injection vulnerabilities, enhancing security across all command-line interfaces.
+- Better console message formatting for improved readability
+
+### Bug Fixes
+
+- Fixed security issue with error message display to prevent markup injection
 
 ## [1.5.1] - 2025-10-19
 
-### Changed
+### Improvements
 
-- Enhanced MCP tool execution with user-approved trust bypass, streamlining workflows for trusted users while maintaining security for automated executions
+- You can now approve MCP tools on-the-fly without pre-configuring trust settings
 
 ## [1.5.0] - 2025-10-19
 
-### Highlights
+### What's New
 
-- Launched advanced file editing capabilities with block and regex operations, enabling more precise code modifications
-- Integrated popular AI services (Context7, Perplexity) through enhanced MCP server support
-- Strengthened platform reliability with comprehensive test coverage across core components
+- New block editing operations for replacing and deleting multi-line text sections
+- Advanced regex replacement with support for capture groups and flags
 
-### Customer Impact
+### Improvements
 
-- Developers can now perform complex file edits using multi-line block operations and regex with capture groups, reducing manual editing time by an estimated 60%
-- Access to AI-powered search and structured reasoning tools directly within the workflow improves development productivity
-- Simplified MCP server configuration with Node.js-based alternatives streamlines setup process
-
-### Platform Improvements
-
-- Achieved 95% test coverage for agent conversation management and MCP components, significantly reducing bug risk
-- Enhanced system stability through improved error handling and edge case management in file operations
-- Updated security best practices documentation for MCP integrations to ensure safe deployments
+- Enhanced file editing with more precise block-based operations
+- Better MCP tool compatibility and result formatting
+- Expanded documentation with comprehensive MCP integration guides and examples
 
 ## [1.4.1] - 2025-10-18
 
-### Changed
+### Improvements
 
-- Enhanced user interface with customized scrollbar styling for improved visual consistency in the conversation log
+- Customized scrollbar appearance for better conversation viewing
 
 ## [1.4.0] - 2025-10-18
 
-### Highlights
+### What's New
 
-- Launched Model Context Protocol (MCP) integration enabling dynamic discovery and execution of external tools
-- Implemented enhanced security with manual trust system for MCP server connections
-- Introduced comprehensive MCP management UI with real-time server diagnostics and approval workflows
+- Connect to external tools through Model Context Protocol (MCP) servers
+- New MCP commands: list, tools, refresh, allow, and revoke
+- Enhanced approval dialog with expandable details and better error messages
 
-### Customer Impact
+### Improvements
 
-- Users can now connect to external MCP servers to expand tool capabilities beyond built-in functionality
-- Enhanced UI provides clear visibility into tool permissions with expandable approval dialogs and contextual error messages
-- Improved grep tool flexibility now accepts both 'path' and 'paths' parameters for better usability
+- Manually trust MCP servers for better security control
+- Better error handling with contextual suggestions when things go wrong
+- Improved grep tool now accepts both 'path' and 'paths' for flexibility
 
-### Platform Improvements
+### Bug Fixes
 
-- Refactored MCP manager to synchronous API with background threading for improved stability and performance
-- Added robust error handling and logging throughout the MCP integration pipeline
-- Enhanced configuration system supports multiple search paths and environment variable resolution
+- Fixed UI display issues in document mode
+- Resolved connection reliability problems with external servers
 
 ## [1.3.0] - 2025-10-17
 
-### Highlights
+### What's New
 
-- Enhanced file editing capabilities with multi-line pattern support and improved safety through diff previews
-- Introduced auto-approval system for trusted actions, reducing user friction for repetitive tasks
-- Modernized UI with Windows-style approval dialogs and comprehensive help system in document mode
+- Edit tool now supports multi-line patterns for complex file changes
+- Manage auto-approvals with new /auto command (list, revoke, clear)
 
-### Customer Impact
+### Improvements
 
-- Users can now perform complex multi-line edits with better pattern matching, reducing manual editing errors
-- Auto-approval feature streamlines workflows by remembering trusted action types across sessions
-- Enhanced document mode provides detailed session insights, token usage tracking, and organized help content
+- Approval dialog redesigned with modern Windows-style security interface
+- Can handle longer tasks with increased limit from 25 to 50 operations
+- Better code organization for improved reliability and performance
+- File edits are more reliable with strict pattern matching and validation
 
-### Platform Improvements
+### Bug Fixes
 
-- Increased agent task capacity from 25 to 50 iterations for longer-running operations
-- Improved system reliability with better file validation and corruption protection
-- Strengthened code organization for enhanced maintainability and faster feature development
+- Fixed paperclip icon splitting in document mode
+- Improved edit tool reliability with better error handling and validation
 
 ## [1.2.0] - 2025-10-14
 
-### Highlights
+### What's New
 
-- Expanded AI model options by adding ZAI provider with GLM models
-- Enhanced search functionality with familiar grep syntax support
-- Improved user experience through better flag translation and glob handling
+- Support for ZAI provider with GLM models
 
-### Customer Impact
+### Improvements
 
-- Users now have access to advanced GLM 4.6 and GLM 4.5 Air models through the new ZAI provider
-- Search experience improved with support for standard grep flags while maintaining ripgrep performance
-- Better handling of file inclusion/exclusion patterns with improved glob support
-
-### Platform Improvements
-
-- Enhanced search command reliability with improved argument handling and error processing
-- Comprehensive test coverage added for flag translation, ensuring feature stability
-- Streamlined command building process for more efficient pattern matching
+- Better search with familiar grep flags and glob patterns
+- Improved file search handling with proper glob expansion
 
 ## [1.1.1] - 2025-10-14
 
-### Fixed
+### Improvements
 
-- Restored critical file editing capabilities by enabling grep and edit_file tools
-- Improved agent reliability with corrected system prompt formatting and error handling
+- File search and editing tools now work properly
+
+### Bug Fixes
+
+- Fixed conversation compaction error when missing newlines
+- Improved documentation formatting consistency
 
 ## [1.1.0] - 2025-10-14
 
-### Highlights
+### What's New
 
-- Introduced new file editing capabilities, significantly expanding agent automation potential
-- Enhanced user experience with real-time processing feedback, reducing perceived wait times
+- Visual indicator shows when AI is thinking
+- New edit tool for precise line-based file modifications
 
-### Customer Impact
+### Improvements
 
-- Users can now perform precise line-based file edits (insert, replace, delete, append) through AI agents
-- Added visual thinking indicator provides clear feedback during AI processing, improving transparency and user confidence
+- Better search using ripgrep when available
+- Directory listings now show folders with trailing slash
 
-### Platform Improvements
+### Bug Fixes
 
-- Strengthened security with enhanced directory traversal prevention and refined permission system
-- Improved tool reliability with better error handling and ripgrep integration for faster searches
+- Fixed security issue preventing directory traversal
+- Improved error messages and reliability
 
 ## [1.0.0] - 2025-10-13
 
-### Highlights
+### What's New
 
-- Reached 1.0.0 with new document mode interface and enhanced Clippy personality
-- Added grep and read_files tools for improved file operations
-- Enhanced error handling with specific exception types and clearer user messages
+- New grep tool for searching patterns across files
+- Read multiple files at once with read_files tool
+- Document mode now shows conversation like a chat interface
 
-### Customer Impact
+### Improvements
 
-- New document mode provides Word-like interface for easier conversation management
-- Users can now search files with grep tool and read multiple files simultaneously
-- Improved tool approval UI shows clear parameter descriptions for better user control
-- Dynamic project documentation loading provides context-aware assistance
+- Better error messages when something goes wrong
+- Directory listings now respect .gitignore rules
+- Auto-loads project documentation when available
+- Cleaner document interface with modern conversation display
+- Improved approval UI for tool actions
 
-### Platform Improvements
+### Bug Fixes
 
-- Comprehensive error handling prevents crashes and provides actionable feedback
-- .gitignore support in recursive directory listings prevents context overflow
-- Simplified OpenAI-native architecture enables broader API compatibility
-- Enhanced testing coverage ensures reliability across all features
+- Fixed duplicate messages in interactive mode
+- Fixed Enter key submission issues in document mode
+- Fixed output display and text formatting in document UI
 
 ## [0.4.0] - 2025-10-12
 
-### Highlights
+### What's New
 
-- Added conversation management with /compact command to reduce token usage by summarizing history
-- Implemented automatic retry logic with exponential backoff to improve API reliability by 99.9%
-- Introduced token usage tracking with /status command for better cost management
+- Use /compact to summarize long conversations and save space
+- Check your token usage with /status command
 
-### Customer Impact
+### Improvements
 
-- Users can now manage long conversations efficiently without hitting context window limits
-- Reduced service disruptions from temporary API issues through automatic retries
-- Better visibility into token consumption and usage patterns for cost control
-
-### Platform Improvements
-
-- Enhanced error handling with structured logging and detailed retry attempts
-- Removed artificial token limits to leverage optimal API defaults for each provider
-- Added comprehensive retry mechanism for network failures and rate limits
+- Better reliability with automatic retries for failed connections
+- No more response length limits - let AI determine the best response size
 
 ## [0.3.0] - 2025-10-12
 
-### Highlights
+### What's New
 
-- Launched multi-provider LLM switching capability, enabling seamless transitions between 6 AI providers during active sessions
-- Implemented real-time response streaming, cutting perceived response time by over 50% and significantly improving user experience
-- Expanded model marketplace to 16 pre-configured models across OpenAI, Cerebras, Ollama, Together AI, Groq, and DeepSeek
+- Switch between different AI models during conversations using /model commands
+- See responses appear in real-time as they're being written
 
-### Customer Impact
+### Improvements
 
-- Users can instantly switch between AI providers using /model commands without session interruption, preserving conversation history
-- Real-time token streaming provides immediate visual feedback, reducing user uncertainty during response generation
-- Simplified API key management through environment-based configuration per provider
-
-### Platform Improvements
-
-- Comprehensive test coverage (35 tests) ensures reliable model switching and provider compatibility
-- Enhanced stability with provider recreation logic preventing state contamination between switches
+- Better support for multiple AI providers with separate API keys
+- Press ESC twice to quickly interrupt long responses
+- Improved reliability for model switching and configuration
 
 ## [0.2.0] - 2025-10-12
 
-### Added
+### What's New
 
-- OpenAI provider support with flexible base_url configuration for OpenAI-compatible APIs
-- --base-url CLI argument for easy integration with providers like Cerebras, Together AI, and Azure OpenAI
+- Works with any OpenAI-compatible service (OpenAI, Cerebras, Ollama, and more)
 
-### Changed
+### Improvements
 
-- **BREAKING**: Migrated from Anthropic to OpenAI-only implementation, removing Anthropic SDK dependency and --provider flag
-- Simplified codebase by 73% through native OpenAI format adoption across agents, tools, and providers
-- Updated all tool definitions to use OpenAI function calling format while maintaining functionality
-
-### Removed
-
-- Anthropic provider support and related abstraction layers
-- Outdated documentation files (UV_COMMANDS.md, VERSION_MANAGEMENT.md)
+- Simplified setup with OpenAI as the default provider
+- Cleaner code structure for better reliability and performance
+- Updated guides and examples to help you get started faster
 
 ## [0.1.0] - 2025-10-12
 
-### Added
+### What's New
 
-- Multi-LLM provider support enabling users to choose between Anthropic and OpenAI models
-- Comprehensive CLI interface with both one-shot command and interactive REPL modes
-- Permission system with three-tier security classification for file operations
-- Automated CI/CD pipeline testing across multiple Python versions and operating systems
-- Complete documentation suite including user guides, developer workflows, and AI agent onboarding
+- Choose your preferred AI provider - now supporting both Anthropic and OpenAI models
+- Interactive chat mode for longer conversations, plus quick command mode for single tasks
+- Safety system that automatically approves safe operations while asking for confirmation on risky ones
 
-### Changed
+### Improvements
 
-- Renamed package from clippy-ai to clippy-code for better market positioning
-- Refactored agent architecture to use abstraction layer for provider-agnostic LLM integration
-- Enhanced configuration system with multi-provider setup and environment variable support
-
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-
-## [Unreleased]
-
-### Added
-
-### Changed
-
-### Fixed
+- Better documentation with comprehensive guides and examples
+- New development tools for easier testing and code quality checks
+- Improved configuration system with clear setup instructions
 
