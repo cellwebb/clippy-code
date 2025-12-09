@@ -44,7 +44,7 @@ models:
       model_id: "openai/gpt-oss-120b"
     - name: "groq-kimi-k2-instruct-0905"
       model_id: "moonshotai/kimi-k2-instruct-0905"
-  
+
   mistral:
     - name: "mistral-devstral-2"
       model_id: "devstral-2512"
