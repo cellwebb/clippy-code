@@ -2,9 +2,6 @@
 
 from typing import Any
 
-# Result types for better type safety
-from .result import ToolResult
-
 # Utility functions available for internal use but not exposed as tools
 from .copy_file import copy_file as _copy_file_util
 from .create_directory import TOOL_SCHEMA as CREATE_DIRECTORY_SCHEMA
@@ -33,6 +30,9 @@ from .read_files import TOOL_SCHEMA as READ_FILES_SCHEMA
 from .read_files import read_files
 from .read_lines import TOOL_SCHEMA as READ_LINES_SCHEMA
 from .read_lines import read_lines
+
+# Result types for better type safety
+from .result import ToolResult
 from .search_files import TOOL_SCHEMA as SEARCH_FILES_SCHEMA
 from .search_files import search_files
 from .think import TOOL_SCHEMA as THINK_SCHEMA

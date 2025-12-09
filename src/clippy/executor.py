@@ -21,10 +21,10 @@ from .tools.list_directory import list_directory
 from .tools.read_file import read_file
 from .tools.read_files import read_files
 from .tools.read_lines import read_lines
+from .tools.result import ToolResult
 from .tools.search_files import search_files
 from .tools.think import think
 from .tools.write_file import write_file
-from .tools.result import ToolResult
 
 logger = logging.getLogger(__name__)
 # Execution constants
@@ -149,7 +149,11 @@ def _handle_read_files(tool_input: dict[str, Any]) -> ToolResult:
     if paths is None:
         path = tool_input.get("path")
         if path is None:
-            return ToolResult(success=False, message="read_files requires either 'path' or 'paths' parameter", data=None)
+            return ToolResult(
+                success=False,
+                message="read_files requires either 'path' or 'paths' parameter",
+                data=None,
+            )
         paths = [path] if isinstance(path, str) else path
     success, message, data = read_files(paths)
     return ToolResult(success=success, message=message, data=data)
@@ -175,7 +179,9 @@ def _handle_grep(tool_input: dict[str, Any]) -> ToolResult:
     if paths is None:
         path = tool_input.get("path")
         if path is None:
-            return ToolResult(success=False, message="grep requires either 'path' or 'paths' parameter", data=None)
+            return ToolResult(
+                success=False, message="grep requires either 'path' or 'paths' parameter", data=None
+            )
         paths = [path] if isinstance(path, str) else path
     success, message, data = grep(tool_input["pattern"], paths, tool_input.get("flags", ""))
     return ToolResult(success=success, message=message, data=data)
@@ -199,14 +205,20 @@ def _handle_edit_file(tool_input: dict[str, Any], allowed_roots: list[Path] | No
     return ToolResult(success=success, message=message, data=data)
 
 
-def _handle_find_replace(tool_input: dict[str, Any], allowed_roots: list[Path] | None) -> ToolResult:
+def _handle_find_replace(
+    tool_input: dict[str, Any], allowed_roots: list[Path] | None
+) -> ToolResult:
     """Handle find_replace tool execution."""
     # Handle both 'path' (singular) and 'paths' (plural)
     paths = tool_input.get("paths")
     if paths is None:
         path = tool_input.get("path")
         if path is None:
-            return ToolResult(success=False, message="find_replace requires either 'path' or 'paths' parameter", data=None)
+            return ToolResult(
+                success=False,
+                message="find_replace requires either 'path' or 'paths' parameter",
+                data=None,
+            )
         paths = [path] if isinstance(path, str) else path
     # Validate paths when not in dry_run mode
     if not tool_input.get("dry_run", True):
@@ -228,7 +240,9 @@ def _handle_find_replace(tool_input: dict[str, Any], allowed_roots: list[Path] |
     return ToolResult(success=success, message=message, data=data)
 
 
-def _handle_create_directory(tool_input: dict[str, Any], allowed_roots: list[Path] | None) -> ToolResult:
+def _handle_create_directory(
+    tool_input: dict[str, Any], allowed_roots: list[Path] | None
+) -> ToolResult:
     """Handle create_directory tool execution."""
     # Validate path is within allowed roots
     is_valid, error = validate_write_path(tool_input["path"], allowed_roots)
@@ -279,8 +293,12 @@ _TOOL_HANDLERS = {
     "read_lines": lambda tool_input, allowed_roots: _handle_read_lines(tool_input),
     "grep": lambda tool_input, allowed_roots: _handle_grep(tool_input),
     "edit_file": lambda tool_input, allowed_roots: _handle_edit_file(tool_input, allowed_roots),
-    "find_replace": lambda tool_input, allowed_roots: _handle_find_replace(tool_input, allowed_roots),
-    "create_directory": lambda tool_input, allowed_roots: _handle_create_directory(tool_input, allowed_roots),
+    "find_replace": lambda tool_input, allowed_roots: _handle_find_replace(
+        tool_input, allowed_roots
+    ),
+    "create_directory": lambda tool_input, allowed_roots: _handle_create_directory(
+        tool_input, allowed_roots
+    ),
     "delete_file": lambda tool_input, allowed_roots: _handle_delete_file(tool_input, allowed_roots),
     "think": lambda tool_input, allowed_roots: _handle_think(tool_input),
     "fetch_webpage": lambda tool_input, allowed_roots: _handle_fetch_webpage(tool_input),
@@ -320,7 +338,9 @@ class ActionExecutor:
         tool_name: str,
         tool_input: dict[str, Any],
         bypass_trust_check: bool = False,
-    ) -> tuple[bool, str, Any]:  # Note: Returns tuple for compatibility, but internally uses ToolResult
+    ) -> tuple[
+        bool, str, Any
+    ]:  # Note: Returns tuple for compatibility, but internally uses ToolResult
         """
         Execute an action.
 
@@ -368,10 +388,10 @@ class ActionExecutor:
             if handler is None:
                 logger.warning(f"Unimplemented tool: {tool_name}")
                 return False, f"Unimplemented tool: {tool_name}", None
-            
+
             result = handler(tool_input, self._allowed_write_roots)
 
-            # Log result  
+            # Log result
             if result.success:
                 logger.info(f"Tool execution succeeded: {tool_name}")
             else:
