@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.19.0] - 2025-12-09
+
+### What's New
+
+- New intelligent safety agent protects you from dangerous commands by analyzing them before execution
+
+### Improvements
+
+- Better protection against harmful commands with automatic safety checking when AI provider is available
+- Enhanced security documentation with detailed examples and troubleshooting guides
+
 ## [4.18.1] - 2025-12-09
 
 ### Added
