@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.19.1] - 2025-12-09
+
+### Improvements
+
+- Command safety checks now use caching for faster performance
+- Safety cache settings can be configured to reduce unnecessary checks
+- Added example scripts showing cache performance benefits
+
 ## [4.19.0] - 2025-12-09
 
 ### What's New
