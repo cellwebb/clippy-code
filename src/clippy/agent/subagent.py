@@ -9,7 +9,7 @@ from ..executor import ActionExecutor
 from ..permissions import TOOL_ACTION_MAP, PermissionLevel, PermissionManager
 from ..providers import LLMProvider
 from .conversation import create_system_prompt, get_token_count
-from .loop import run_agent_loop
+from .loop import AgentLoopConfig, run_agent_loop
 
 if TYPE_CHECKING:
     from .core import ClippyAgent
@@ -350,8 +350,7 @@ class SubAgent:
         else:
             allowed_tools = allowed_tools_config
 
-        return run_agent_loop(
-            conversation_history=self.conversation_history,
+        config = AgentLoopConfig(
             provider=self.provider,
             model=self.model,
             permission_manager=self.permission_manager,
@@ -365,6 +364,10 @@ class SubAgent:
             parent_agent=self.parent_agent,
             max_iterations=self.config.max_iterations,
             max_duration=self.config.timeout,
+        )
+        return run_agent_loop(
+            conversation_history=self.conversation_history,
+            config=config,
         )
 
     def _get_iteration_count(self) -> int:

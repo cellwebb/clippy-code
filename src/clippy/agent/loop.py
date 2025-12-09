@@ -5,6 +5,7 @@ import logging
 import sys
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from rich.markup import escape
@@ -30,40 +31,38 @@ logger = logging.getLogger(__name__)
 DEFAULT_MAX_ITERATIONS = 100
 
 
+@dataclass
+class AgentLoopConfig:
+    """Configuration for running an agent loop.
+    
+    Consolidates all parameters for run_agent_loop into a single configuration
+    object for better API clarity and maintainability.
+    """
+    provider: LLMProvider
+    model: str
+    permission_manager: PermissionManager
+    executor: ActionExecutor
+    console: ConsoleProtocol
+    auto_approve_all: bool = False
+    approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None = None
+    check_interrupted: Callable[[], bool] | None = None
+    mcp_manager: "Manager | None" = None
+    allowed_tools: list[str] | None = None
+    parent_agent: AgentProtocol | None = None
+    max_iterations: int | None = DEFAULT_MAX_ITERATIONS
+    max_duration: float | None = None
+
+
 def run_agent_loop(
     conversation_history: list[dict[str, Any]],
-    provider: LLMProvider,
-    model: str,
-    permission_manager: PermissionManager,
-    executor: ActionExecutor,
-    console: ConsoleProtocol,
-    auto_approve_all: bool,
-    approval_callback: Callable[[str, dict[str, Any], str | None], bool] | None,
-    check_interrupted: Callable[[], bool],
-    mcp_manager: "Manager | None" = None,
-    allowed_tools: list[str] | None = None,
-    parent_agent: AgentProtocol | None = None,
-    max_iterations: int | None = DEFAULT_MAX_ITERATIONS,
-    max_duration: float | None = None,
+    config: AgentLoopConfig,
 ) -> str:
     """
     Run the main agent loop.
 
     Args:
         conversation_history: Current conversation history (modified in place)
-        provider: LLM provider instance
-        model: Model identifier to use
-        permission_manager: Permission manager instance
-        executor: Action executor instance
-        console: Rich console for output
-        auto_approve_all: If True, auto-approve all actions
-        approval_callback: Optional callback for approval requests
-        check_interrupted: Callback to check if execution was interrupted
-        mcp_manager: Optional MCP manager instance
-        allowed_tools: List of allowed tool names (default: all tools)
-        parent_agent: Parent agent instance for subagent delegation
-        max_iterations: Optional hard cap on iterations (None for unlimited)
-        max_duration: Optional wall-clock limit in seconds (None for unlimited)
+        config: AgentLoopConfig containing all configuration parameters
 
     Returns:
         Final response from the agent
@@ -71,7 +70,7 @@ def run_agent_loop(
     Raises:
         InterruptedExceptionError: If execution is interrupted
     """
-    logger.info(f"Starting agent loop with model: {model}")
+    logger.info(f"Starting agent loop with model: {config.model}")
 
     # Track spinner between iterations
     spinner: Spinner | None = None
@@ -84,30 +83,30 @@ def run_agent_loop(
             spinner.stop()
             spinner = None
 
-        if check_interrupted():
+        if config.check_interrupted and config.check_interrupted():
             logger.info("Agent loop interrupted by user")
             raise InterruptedExceptionError()
 
         # Guardrails: duration/iteration caps
         elapsed = time.time() - loop_start
-        if max_duration is not None and elapsed >= max_duration:
+        if config.max_duration is not None and elapsed >= config.max_duration:
             logger.warning(
-                f"Agent loop stopped due to max_duration: {elapsed:.2f}s (limit {max_duration}s)"
+                f"Agent loop stopped due to max_duration: {elapsed:.2f}s (limit {config.max_duration}s)"
             )
             return _emit_guardrail_summary(
                 conversation_history=conversation_history,
-                reason=f"Reached max duration of {max_duration}s",
+                reason=f"Reached max duration of {config.max_duration}s",
                 iterations=iteration,
                 elapsed=elapsed,
             )
 
-        if max_iterations is not None and iteration >= max_iterations:
+        if config.max_iterations is not None and iteration >= config.max_iterations:
             logger.warning(
-                f"Agent loop stopped due to max_iterations: {iteration} (limit {max_iterations})"
+                f"Agent loop stopped due to max_iterations: {iteration} (limit {config.max_iterations})"
             )
             return _emit_guardrail_summary(
                 conversation_history=conversation_history,
-                reason=f"Reached max iterations of {max_iterations}",
+                reason=f"Reached max iterations of {config.max_iterations}",
                 iterations=iteration,
                 elapsed=elapsed,
             )
@@ -117,24 +116,24 @@ def run_agent_loop(
 
         # Check for auto-compaction based on model threshold
         compacted, compact_message, compact_stats, new_history = check_and_auto_compact(
-            conversation_history, model, provider, getattr(provider, "base_url", None)
+            conversation_history, config.model, config.provider, getattr(config.provider, "base_url", None)
         )
         if compacted and new_history:
             # Update conversation history in place with compacted version
             conversation_history.clear()
             conversation_history.extend(new_history)
             logger.info(f"Auto-compaction triggered: {compact_message}")
-            _display_auto_compaction_notification(console, compact_stats)
+            _display_auto_compaction_notification(config.console, compact_stats)
 
         # Get current tools (built-in + MCP)
-        tools = tool_catalog.get_all_tools(mcp_manager)
+        tools = tool_catalog.get_all_tools(config.mcp_manager)
 
         # Filter tools if allowed_tools is specified
-        if allowed_tools is not None:
+        if config.allowed_tools is not None:
             filtered_tools = []
             for tool in tools:
                 tool_name = tool["function"]["name"]
-                if tool_name in allowed_tools:
+                if tool_name in config.allowed_tools:
                     filtered_tools.append(tool)
             tools = filtered_tools
 
@@ -142,15 +141,15 @@ def run_agent_loop(
 
         # Call provider (returns OpenAI message dict)
         try:
-            response = provider.create_message(
+            response = config.provider.create_message(
                 messages=conversation_history,
                 tools=tools,
-                model=model,
+                model=config.model,
             )
         except (ConnectionError, TimeoutError, RuntimeError, ValueError) as e:
             # Handle API errors gracefully
             error_message = format_api_error(e)
-            console.print(
+            config.console.print(
                 Panel(
                     f"[bold red]API Error:[/bold red]\n\n{error_message}",
                     title="[bold red]Error[/bold red]",
@@ -185,11 +184,11 @@ def run_agent_loop(
             content = response["content"]
             if isinstance(content, str) and content.strip():
                 cleaned_content = content.lstrip("\n")
-                console.print(f"\n[bold blue][📎][/bold blue] {escape(cleaned_content)}")
+                config.console.print(f"\n[bold blue][📎][/bold blue] {escape(cleaned_content)}")
 
         # Save conversation automatically after each assistant message
-        if parent_agent is not None:
-            success, message = parent_agent.save_conversation()
+        if config.parent_agent is not None:
+            success, message = config.parent_agent.save_conversation()
             if not success:
                 logger.warning(f"Failed to auto-save conversation: {message}")
 
@@ -209,7 +208,7 @@ def run_agent_loop(
                     tool_input = json.loads(tool_call["function"]["arguments"])
                 except json.JSONDecodeError as e:
                     logger.error(f"Failed to parse tool arguments for {tool_name}: {e}")
-                    console.print(
+                    config.console.print(
                         f"[bold red]Error parsing tool arguments: {escape(str(e))}[/bold red]"
                     )
                     from .tool_handler import add_tool_result
@@ -228,14 +227,14 @@ def run_agent_loop(
                     tool_name,
                     tool_input,
                     tool_call["id"],
-                    auto_approve_all,
-                    permission_manager,
-                    executor,
-                    console,
+                    config.auto_approve_all,
+                    config.permission_manager,
+                    config.executor,
+                    config.console,
                     conversation_history,
-                    approval_callback,
-                    mcp_manager,
-                    parent_agent,
+                    config.approval_callback,
+                    config.mcp_manager,
+                    config.parent_agent,
                 )
                 if not success:
                     logger.warning(f"Tool execution failed or denied: {tool_name}")
