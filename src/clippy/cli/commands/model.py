@@ -132,6 +132,7 @@ def _handle_model_list(console: Console) -> CommandResult:
     # Add columns
     table.add_column("Model Name", style="cyan", width=25)
     table.add_column("Provider", style="green", width=15)
+    table.add_column("Built-in", style="blue", width=8, justify="center")
     table.add_column("Threshold", style="yellow", width=12, justify="right")
     table.add_column("Status", style="magenta", width=25)
 
@@ -148,11 +149,11 @@ def _handle_model_list(console: Console) -> CommandResult:
         else:
             threshold_str = "—"
 
-        # Style model name based on source
-        if is_builtin_model(name):
-            styled_name = f"[cyan]{name}[/cyan] [dim](built-in)[/dim]"
-        else:
-            styled_name = f"[cyan]{name}[/cyan]"
+        # Style model name (no built-in indicator here anymore)
+        styled_name = f"[cyan]{name}[/cyan]"
+
+        # Determine built-in status for separate column
+        builtin_str = "✓" if is_builtin_model(name) else " "
 
         # Determine status
         status_parts = []
@@ -164,7 +165,7 @@ def _handle_model_list(console: Console) -> CommandResult:
         status = " ".join(status_parts) if status_parts else ""
 
         # Add row to table
-        table.add_row(styled_name, provider, threshold_str, status)
+        table.add_row(styled_name, provider, builtin_str, threshold_str, status)
 
     # Wrap the table in a panel for better visual appeal
     panel = Panel(
@@ -180,7 +181,8 @@ def _handle_model_list(console: Console) -> CommandResult:
     console.print("\n[dim]Legend:[/dim]")
     console.print("  [bold blue]★ DEFAULT[/bold blue] - Default model (permanent)")
     console.print("  [bold green]✓ CURRENT[/bold green] - Currently active model (session only)")
-    console.print("  [dim](built-in)[/dim] - Pre-configured model from clippy-code")
+    console.print("  [dim]✓[/dim] - Pre-configured model from clippy-code")
+    console.print("  [dim]⟨blank⟩[/dim] - User-defined model")
     console.print("  [dim]—[/dim] - No compaction threshold set")
     console.print("\n[dim]Commands:[/dim]")
     console.print("  [cyan]/model switch <name>[/cyan] - Switch to a model (current session only)")
