@@ -1,0 +1,66 @@
+# Default model configurations for clippy-code
+# These models are automatically available for each provider without manual configuration
+
+models:
+  openai:
+    - name: "gpt-5.1-codex"
+      model_id: "gpt-5.1-codex"
+      is_default: true
+    - name: "gpt-5.1"
+      model_id: "gpt-5.1"
+
+  anthropic:
+    - name: "claude-opus-4-5"
+      model_id: "claude-opus-4-5"
+    - name: "claude-sonnet-4-5"
+      model_id: "claude-sonnet-4-5"
+    - name: "claude-haiku-4-5"
+      model_id: "claude-haiku-4-5"
+
+  cerebras:
+    - name: "cerebras-glm-4.6"
+      model_id: "zai-glm-4.6"
+
+  claude-code:
+    - name: "claude-code-opus-4-5"
+      model_id: "claude-opus-4-5"
+    - name: "claude-code-sonnet-4-5"
+      model_id: "claude-sonnet-4-5"
+    - name: "claude-code-haiku-4-5"
+      model_id: "claude-haiku-4-5"
+
+  deepseek:
+    - name: "deepseek-chat"
+      model_id: "deepseek-chat"
+    - name: "deepseek-reasoner"
+      model_id: "deepseek-reasoner"
+
+  gemini:
+    - name: "gemini-3-pro-preview"
+      model_id: "gemini-3-pro-preview"
+
+  groq:
+    - name: "groq-gpt-oss-120b"
+      model_id: "openai/gpt-oss-120b"
+    - name: "groq-kimi-k2-instruct-0905"
+      model_id: "moonshotai/kimi-k2-instruct-0905"
+  
+  mistral:
+    - name: "mistral-devstral-2"
+      model_id: "devstral-2512"
+    - name: "mistral-devstral-small-2"
+      model_id: "labs-devstral-small-2512"
+
+  synthetic:
+    - name: "synthetic-deepseek-v3.2"
+      model_id: "hf:deepseek-ai/DeepSeek-V3.2"
+    - name: "synthetic-glm-4.6"
+      model_id: "hf:zai-org/GLM-4.6"
+    - name: "synthetic-kimi-k2-thinking"
+      model_id: "hf:moonshotai/Kimi-K2-Thinking"
+    - name: "synthetic-minimax-m2"
+      model_id: "hf:MiniMaxAI/MiniMax-M2"
+
+  zai:
+    - name: "zai-coding-glm-4.6"
+      model_id: "glm-4.6"

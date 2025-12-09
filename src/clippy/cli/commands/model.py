@@ -11,6 +11,8 @@ from ...models import (
     get_model_config,
     get_provider,
     get_user_manager,
+    init_default_models,
+    is_builtin_model,
     list_available_models_with_provider,
     list_available_providers,
     reload_model_manager,
@@ -66,6 +68,10 @@ def handle_model_command(agent: ClippyAgent, console: Console, command_args: str
         reload_model_manager()
         console.print("[green]✓ Model manager reloaded[/green]")
         return "continue"
+    elif subcommand == "init":
+        init_default_models()
+        console.print("[green]✓ Default models initialized[/green]")
+        return "continue"
     else:
         # Treat unknown subcommand as a model name to switch to
         # This makes "/model <name>" work the same as "/model switch <name>"
@@ -88,7 +94,9 @@ def _handle_model_help(console: Console) -> CommandResult:
   [cyan]/model remove <name>[/cyan]       - Remove a model
   [cyan]/model threshold <name> <n>[/cyan] - Set model compaction threshold
   [cyan]/model reload[/cyan]              - Reload model manager
+  [cyan]/model init[/cyan]                - Initialize default models
 
+[dim]Built-in models are pre-configured and ready to use![/dim]
 [dim]Use /providers to see available providers[/dim]
 """
     console.print(Panel.fit(help_text.strip(), title="Model Help", border_style="cyan"))
@@ -140,6 +148,12 @@ def _handle_model_list(console: Console) -> CommandResult:
         else:
             threshold_str = "—"
 
+        # Style model name based on source
+        if is_builtin_model(name):
+            styled_name = f"[cyan]{name}[/cyan] [dim](built-in)[/dim]"
+        else:
+            styled_name = f"[cyan]{name}[/cyan]"
+
         # Determine status
         status_parts = []
         if is_default:
@@ -150,7 +164,7 @@ def _handle_model_list(console: Console) -> CommandResult:
         status = " ".join(status_parts) if status_parts else ""
 
         # Add row to table
-        table.add_row(name, provider, threshold_str, status)
+        table.add_row(styled_name, provider, threshold_str, status)
 
     # Wrap the table in a panel for better visual appeal
     panel = Panel(
@@ -166,6 +180,7 @@ def _handle_model_list(console: Console) -> CommandResult:
     console.print("\n[dim]Legend:[/dim]")
     console.print("  [bold blue]★ DEFAULT[/bold blue] - Default model (permanent)")
     console.print("  [bold green]✓ CURRENT[/bold green] - Currently active model (session only)")
+    console.print("  [dim](built-in)[/dim] - Pre-configured model from clippy-code")
     console.print("  [dim]—[/dim] - No compaction threshold set")
     console.print("\n[dim]Commands:[/dim]")
     console.print("  [cyan]/model switch <name>[/cyan] - Switch to a model (current session only)")
@@ -284,12 +299,13 @@ def _handle_model_add_wizard(agent: ClippyAgent, console: Console) -> CommandRes
     console.print("\n[bold]Step 2/5: Model ID[/bold]")
     console.print(f"[dim]Enter the model ID for {provider_name}:[/dim]")
 
-    # Show provider-specific examples
-    examples = _get_model_examples(provider_name, provider.base_url)
+    # Show provider-specific examples from models.yaml
+    examples = _get_models_for_provider(provider_name)
     if examples:
-        console.print("[dim]Common examples:[/dim]")
+        console.print("[dim]Built-in examples for this provider:[/dim]")
         for example in examples:
             console.print(f"[dim]  • {example}[/dim]")
+        console.print("[dim]Tip: You can also use any valid model ID from the provider[/dim]")
 
     model_id = questionary.text(
         "Enter the model ID (exact identifier used by the provider)",
@@ -445,77 +461,31 @@ def _handle_model_add_wizard(agent: ClippyAgent, console: Console) -> CommandRes
     return "continue"
 
 
-def _get_model_examples(provider_name: str, base_url: str | None) -> list[str]:
-    """Get example model IDs for a provider."""
-    examples = []
+def _get_models_for_provider(provider_name: str) -> list[str]:
+    """Get model IDs for a provider from models.yaml.
 
-    # Provider-specific examples based on common models
-    if provider_name == "openai":
-        examples.extend(
-            [
-                "gpt-4o",
-                "gpt-4o-mini",
-                "gpt-4-turbo",
-                "gpt-3.5-turbo",
-            ]
-        )
-    elif provider_name == "anthropic" or "anthropic" in provider_name.lower():
-        examples.extend(
-            [
-                "claude-3-5-sonnet-20241022",
-                "claude-3-5-haiku-20241022",
-                "claude-3-opus-20240229",
-            ]
-        )
-    elif provider_name == "cerebras":
-        examples.extend(
-            [
-                "llama3.1-70b",
-                "llama3.1-8b",
-            ]
-        )
-    elif provider_name == "groq":
-        examples.extend(
-            [
-                "llama-3.1-70b-versatile",
-                "llama-3.1-8b-instant",
-                "mixtral-8x7b-32768",
-            ]
-        )
-    elif provider_name == "together":
-        examples.extend(
-            [
-                "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-                "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
-                "mistralai/Mixtral-8x7B-Instruct-v0.1",
-            ]
-        )
-    elif provider_name == "deepseek":
-        examples.extend(
-            [
-                "deepseek-chat",
-                "deepseek-coder",
-            ]
-        )
-    elif provider_name == "ollama":
-        examples.extend(
-            [
-                "llama3.1:70b",
-                "llama3.1:8b",
-                "codellama:13b",
-            ]
-        )
-    else:
-        # Generic examples for unknown providers
-        examples.extend(
-            [
-                "gpt-4",  # OpenAI-style
-                "claude-3-sonnet",  # Anthropic-style
-                "llama-3-70b",  # Open-source style
-            ]
-        )
+    This uses the actual working models as examples, ensuring
+    the examples are always up-to-date and functional.
+    """
+    try:
+        from ...models import get_user_manager, is_builtin_model
 
-    return examples
+        # Get all models and filter for this provider
+        user_manager = get_user_manager()
+        all_models = user_manager.list_models()
+
+        # Filter models for the specific provider that are built-in
+        provider_models = [
+            model.model_id
+            for model in all_models
+            if model.provider == provider_name and is_builtin_model(model.name)
+        ]
+
+        return provider_models[:3]  # Return up to 3 examples
+
+    except Exception:
+        # Fallback to simple suggestion if loading fails
+        return ["any-model-id-from-provider"]
 
 
 def _handle_model_remove(console: Console, name: str) -> CommandResult:

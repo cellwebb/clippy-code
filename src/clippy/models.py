@@ -211,11 +211,13 @@ class UserProviderManager:
 class UserModelManager:
     """Manages user-defined model configurations."""
 
-    def __init__(self, config_dir: Path | None = None) -> None:
+    def __init__(self, config_dir: Path | None = None, load_defaults: bool = True) -> None:
         """Initialize the user model manager.
 
         Args:
             config_dir: Directory to store user configurations. Defaults to ~/.clippy
+            load_defaults: Whether to load default models from models.yaml.
+                           Set to False for testing.
         """
         if config_dir is None:
             config_dir = Path.home() / ".clippy"
@@ -223,27 +225,90 @@ class UserModelManager:
         self.config_dir = config_dir
         self.models_file = config_dir / "models.json"
         self.config_dir.mkdir(exist_ok=True)
+        self._load_defaults = load_defaults
 
         # Ensure default models exist
-        self._ensure_default_models()
+        if load_defaults:
+            self._ensure_default_models()
 
     def _ensure_default_models(self) -> None:
-        """Create empty model configuration if none exists."""
+        """Create default models from models.yaml if no user models exist."""
         if not self.models_file.exists():
-            empty_models: dict[str, Any] = {"models": []}
-            self._save_models(empty_models)
+            # First-time setup - load default models from YAML
+            default_models_from_yaml = self._load_default_models_from_yaml()
+            self._save_models({"models": default_models_from_yaml})
+
+    def _load_default_models_from_yaml(self) -> list[dict[str, Any]]:
+        """Load default model configurations from models.yaml."""
+        yaml_path = Path(__file__).parent / "models.yaml"
+        default_models = []
+
+        if yaml_path.exists():
+            try:
+                with open(yaml_path) as f:
+                    config = yaml.safe_load(f)
+
+                if "models" in config:
+                    # Convert YAML format to UserModelConfig format
+                    for provider_name, models in config["models"].items():
+                        for model_data in models:
+                            # Auto-generate description as provider/model_id
+                            description = f"{provider_name}/{model_data['model_id']}"
+
+                            default_model = {
+                                "name": model_data["name"],
+                                "provider": provider_name,
+                                "model_id": model_data["model_id"],
+                                "description": description,
+                                "is_default": model_data.get("is_default", False),
+                                "compaction_threshold": model_data.get("compaction_threshold"),
+                            }
+                            default_models.append(default_model)
+            except Exception as e:
+                # If YAML loading fails, continue with empty models
+                print(f"Warning: Could not load default models from {yaml_path}: {e}")
+
+        return default_models
 
     def _load_models(self) -> dict[str, Any]:
         """Load user models from JSON file."""
         try:
             with open(self.models_file) as f:
                 data: dict[str, Any] = json.load(f)
+
+            # Check if this is a first-time setup (empty file with only default models)
+            if not data.get("models"):
                 return data
+
+            # Only check for new default models if we're configured to load defaults
+            if self._load_defaults:
+                # Check if we need to add any new default models that weren't present
+                current_model_names = {model["name"] for model in data.get("models", [])}
+                default_models_from_yaml = self._load_default_models_from_yaml()
+
+                # Add new default models that don't exist yet
+                models_added = False
+                for default_model in default_models_from_yaml:
+                    if default_model["name"] not in current_model_names:
+                        data["models"].append(default_model)
+                        current_model_names.add(default_model["name"])
+                        models_added = True
+
+                # Save if we added new models
+                if models_added:
+                    self._save_models(data)
+
+            return data
+
         except (FileNotFoundError, json.JSONDecodeError):
-            # If file doesn't exist or is corrupted, create default
-            default_models: dict[str, Any] = {"models": []}
-            self._save_models(default_models)
-            return default_models
+            # If file doesn't exist or is corrupted, only create default if configured to do so
+            if self._load_defaults:
+                default_models: dict[str, Any] = {"models": self._load_default_models_from_yaml()}
+                self._save_models(default_models)
+                return default_models
+            else:
+                # Start with empty models when not loading defaults, but don't create file yet
+                return {"models": []}
 
     def _save_models(self, data: dict[str, Any]) -> None:
         """Save user models to JSON file."""
@@ -488,7 +553,7 @@ def get_user_manager() -> UserModelManager:
     global _user_manager
     with _lock:
         if _user_manager is None:
-            _user_manager = UserModelManager()
+            _user_manager = UserModelManager(load_defaults=True)
         return _user_manager
 
 
@@ -632,6 +697,83 @@ def reload_providers() -> dict[str, ProviderConfig]:
         _providers.clear()  # Clear the cache
         _user_provider_manager = None  # Clear user provider manager cache
     return _load_providers()
+
+
+def list_models_by_source() -> dict[str, list[tuple[str, str, str]]]:
+    """Get list of models separated by source (built-in vs user-defined).
+
+    Returns:
+        Dictionary with keys 'built_in' and 'user' containing lists of
+        (name, description, provider) tuples
+    """
+    result: dict[str, list[tuple[str, str, str]]] = {"built_in": [], "user": []}
+
+    # Get built-in models from YAML
+    yaml_path = Path(__file__).parent / "models.yaml"
+    if yaml_path.exists():
+        try:
+            with open(yaml_path) as f:
+                config = yaml.safe_load(f)
+
+            if "models" in config:
+                for provider_name, models in config["models"].items():
+                    for model_data in models:
+                        # Auto-generate description as provider/model_id
+                        description = f"{provider_name}/{model_data['model_id']}"
+                        result["built_in"].append((model_data["name"], description, provider_name))
+        except Exception:
+            pass  # If YAML loading fails, continue with empty built-in models
+
+    # Get user models from JSON - subtract built-in models
+    user_manager = get_user_manager()
+    all_models = user_manager.list_models()
+    built_in_names = {model[0] for model in result["built_in"]}
+
+    for model in all_models:
+        if model.name not in built_in_names:
+            result["user"].append((model.name, model.description, model.provider))
+
+    return result
+
+
+def is_builtin_model(name: str) -> bool:
+    """Check if a model is built-in (from models.yaml).
+
+    Args:
+        name: Model name to check
+
+    Returns:
+        True if model is built-in, False if user-defined
+    """
+    yaml_path = Path(__file__).parent / "models.yaml"
+    if not yaml_path.exists():
+        return False
+
+    try:
+        with open(yaml_path) as f:
+            config = yaml.safe_load(f)
+
+        if "models" in config:
+            for provider_models in config["models"].values():
+                for model_data in provider_models:
+                    if model_data["name"] == name:
+                        return True
+    except Exception:
+        pass
+
+    return False
+
+
+def init_default_models() -> None:
+    """Initialize default models for first-time users.
+
+    This function ensures that new users get a good starting set of models
+    without requiring manual configuration.
+    """
+    user_manager = get_user_manager()
+
+    # Force a reload to trigger default model loading if needed
+    user_manager._load_models()
 
 
 def reload_model_manager() -> UserModelManager:
