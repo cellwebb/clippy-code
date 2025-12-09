@@ -34,10 +34,11 @@ DEFAULT_MAX_ITERATIONS = 100
 @dataclass
 class AgentLoopConfig:
     """Configuration for running an agent loop.
-    
+
     Consolidates all parameters for run_agent_loop into a single configuration
     object for better API clarity and maintainability.
     """
+
     provider: LLMProvider
     model: str
     permission_manager: PermissionManager
@@ -91,7 +92,8 @@ def run_agent_loop(
         elapsed = time.time() - loop_start
         if config.max_duration is not None and elapsed >= config.max_duration:
             logger.warning(
-                f"Agent loop stopped due to max_duration: {elapsed:.2f}s (limit {config.max_duration}s)"
+                f"Agent loop stopped due to max_duration: {elapsed:.2f}s "
+                f"(limit {config.max_duration}s)"
             )
             return _emit_guardrail_summary(
                 conversation_history=conversation_history,
@@ -102,7 +104,8 @@ def run_agent_loop(
 
         if config.max_iterations is not None and iteration >= config.max_iterations:
             logger.warning(
-                f"Agent loop stopped due to max_iterations: {iteration} (limit {config.max_iterations})"
+                f"Agent loop stopped due to max_iterations: {iteration} "
+                f"(limit {config.max_iterations})"
             )
             return _emit_guardrail_summary(
                 conversation_history=conversation_history,
@@ -116,7 +119,10 @@ def run_agent_loop(
 
         # Check for auto-compaction based on model threshold
         compacted, compact_message, compact_stats, new_history = check_and_auto_compact(
-            conversation_history, config.model, config.provider, getattr(config.provider, "base_url", None)
+            conversation_history,
+            config.model,
+            config.provider,
+            getattr(config.provider, "base_url", None),
         )
         if compacted and new_history:
             # Update conversation history in place with compacted version
