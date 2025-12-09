@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from .agent.command_safety_checker import create_safety_checker
+from .agent.command_safety_checker import CommandSafetyChecker, create_safety_checker
 from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from .permissions import TOOL_ACTION_MAP, PermissionManager
 from .settings import get_settings
@@ -356,7 +356,25 @@ class ActionExecutor:
         self.permission_manager = permission_manager
         self._mcp_manager = None
         self._allowed_write_roots = allowed_write_roots
-        self._safety_checker = create_safety_checker(llm_provider) if llm_provider else None
+        self._safety_checker: CommandSafetyChecker | None = None
+
+        # Create safety checker with cache settings
+        if llm_provider:
+            settings = get_settings()
+            if settings.safety_cache_enabled:
+                self._safety_checker = create_safety_checker(
+                    llm_provider,
+                    cache_size=settings.safety_cache_size,
+                    cache_ttl=settings.safety_cache_ttl,
+                )
+            else:
+                self._safety_checker = create_safety_checker(
+                    llm_provider,
+                    cache_size=0,  # Disable cache
+                    cache_ttl=0,
+                )
+        else:
+            self._safety_checker = None
 
         if self._safety_checker:
             self._tool_handlers = _build_tool_handlers(self._safety_checker)
@@ -377,7 +395,21 @@ class ActionExecutor:
         Args:
             llm_provider: LLM provider instance for command safety checking
         """
-        self._safety_checker = create_safety_checker(llm_provider)
+        # Use cache settings
+        settings = get_settings()
+        if settings.safety_cache_enabled:
+            self._safety_checker = create_safety_checker(
+                llm_provider,
+                cache_size=settings.safety_cache_size,
+                cache_ttl=settings.safety_cache_ttl,
+            )
+        else:
+            self._safety_checker = create_safety_checker(
+                llm_provider,
+                cache_size=0,  # Disable cache
+                cache_ttl=0,
+            )
+
         self._tool_handlers = _build_tool_handlers(self._safety_checker)
         logger.info("LLM provider set for command safety checking")
 

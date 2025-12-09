@@ -11,6 +11,9 @@ class ClippySettings:
         self._show_command_output = self._get_bool_env("CLIPPY_SHOW_COMMAND_OUTPUT", False)
         self._command_timeout = self._get_int_env("CLIPPY_COMMAND_TIMEOUT", 300)
         self._max_tool_result_tokens = self._get_int_env("CLIPPY_MAX_TOOL_RESULT_TOKENS", 10000)
+        self._safety_cache_enabled = self._get_bool_env("CLIPPY_SAFETY_CACHE_ENABLED", True)
+        self._safety_cache_size = self._get_int_env("CLIPPY_SAFETY_CACHE_SIZE", 1000)
+        self._safety_cache_ttl = self._get_int_env("CLIPPY_SAFETY_CACHE_TTL", 3600)
 
     def _get_bool_env(self, key: str, default: bool) -> bool:
         """Get a boolean environment variable.
@@ -74,14 +77,44 @@ class ClippySettings:
         """
         return self._max_tool_result_tokens
 
+    @property
+    def safety_cache_enabled(self) -> bool:
+        """Whether safety decisions should be cached.
+
+        Returns:
+            True if safety cache should be used, False otherwise
+        """
+        return self._safety_cache_enabled
+
+    @property
+    def safety_cache_size(self) -> int:
+        """Maximum number of entries in safety decision cache.
+
+        Returns:
+            Maximum cache size
+        """
+        return self._safety_cache_size
+
+    @property
+    def safety_cache_ttl(self) -> int:
+        """Time-to-live for safety decision cache entries in seconds.
+
+        Returns:
+            Cache TTL in seconds
+        """
+        return self._safety_cache_ttl
+
     def reload(self) -> None:
         """Reload settings from environment variables.
 
         This is useful for settings that might change during a session.
         """
-        self._show_command_output = self._get_bool_env("CLIPPY_SHOW_COMMAND_OUTPUT", True)
+        self._show_command_output = self._get_bool_env("CLIPPY_SHOW_COMMAND_OUTPUT", False)
         self._command_timeout = self._get_int_env("CLIPPY_COMMAND_TIMEOUT", 300)
         self._max_tool_result_tokens = self._get_int_env("CLIPPY_MAX_TOOL_RESULT_TOKENS", 10000)
+        self._safety_cache_enabled = self._get_bool_env("CLIPPY_SAFETY_CACHE_ENABLED", True)
+        self._safety_cache_size = self._get_int_env("CLIPPY_SAFETY_CACHE_SIZE", 1000)
+        self._safety_cache_ttl = self._get_int_env("CLIPPY_SAFETY_CACHE_TTL", 3600)
 
 
 # Global settings instance
