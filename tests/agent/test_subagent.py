@@ -345,8 +345,8 @@ class TestSubAgent:
         mock_run_loop.return_value = "Response"
         subagent.run()
 
-        # Verify max_iterations was passed correctly
+        # Verify max_iterations was passed correctly via config
         mock_run_loop.assert_called_once()
         call_kwargs = mock_run_loop.call_args[1]
-        assert call_kwargs["max_iterations"] == 50
-        assert call_kwargs["max_duration"] == config.timeout
+        assert call_kwargs["config"].max_iterations == 50
+        assert call_kwargs["config"].max_duration == config.timeout

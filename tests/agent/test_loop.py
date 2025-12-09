@@ -8,7 +8,7 @@ import pytest
 from rich.console import Console
 
 from clippy.agent.core import InterruptedExceptionError
-from clippy.agent.loop import run_agent_loop
+from clippy.agent.loop import AgentLoopConfig, run_agent_loop
 from clippy.executor import ActionExecutor
 from clippy.permissions import PermissionConfig, PermissionManager
 from clippy.providers import LLMProvider
@@ -67,8 +67,7 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -77,6 +76,10 @@ class TestRunAgentLoop:
             auto_approve_all=False,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Hello! How can I help you today?"
@@ -118,8 +121,7 @@ class TestRunAgentLoop:
 
         mock_provider.create_message.side_effect = [first_response, second_response]
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -128,6 +130,10 @@ class TestRunAgentLoop:
             auto_approve_all=True,  # Auto-approve to avoid blocking
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Here's the file content!"
@@ -182,8 +188,7 @@ class TestRunAgentLoop:
 
         mock_provider.create_message.side_effect = responses
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -192,6 +197,10 @@ class TestRunAgentLoop:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Done!"
@@ -219,8 +228,7 @@ class TestRunAgentLoop:
             ],
         }
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -230,6 +238,10 @@ class TestRunAgentLoop:
             approval_callback=None,
             check_interrupted=lambda: False,
             max_iterations=3,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert "reached max iterations" in result.lower()
@@ -247,17 +259,20 @@ class TestRunAgentLoop:
         """Test that API errors are handled properly."""
         mock_provider.create_message.side_effect = Exception("API Error")
 
+        config = AgentLoopConfig(
+            provider=mock_provider,
+            model="gpt-4",
+            permission_manager=permission_manager,
+            executor=executor,
+            console=console,
+            auto_approve_all=False,
+            approval_callback=None,
+            check_interrupted=lambda: False,
+        )
         with pytest.raises(Exception, match="API Error"):
             run_agent_loop(
                 conversation_history=conversation_history,
-                provider=mock_provider,
-                model="gpt-4",
-                permission_manager=permission_manager,
-                executor=executor,
-                console=console,
-                auto_approve_all=False,
-                approval_callback=None,
-                check_interrupted=lambda: False,
+                config=config,
             )
 
     def test_handles_json_decode_error_in_tool_args(
@@ -294,8 +309,7 @@ class TestRunAgentLoop:
 
         mock_provider.create_message.side_effect = [first_response, second_response]
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -304,6 +318,10 @@ class TestRunAgentLoop:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Done"
@@ -322,17 +340,20 @@ class TestRunAgentLoop:
     ) -> None:
         """Test that loop respects interrupted flag."""
         # Set check_interrupted to return True
+        config = AgentLoopConfig(
+            provider=mock_provider,
+            model="gpt-4",
+            permission_manager=permission_manager,
+            executor=executor,
+            console=console,
+            auto_approve_all=False,
+            approval_callback=None,
+            check_interrupted=lambda: True,  # Always interrupted
+        )
         with pytest.raises(InterruptedExceptionError):
             run_agent_loop(
                 conversation_history=conversation_history,
-                provider=mock_provider,
-                model="gpt-4",
-                permission_manager=permission_manager,
-                executor=executor,
-                console=console,
-                auto_approve_all=False,
-                approval_callback=None,
-                check_interrupted=lambda: True,  # Always interrupted
+                config=config,
             )
 
     def test_adds_assistant_message_to_history(
@@ -352,8 +373,7 @@ class TestRunAgentLoop:
 
         initial_length = len(conversation_history)
 
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -362,6 +382,10 @@ class TestRunAgentLoop:
             auto_approve_all=False,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         # Should have added one assistant message
@@ -400,8 +424,7 @@ class TestRunAgentLoop:
 
         mock_provider.create_message.side_effect = [first_response, second_response]
 
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -410,6 +433,10 @@ class TestRunAgentLoop:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         # Find assistant message with tool calls
@@ -454,8 +481,7 @@ class TestRunAgentLoop:
         mock_provider.create_message.side_effect = [first_response, second_response]
 
         # write_file requires approval by default
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -464,6 +490,10 @@ class TestRunAgentLoop:
             auto_approve_all=False,
             approval_callback=mock_callback,
             check_interrupted=lambda: False,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert callback_called["called"] is True
@@ -484,8 +514,7 @@ class TestRunAgentLoop:
             "tool_calls": [],  # Empty tool calls but finish_reason is stop
         }
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -494,6 +523,10 @@ class TestRunAgentLoop:
             auto_approve_all=False,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Final answer"
@@ -534,8 +567,7 @@ class TestRunAgentLoop:
 
         mock_provider.create_message.side_effect = [first_response, second_response]
 
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -544,6 +576,10 @@ class TestRunAgentLoop:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         # Should have two tool result messages
@@ -569,8 +605,7 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -579,6 +614,10 @@ class TestRunAgentLoop:
             auto_approve_all=False,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         # Catalog should be called at least once
@@ -599,8 +638,7 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -609,6 +647,10 @@ class TestRunAgentLoop:
             auto_approve_all=False,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == ""
@@ -655,8 +697,7 @@ class TestRunAgentLoop:
             return start_time + 1000
 
         with patch("time.time", mock_time):
-            result = run_agent_loop(
-                conversation_history=conversation_history,
+            config = AgentLoopConfig(
                 provider=mock_provider,
                 model="gpt-4",
                 permission_manager=permission_manager,
@@ -666,6 +707,10 @@ class TestRunAgentLoop:
                 approval_callback=None,
                 check_interrupted=lambda: False,
                 max_duration=0.001,  # Very short duration
+            )
+            result = run_agent_loop(
+                conversation_history=conversation_history,
+                config=config,
             )
 
         assert "reached max duration" in result.lower() or "stopped" in result.lower()
@@ -693,8 +738,7 @@ class TestRunAgentLoop:
                 {"function": {"name": "delete_file", "parameters": {}}},
             ]
 
-            run_agent_loop(
-                conversation_history=conversation_history,
+            config = AgentLoopConfig(
                 provider=mock_provider,
                 model="gpt-4",
                 permission_manager=permission_manager,
@@ -704,6 +748,10 @@ class TestRunAgentLoop:
                 approval_callback=None,
                 check_interrupted=lambda: False,
                 allowed_tools=["read_file"],  # Only allow read_file
+            )
+            run_agent_loop(
+                conversation_history=conversation_history,
+                config=config,
             )
 
             # Check that provider received filtered tools
@@ -731,8 +779,7 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="o1",
             permission_manager=permission_manager,
@@ -741,6 +788,10 @@ class TestRunAgentLoop:
             auto_approve_all=False,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         # Check that reasoning_content was preserved in history
@@ -767,8 +818,7 @@ class TestRunAgentLoop:
         mock_parent = MagicMock()
         mock_parent.save_conversation.return_value = (True, "Saved")
 
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -778,6 +828,10 @@ class TestRunAgentLoop:
             approval_callback=None,
             check_interrupted=lambda: False,
             parent_agent=mock_parent,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         # save_conversation should have been called
@@ -816,8 +870,7 @@ class TestRunAgentLoop:
         mock_provider.create_message.side_effect = [first_response, second_response]
 
         # The loop should continue even when tool fails
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -826,6 +879,10 @@ class TestRunAgentLoop:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "I couldn't read the file."

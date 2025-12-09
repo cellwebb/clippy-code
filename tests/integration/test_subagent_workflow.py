@@ -434,10 +434,10 @@ class TestSubagentWorkflowIntegration:
             mock_loop.return_value = "Completed"
             subagent.run()
 
-            # Verify iteration limit was passed
+            # Verify iteration limit was passed via config
             call_kwargs = mock_loop.call_args[1]
-            assert call_kwargs["max_iterations"] == 50
-            assert call_kwargs["max_duration"] == config.timeout
+            assert call_kwargs["config"].max_iterations == 50
+            assert call_kwargs["config"].max_duration == config.timeout
 
     @patch("clippy.agent.subagent.run_agent_loop")
     def test_model_override_workflow(

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 from rich.console import Console
 
-from clippy.agent.loop import run_agent_loop
+from clippy.agent.loop import AgentLoopConfig, run_agent_loop
 from clippy.executor import ActionExecutor
 from clippy.permissions import PermissionConfig, PermissionManager
 
@@ -111,8 +111,7 @@ class TestMultiToolSequences:
 
         mock_provider.create_message.side_effect = responses
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -121,6 +120,10 @@ class TestMultiToolSequences:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Done copying and modifying the file."
@@ -190,8 +193,7 @@ class TestMultiToolSequences:
 
         mock_provider.create_message.side_effect = responses
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -200,6 +202,10 @@ class TestMultiToolSequences:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "I read all three files."
@@ -261,8 +267,7 @@ class TestMultiToolSequences:
 
         mock_provider.create_message.side_effect = responses
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -271,6 +276,10 @@ class TestMultiToolSequences:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "One file worked, one didn't."
@@ -339,8 +348,7 @@ class TestMultiToolSequences:
 
         mock_provider.create_message.side_effect = responses
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -349,6 +357,10 @@ class TestMultiToolSequences:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Created directory and file."
@@ -418,8 +430,7 @@ class TestMultiToolSequences:
 
         mock_provider.create_message.side_effect = responses
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -428,6 +439,10 @@ class TestMultiToolSequences:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Found and read the Python files."
@@ -484,8 +499,7 @@ class TestMultiToolSequences:
 
         mock_provider.create_message.side_effect = responses
 
-        result = run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -494,6 +508,10 @@ class TestMultiToolSequences:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        result = run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         assert result == "Created 5 files."
@@ -551,8 +569,7 @@ class TestMultiToolSequences:
 
         mock_provider.create_message.side_effect = responses
 
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -561,6 +578,10 @@ class TestMultiToolSequences:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         # Check tool results have correct call IDs
@@ -607,8 +628,7 @@ class TestMultiToolSequences:
 
         mock_provider.create_message.side_effect = responses
 
-        run_agent_loop(
-            conversation_history=conversation_history,
+        config = AgentLoopConfig(
             provider=mock_provider,
             model="gpt-4",
             permission_manager=permission_manager,
@@ -617,6 +637,10 @@ class TestMultiToolSequences:
             auto_approve_all=True,
             approval_callback=None,
             check_interrupted=lambda: False,
+        )
+        run_agent_loop(
+            conversation_history=conversation_history,
+            config=config,
         )
 
         # Verify order: system, user, assistant (with tool_calls), tool result, assistant

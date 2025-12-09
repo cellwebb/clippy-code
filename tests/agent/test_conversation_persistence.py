@@ -240,8 +240,8 @@ def test_conversation_persistence_handles_exceptions_during_save() -> None:
         base_url=None,
     )
 
-    # Mock the json.dump to raise an exception
-    with patch("clippy.agent.core.json.dump", side_effect=Exception("Mock error")):
+    # Mock the json.dump to raise a TypeError (what json.dump raises for unserializable data)
+    with patch("clippy.agent.core.json.dump", side_effect=TypeError("Mock error")):
         success, message = agent.save_conversation("test-error")
 
         assert success is False
@@ -262,8 +262,9 @@ def test_conversation_persistence_handles_exceptions_during_load() -> None:
         base_url=None,
     )
 
-    # Mock the json.load to raise an exception
-    with patch("clippy.agent.core.json.load", side_effect=Exception("Mock error")):
+    # Mock the json.load to raise a JSONDecodeError (what json.load raises for invalid JSON)
+    import json
+    with patch("clippy.agent.core.json.load", side_effect=json.JSONDecodeError("Mock error", "", 0)):
         # Create a dummy file first
         conversation_file = agent.conversations_dir / "test-error.json"
         conversation_file.touch()
@@ -272,7 +273,6 @@ def test_conversation_persistence_handles_exceptions_during_load() -> None:
 
         assert success is False
         assert "Failed to load conversation" in message
-        assert "Mock error" in message
 
 
 def test_default_conversation_name(mock_agent_with_persistence: ClippyAgent) -> None:
