@@ -401,7 +401,7 @@ class UserModelManager:
 _providers: dict[str, ProviderConfig] = {}
 _user_manager: UserModelManager | None = None
 _user_provider_manager: UserProviderManager | None = None
-_lock = threading.Lock()  # Protects all module-level state above
+_lock = threading.RLock()  # Protects all module-level state above
 
 
 def reset_all_caches() -> None:
