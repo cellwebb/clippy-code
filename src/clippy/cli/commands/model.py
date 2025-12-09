@@ -83,22 +83,21 @@ def _handle_model_help(console: Console) -> CommandResult:
     help_text = """
 [bold cyan]/model commands:[/bold cyan]
 
-  [cyan]/model[/cyan]                     - Show this help
-  [cyan]/model list[/cyan]                - List available models
-  [cyan]/model <name>[/cyan]              - Switch to a model (shortcut for /model switch)
-  [cyan]/model switch <name>[/cyan]       - Switch to a model (current session only)
-  [cyan]/model set-default <name>[/cyan]  - Set default model (permanent)
-  [cyan]/model add[/cyan]                 - Add a new model (interactive wizard)
-  [cyan]/model add <provider> <model_id> [--name <display_name>][/cyan]
-                                  - Add a new model (direct arguments)
-  [cyan]/model remove <name>[/cyan]       - Remove a model
+  [cyan]/model[/cyan] - Show this help
+  [cyan]/model <name>[/cyan] - Switch to a model (shortcut for /model switch)
+  [cyan]/model add[/cyan] - Add a new model (interactive wizard)
+  [cyan]/model add <provider> <model_id> [--name <display_name>][/cyan] - Add a new model (direct arguments)
+  [cyan]/model init[/cyan] - Initialize default models
+  [cyan]/model list[/cyan] - List available models
+  [cyan]/model reload[/cyan] - Reload model manager
+  [cyan]/model remove <name>[/cyan] - Remove a model
+  [cyan]/model set-default <name>[/cyan] - Set default model (permanent)
+  [cyan]/model switch <name>[/cyan] - Switch to a model (current session only)
   [cyan]/model threshold <name> <n>[/cyan] - Set model compaction threshold
-  [cyan]/model reload[/cyan]              - Reload model manager
-  [cyan]/model init[/cyan]                - Initialize default models
 
 [dim]Built-in models are pre-configured and ready to use![/dim]
-[dim]Use /providers to see available providers[/dim]
-"""
+[dim]Use [cyan]/provider list[/cyan] to see available providers[/dim]
+"""  # noqa: E501
     console.print(Panel.fit(help_text.strip(), title="Model Help", border_style="cyan"))
     return "continue"
 
@@ -185,9 +184,17 @@ def _handle_model_list(console: Console) -> CommandResult:
     console.print("  [dim]⟨blank⟩[/dim] - User-defined model")
     console.print("  [dim]—[/dim] - No compaction threshold set")
     console.print("\n[dim]Commands:[/dim]")
-    console.print("  [cyan]/model switch <name>[/cyan] - Switch to a model (current session only)")
+    console.print("  [cyan]/model add[/cyan] - Add a new model (interactive wizard)")
+    console.print(
+        "  [cyan]/model add <provider> <model_id> [--name <name>][/cyan] - Add a model directly"
+    )  # noqa: E501
+    console.print("  [cyan]/model remove <name>[/cyan] - Remove a model")
+    console.print("  [cyan]/model switch <name>[/cyan] - Switch to a model")
     console.print("  [cyan]/model set-default <name>[/cyan] - Set a model as default (permanent)")
     console.print("  [cyan]/model threshold <name> <n>[/cyan] - Set model compaction threshold")
+    console.print("  [cyan]/model reload[/cyan] - Reload model manager")
+    console.print("  [cyan]/model init[/cyan] - Initialize default models")
+    console.print("  [cyan]/model <name>[/cyan] - Switch to a model (shortcut)")
 
     return "continue"
 

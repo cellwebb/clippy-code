@@ -443,8 +443,9 @@ class ClippyCommandCompleter(Completer):
                         subcommand = words[1].lower()
                         current_word = ""  # Starting fresh completion
 
-                    # For "/model load" "/model set-default" "/model switch", show model names only
-                    if subcommand in ["load", "set-default", "switch"]:
+                    # For "/model load" "/model set-default" "/model switch"
+                    # "/model remove" "/model threshold", show model names only
+                    if subcommand in ["load", "set-default", "switch", "remove", "threshold"]:
                         models = list_available_models()
                         completions: list[Completion] = []
 
