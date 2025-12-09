@@ -59,7 +59,7 @@ def load_config(path: str | None = None) -> Config | None:
                 resolved_data = _resolve_env_variables(data)
 
                 return Config(**resolved_data)
-            except Exception:
+            except (OSError, IOError, json.JSONDecodeError, ValueError) as e:
                 # If we have an explicit path and it fails, raise the error
                 if path:
                     raise

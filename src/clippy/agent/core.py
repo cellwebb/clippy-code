@@ -22,7 +22,7 @@ from .conversation import (
     get_token_count,
 )
 from .exceptions import InterruptedExceptionError
-from .loop import run_agent_loop
+from .loop import AgentLoopConfig, run_agent_loop
 from .subagent_manager import SubAgentManager
 
 if TYPE_CHECKING:
@@ -179,8 +179,7 @@ class ClippyAgent:
 
     def _run_agent_loop(self, auto_approve_all: bool = False) -> str:
         """Run the main agent loop."""
-        return run_agent_loop(
-            conversation_history=self.conversation_history,
+        config = AgentLoopConfig(
             provider=self.provider,
             model=self.model,
             permission_manager=self.permission_manager,
@@ -191,6 +190,10 @@ class ClippyAgent:
             check_interrupted=lambda: self.interrupted,
             mcp_manager=self.mcp_manager,
             parent_agent=self,  # Pass self for subagent delegation
+        )
+        return run_agent_loop(
+            conversation_history=self.conversation_history,
+            config=config,
         )
 
     def reset_conversation(self) -> None:
@@ -301,7 +304,7 @@ class ClippyAgent:
                 json.dump(conversation_data, f, indent=2)
 
             return True, f"Conversation saved as '{name}'"
-        except Exception as e:
+        except (OSError, IOError, TypeError) as e:
             return False, f"Failed to save conversation: {e}"
 
     def load_conversation(self, name: str = "default") -> tuple[bool, str]:
@@ -343,7 +346,7 @@ class ClippyAgent:
             )
 
             return True, f"Conversation '{name}' loaded successfully"
-        except Exception as e:
+        except (OSError, IOError, json.JSONDecodeError) as e:
             return False, f"Failed to load conversation: {e}"
 
     def list_saved_conversations(self) -> list[str]:
