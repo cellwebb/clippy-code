@@ -10,11 +10,9 @@ import httpx
 from .base import BaseProvider
 from .errors import APIConnectionError, APITimeoutError, raise_for_status
 from .http_client import create_client, post_with_retry
+from .utils import _is_reasoner_model
 
 logger = logging.getLogger(__name__)
-
-
-from .utils import _is_reasoner_model
 
 
 class OpenAIProvider(BaseProvider):

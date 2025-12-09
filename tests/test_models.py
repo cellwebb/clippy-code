@@ -132,13 +132,14 @@ def test_user_model_manager_with_temp_dir() -> None:
     """Test UserModelManager with a temporary directory."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Should create config directory
         assert temp_config_dir.exists()
-        assert manager.models_file.exists()
+        # Should NOT create models file when not loading defaults and file doesn't exist
+        assert not manager.models_file.exists()
 
-        # Should have no models by default (setup wizard handles this)
+        # Should have no models by default when not loading defaults
         models = manager.list_models()
         assert len(models) == 0
 
@@ -147,7 +148,7 @@ def test_user_model_manager_add_model() -> None:
     """Test adding a model to UserModelManager."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Add a new model
         success, message = manager.add_model(
@@ -178,7 +179,7 @@ def test_user_model_manager_add_duplicate() -> None:
     """Test adding a duplicate model name."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # First add a model
         manager.add_model(
@@ -202,7 +203,7 @@ def test_user_model_manager_add_invalid_provider() -> None:
     """Test adding a model with invalid provider."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Try to add a model with non-existent provider
         success, message = manager.add_model(
@@ -219,7 +220,7 @@ def test_user_model_manager_remove_model() -> None:
     """Test removing a model."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Add a model
         manager.add_model(
@@ -243,7 +244,7 @@ def test_user_model_manager_remove_nonexistent() -> None:
     """Test removing a model that doesn't exist."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         success, message = manager.remove_model("nonexistent")
 
@@ -255,7 +256,7 @@ def test_user_model_manager_set_default() -> None:
     """Test setting a model as default."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Add a new model
         manager.add_model(
@@ -281,7 +282,7 @@ def test_user_model_manager_get_default() -> None:
     """Test getting the default model."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # No models initially
         default = manager.get_default_model()
@@ -306,7 +307,7 @@ def test_get_model_config() -> None:
     """Test getting a model configuration and its provider."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Add a test model
         manager.add_model(
@@ -338,7 +339,7 @@ def test_get_default_model_config() -> None:
     # Use a temporary directory to ensure test isolation
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Manually set the global manager for this test
         import clippy.models
@@ -372,7 +373,7 @@ def test_list_available_models() -> None:
     """Test listing available user models."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Add some models
         manager.add_model("model1", "openai", "gpt-4o")
@@ -405,11 +406,11 @@ def test_persistence() -> None:
         temp_config_dir = Path(tmpdir)
 
         # Create manager and add a model
-        manager1 = UserModelManager(config_dir=temp_config_dir)
+        manager1 = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
         manager1.add_model("persistent", "ollama", "llama2")
 
-        # Create a new manager instance pointing to same directory
-        manager2 = UserModelManager(config_dir=temp_config_dir)
+        # Create a new manager instance pointing to same directory (also no defaults)
+        manager2 = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Should be able to retrieve the model
         model = manager2.get_model("persistent")
@@ -422,7 +423,7 @@ def test_json_format() -> None:
     """Test that the JSON file has correct format."""
     with tempfile.TemporaryDirectory() as tmpdir:
         temp_config_dir = Path(tmpdir)
-        manager = UserModelManager(config_dir=temp_config_dir)
+        manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Add a model
         manager.add_model("test", "openai", "gpt-4o")

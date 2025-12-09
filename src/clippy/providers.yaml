@@ -1,9 +1,4 @@
 providers:
-  openai:
-    base_url: null
-    api_key_env: OPENAI_API_KEY
-    description: OpenAI
-    pydantic_system: openai
   anthropic:
     base_url: https://api.anthropic.com/v1
     api_key_env: ANTHROPIC_API_KEY
@@ -24,40 +19,35 @@ providers:
     api_key_env: DEEPSEEK_API_KEY
     description: DeepSeek
     pydantic_system: openai
+  gemini:
+    base_url: https://generativelanguage.googleapis.com/v1beta
+    api_key_env: GOOGLE_API_KEY
+    description: Google Gemini
+    pydantic_system: google-gla
   groq:
     base_url: https://api.groq.com/openai/v1
     api_key_env: GROQ_API_KEY
     description: Groq
+    pydantic_system: openai
+  lmstudio:
+    base_url: http://localhost:1234/v1
+    api_key_env: LMSTUDIO_API_KEY
+    description: LM Studio (local)
     pydantic_system: openai
   mistral:
     base_url: https://api.mistral.ai/v1
     api_key_env: MISTRAL_API_KEY
     description: Mistral AI
     pydantic_system: openai
-  together:
-    base_url: https://api.together.xyz/v1
-    api_key_env: TOGETHER_API_KEY
-    description: Together AI
-    pydantic_system: openai
-  minimax:
-    base_url: https://api.minimax.chat/v1
-    api_key_env: MINIMAX_API_KEY
-    description: Minimax AI
-    pydantic_system: openai
-  gemini:
-    base_url: https://generativelanguage.googleapis.com/v1beta
-    api_key_env: GOOGLE_API_KEY
-    description: Google Gemini
-    pydantic_system: google-gla
-  lmstudio:
-    base_url: http://localhost:1234/v1
-    api_key_env: LMSTUDIO_API_KEY
-    description: LM Studio (local)
-    pydantic_system: openai
   ollama:
     base_url: http://localhost:11434/v1
     api_key_env: OLLAMA_API_KEY
     description: Ollama (local)
+    pydantic_system: openai
+  openai:
+    base_url: null
+    api_key_env: OPENAI_API_KEY
+    description: OpenAI
     pydantic_system: openai
   openrouter:
     base_url: https://openrouter.ai/api/v1

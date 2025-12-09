@@ -28,9 +28,6 @@ logger = logging.getLogger(__name__)
 SPINNER_SLEEP_INTERVAL = 0.1  # seconds
 
 
-from .llm.utils import _is_reasoner_model
-
-
 class Spinner:
     """A simple terminal spinner for indicating loading status."""
 
