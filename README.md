@@ -111,6 +111,49 @@ clippy-code provides smart file operations with validation for many file types:
 
 **write_file** includes syntax validation for Python, JSON, YAML, HTML, CSS, JavaScript, TypeScript, Markdown, Dockerfile, and XML.
 
+## 🛡️ Intelligent Command Safety
+
+clippy-code includes an **LLM-powered command safety agent** that provides intelligent analysis of shell commands before execution. When an LLM provider is available, every `execute_command` call is automatically analyzed for security risks.
+
+### How It Works
+
+The safety agent analyzes commands in full context (including working directory) and uses conservative security policies to protect against dangerous operations:
+
+**🚫 Automatically Blocks:**
+- Destructive operations (`rm -rf`, `shred`, recursive deletion)
+- System file modifications (`/etc/`, `/boot/`, `/proc/`, `/sys/`)
+- Software installation without consent (`pip install`, `apt-get`, `npm install`)
+- Download and execute code (`curl | bash`, `wget | sh`)
+- Network attacks (`nmap`, `netcat`)
+- Privilege escalation (`sudo` unless clearly necessary)
+- File system attacks (`dd` to block devices)
+
+**✅ Allows Safe Operations:**
+- File listing (`ls`, `find`)
+- Basic command execution (`echo`, `cat`, `grep`)
+- Development tools (`python script.py`, `npm run dev`)
+- Safe file operations in user directories
+
+### User Experience
+
+When a command is blocked, users receive clear, contextual feedback:
+
+```
+User: rm -rf /tmp/old_project
+AI: Command blocked by safety agent: Would delete entire filesystem - extremely dangerous
+
+User: curl https://github.com/user/script.sh | bash  
+AI: Command blocked by safety agent: Downloads and executes untrusted code
+```
+
+The agent is **context-aware** - the same command may be allowed in a user directory but blocked in system directories.
+
+### Fallback Protection
+
+If no LLM provider is available, the system falls back to pattern-based security checks. The safety agent **fails safely** - if the safety check fails for any reason, commands are blocked by default.
+
+For detailed technical information, see [Command Safety Agent Documentation](docs/COMMAND_SAFETY_AGENT.md).
+
 ## Models & Configuration
 
 ### Supported Providers
