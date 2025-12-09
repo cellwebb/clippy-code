@@ -1,4 +1,4 @@
-.PHONY: help install dev clean run test test-cov cov cov-term format lint type-check check all bump-patch bump-minor bump-major
+.PHONY: help install dev clean run test test-cov cov cov-term format lint type-check check all bump bump-patch bump-minor bump-major
 
 # Python interpreter (can be overridden with: make PYTHON=python3.12 bump-patch)
 PYTHON ?= python3
@@ -33,9 +33,9 @@ help:
 	@echo "  make publish      Publish to PyPI"
 	@echo ""
 	@echo "Version Management:"
-	@echo "  make bump-patch   Bump patch version (0.1.0 -> 0.1.1)"
-	@echo "  make bump-minor   Bump minor version (0.1.0 -> 0.2.0)"
-	@echo "  make bump-major   Bump major version (0.1.0 -> 1.0.0)"
+	@echo "  make bump-patch   Bump patch version (0.1.0 -> 0.1.1) and create git tag"
+	@echo "  make bump-minor   Bump minor version (0.1.0 -> 0.2.0) and create git tag"
+	@echo "  make bump-major   Bump major version (0.1.0 -> 1.0.0) and create git tag"
 
 # Installation
 install:
@@ -127,52 +127,31 @@ list:
 update:
 	uv pip install --upgrade -e ".[dev]"
 
-# Version management
-bump-patch:
-	@echo "Bumping patch version..."
-	@$(PYTHON) -c "import re; \
-	content = open('pyproject.toml').read(); \
-	match = re.search(r'version = \"(\d+)\.(\d+)\.(\d+)\"', content); \
-	major, minor, patch = match.groups(); \
-	new_version = f'{major}.{minor}.{int(patch)+1}'; \
-	new_content = re.sub(r'version = \"\d+\.\d+\.\d+\"', f'version = \"{new_version}\"', content); \
-	open('pyproject.toml', 'w').write(new_content); \
-	version_content = open('src/clippy/__version__.py').read(); \
-	new_version_content = re.sub(r'__version__ = \"\d+\.\d+\.\d+\"', f'__version__ = \"{new_version}\"', version_content); \
-	open('src/clippy/__version__.py', 'w').write(new_version_content); \
-	print(f'Version bumped to {new_version}')"
-	@echo "Updating uv.lock file..."
-	@uv lock
+# Version bumping
+bump:
+	@# Check for uncommitted changes before starting
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "Error: Git working directory is not clean"; \
+		echo "Please commit or stash your changes first"; \
+		git status --short; \
+		exit 1; \
+	fi
+	@echo "Bumping $(VERSION) version..."
+	@RESULT=$$(BUMP_KIND=$(VERSION) python -c "import os, re; from pathlib import Path; version_file = Path('src/clippy/__version__.py'); content = version_file.read_text(encoding='utf-8'); match = re.search(r'__version__ = \"([^\"]+)\"', content); old_version = match.group(1); parts = old_version.split('.'); major, minor, patch = map(int, parts); kind = os.environ['BUMP_KIND']; new_version = f'{major}.{minor}.{patch + 1}' if kind == 'patch' else f'{major}.{minor + 1}.0' if kind == 'minor' else f'{major + 1}.0.0'; version_file.write_text(content.replace(f'__version__ = \"{old_version}\"', f'__version__ = \"{new_version}\"', 1), encoding='utf-8'); print(old_version, new_version)") && \
+	OLD_VERSION=$$(echo "$$RESULT" | awk '{print $$1}') && \
+	NEW_VERSION=$$(echo "$$RESULT" | awk '{print $$2}') && \
+	echo "Version bumped from $$OLD_VERSION to $$NEW_VERSION" && \
+	git add -A && \
+	git commit -m "chore(version): bump version from $$OLD_VERSION to $$NEW_VERSION" && \
+	git tag -a "v$$NEW_VERSION" -m "Release version $$NEW_VERSION" && \
+	echo "✅ Created tag v$$NEW_VERSION" && \
+	echo "📦 To publish: git push && git push --tags"
 
-bump-minor:
-	@echo "Bumping minor version..."
-	@$(PYTHON) -c "import re; \
-	content = open('pyproject.toml').read(); \
-	match = re.search(r'version = \"(\d+)\.(\d+)\.(\d+)\"', content); \
-	major, minor, patch = match.groups(); \
-	new_version = f'{major}.{int(minor)+1}.0'; \
-	new_content = re.sub(r'version = \"\d+\.\d+\.\d+\"', f'version = \"{new_version}\"', content); \
-	open('pyproject.toml', 'w').write(new_content); \
-	version_content = open('src/clippy/__version__.py').read(); \
-	new_version_content = re.sub(r'__version__ = \"\d+\.\d+\.\d+\"', f'__version__ = \"{new_version}\"', version_content); \
-	open('src/clippy/__version__.py', 'w').write(new_version_content); \
-	print(f'Version bumped to {new_version}')"
-	@echo "Updating uv.lock file..."
-	@uv lock
+bump-patch: VERSION=patch
+bump-patch: bump
 
-bump-major:
-	@echo "Bumping major version..."
-	@$(PYTHON) -c "import re; \
-	content = open('pyproject.toml').read(); \
-	match = re.search(r'version = \"(\d+)\.(\d+)\.(\d+)\"', content); \
-	major, minor, patch = match.groups(); \
-	new_version = f'{int(major)+1}.0.0'; \
-	new_content = re.sub(r'version = \"\d+\.\d+\.\d+\"', f'version = \"{new_version}\"', content); \
-	open('pyproject.toml', 'w').write(new_content); \
-	version_content = open('src/clippy/__version__.py').read(); \
-	new_version_content = re.sub(r'__version__ = \"\d+\.\d+\.\d+\"', f'__version__ = \"{new_version}\"', version_content); \
-	open('src/clippy/__version__.py', 'w').write(new_version_content); \
-	print(f'Version bumped to {new_version}')"
-	@echo "Updating uv.lock file..."
-	@uv lock
-	print(f'Version bumped to {new_version}')"
+bump-minor: VERSION=minor
+bump-minor: bump
+
+bump-major: VERSION=major
+bump-major: bump
