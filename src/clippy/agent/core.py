@@ -252,6 +252,9 @@ class ClippyAgent:
             self.model = new_model
             self.api_key = new_api_key
 
+            # Update executor's safety checker with new provider
+            self.executor.set_llm_provider(self.provider)
+
             # Build success message
             provider_info = f" ({new_base_url})" if new_base_url else " (OpenAI)"
             message = f"Switched to model: {new_model}{provider_info}"
@@ -337,6 +340,9 @@ class ClippyAgent:
                 base_url=self.base_url,
                 provider_config=self.provider_config,
             )
+
+            # Update executor's safety checker with restored provider
+            self.executor.set_llm_provider(self.provider)
 
             self.conversation_history = conversation_data.get("conversation_history", [])
 

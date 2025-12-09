@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from .agent.command_safety_checker import create_safety_checker
 from .mcp.naming import is_mcp_tool, parse_mcp_qualified_name
 from .permissions import TOOL_ACTION_MAP, PermissionManager
 from .settings import get_settings
@@ -119,14 +120,30 @@ def _handle_list_directory(tool_input: dict[str, Any]) -> ToolResult:
     return ToolResult(success=success, message=message, data=data)
 
 
-def _handle_execute_command(tool_input: dict[str, Any]) -> ToolResult:
+def _handle_execute_command(tool_input: dict[str, Any], safety_checker: Any = None) -> ToolResult:
     """Handle execute_command tool execution."""
+    command = tool_input["command"]
+    working_dir = tool_input.get("working_dir", ".")
+
+    # Use safety checker if available
+    if safety_checker is not None:
+        try:
+            is_safe, safety_reason = safety_checker.check_command_safety(command, working_dir)
+            if not is_safe:
+                return ToolResult(
+                    success=False,
+                    message=f"Command blocked by safety agent: {safety_reason}",
+                    data=None,
+                )
+            logger.debug(f"Command passed safety check: {safety_reason}")
+        except Exception as e:
+            logger.error(f"Safety check failed, blocking command: {e}")
+            return ToolResult(success=False, message=f"Safety check failed: {str(e)}", data=None)
+
     timeout = tool_input.get("timeout", DEFAULT_COMMAND_TIMEOUT)
     settings = get_settings()
     show_output = tool_input.get("show_output", settings.show_command_output)
-    success, message, data = execute_command(
-        tool_input["command"], tool_input.get("working_dir", "."), timeout, show_output
-    )
+    success, message, data = execute_command(command, working_dir, timeout, show_output)
     return ToolResult(success=success, message=message, data=data)
 
 
@@ -282,27 +299,39 @@ def _handle_fetch_webpage(tool_input: dict[str, Any]) -> ToolResult:
 
 # Tool dispatch table for better maintainability
 # Maps tool names to their handler functions
-_TOOL_HANDLERS = {
-    "read_file": lambda tool_input, allowed_roots: _handle_read_file(tool_input),
-    "write_file": lambda tool_input, allowed_roots: _handle_write_file(tool_input, allowed_roots),
-    "list_directory": lambda tool_input, allowed_roots: _handle_list_directory(tool_input),
-    "execute_command": lambda tool_input, allowed_roots: _handle_execute_command(tool_input),
-    "search_files": lambda tool_input, allowed_roots: _handle_search_files(tool_input),
-    "get_file_info": lambda tool_input, allowed_roots: _handle_get_file_info(tool_input),
-    "read_files": lambda tool_input, allowed_roots: _handle_read_files(tool_input),
-    "read_lines": lambda tool_input, allowed_roots: _handle_read_lines(tool_input),
-    "grep": lambda tool_input, allowed_roots: _handle_grep(tool_input),
-    "edit_file": lambda tool_input, allowed_roots: _handle_edit_file(tool_input, allowed_roots),
-    "find_replace": lambda tool_input, allowed_roots: _handle_find_replace(
-        tool_input, allowed_roots
-    ),
-    "create_directory": lambda tool_input, allowed_roots: _handle_create_directory(
-        tool_input, allowed_roots
-    ),
-    "delete_file": lambda tool_input, allowed_roots: _handle_delete_file(tool_input, allowed_roots),
-    "think": lambda tool_input, allowed_roots: _handle_think(tool_input),
-    "fetch_webpage": lambda tool_input, allowed_roots: _handle_fetch_webpage(tool_input),
-}
+def _build_tool_handlers(safety_checker: Any = None) -> dict[str, Any]:
+    """Build tool handlers with optional safety checker."""
+    return {
+        "read_file": lambda tool_input, allowed_roots: _handle_read_file(tool_input),
+        "write_file": lambda tool_input, allowed_roots: _handle_write_file(
+            tool_input, allowed_roots
+        ),
+        "list_directory": lambda tool_input, allowed_roots: _handle_list_directory(tool_input),
+        "execute_command": lambda tool_input, allowed_roots: _handle_execute_command(
+            tool_input, safety_checker
+        ),
+        "search_files": lambda tool_input, allowed_roots: _handle_search_files(tool_input),
+        "get_file_info": lambda tool_input, allowed_roots: _handle_get_file_info(tool_input),
+        "read_files": lambda tool_input, allowed_roots: _handle_read_files(tool_input),
+        "read_lines": lambda tool_input, allowed_roots: _handle_read_lines(tool_input),
+        "grep": lambda tool_input, allowed_roots: _handle_grep(tool_input),
+        "edit_file": lambda tool_input, allowed_roots: _handle_edit_file(tool_input, allowed_roots),
+        "find_replace": lambda tool_input, allowed_roots: _handle_find_replace(
+            tool_input, allowed_roots
+        ),
+        "create_directory": lambda tool_input, allowed_roots: _handle_create_directory(
+            tool_input, allowed_roots
+        ),
+        "delete_file": lambda tool_input, allowed_roots: _handle_delete_file(
+            tool_input, allowed_roots
+        ),
+        "think": lambda tool_input, allowed_roots: _handle_think(tool_input),
+        "fetch_webpage": lambda tool_input, allowed_roots: _handle_fetch_webpage(tool_input),
+    }
+
+
+# Default handlers without safety checker (for backward compatibility)
+_TOOL_HANDLERS = _build_tool_handlers()
 
 
 class ActionExecutor:
@@ -312,6 +341,7 @@ class ActionExecutor:
         self,
         permission_manager: PermissionManager,
         allowed_write_roots: list[Path] | None = None,
+        llm_provider: Any = None,
     ):
         """Initialize the executor.
 
@@ -320,10 +350,18 @@ class ActionExecutor:
             allowed_write_roots: Additional directories where write operations are allowed.
                 By default, only the current working directory is allowed.
                 Set to include temp directories for testing.
+            llm_provider: LLM provider for command safety checking. If None, safety
+                checking is disabled and only basic pattern matching is used.
         """
         self.permission_manager = permission_manager
         self._mcp_manager = None
         self._allowed_write_roots = allowed_write_roots
+        self._safety_checker = create_safety_checker(llm_provider) if llm_provider else None
+
+        if self._safety_checker:
+            self._tool_handlers = _build_tool_handlers(self._safety_checker)
+        else:
+            self._tool_handlers = _build_tool_handlers(None)
 
     def set_mcp_manager(self, manager: Any | None) -> None:
         """Set the MCP manager for handling MCP tool calls.
@@ -332,6 +370,16 @@ class ActionExecutor:
             manager: MCPManager instance or None to disable MCP
         """
         self._mcp_manager = manager
+
+    def set_llm_provider(self, llm_provider: Any) -> None:
+        """Set the LLM provider for safety checking.
+
+        Args:
+            llm_provider: LLM provider instance for command safety checking
+        """
+        self._safety_checker = create_safety_checker(llm_provider)
+        self._tool_handlers = _build_tool_handlers(self._safety_checker)
+        logger.info("LLM provider set for command safety checking")
 
     def execute(
         self,
@@ -384,7 +432,7 @@ class ActionExecutor:
         # Execute the action using dispatch table
         logger.debug(f"Executing built-in tool: {tool_name}")
         try:
-            handler = _TOOL_HANDLERS.get(tool_name)
+            handler = self._tool_handlers.get(tool_name)
             if handler is None:
                 logger.warning(f"Unimplemented tool: {tool_name}")
                 return False, f"Unimplemented tool: {tool_name}", None

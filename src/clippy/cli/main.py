@@ -193,8 +193,17 @@ def main() -> None:
     # Create permission manager
     permission_manager = PermissionManager(PermissionConfig())
 
-    # Create executor and agent
-    executor = ActionExecutor(permission_manager)
+    # Create LLM provider first
+    from ..providers import LLMProvider
+
+    llm_provider = LLMProvider(
+        api_key=api_key,
+        base_url=base_url,
+        provider_config=provider_config_to_use,
+    )
+
+    # Create executor and agent (pass LLM provider for safety checking)
+    executor = ActionExecutor(permission_manager, llm_provider=llm_provider)
     if mcp_manager:
         executor.set_mcp_manager(mcp_manager)
 
