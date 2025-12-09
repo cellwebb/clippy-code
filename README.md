@@ -154,6 +154,16 @@ If no LLM provider is available, the system falls back to pattern-based security
 
 For detailed technical information, see [Command Safety Agent Documentation](docs/COMMAND_SAFETY_AGENT.md).
 
+### Cache Configuration
+
+Safety decisions are automatically cached to improve performance:
+
+- `CLIPPY_SAFETY_CACHE_ENABLED` - Enable/disable safety cache (default: `true`)
+- `CLIPPY_SAFETY_CACHE_SIZE` - Maximum cache entries (default: `1000`)
+- `CLIPPY_SAFETY_CACHE_TTL` - Cache TTL in seconds (default: `3600`)
+
+Caching reduces API calls for repeated commands while maintaining security. Cache entries expire automatically and use LRU eviction.
+
 ## Models & Configuration
 
 ### Supported Providers
