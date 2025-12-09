@@ -24,6 +24,7 @@ from .tools.read_lines import read_lines
 from .tools.search_files import search_files
 from .tools.think import think
 from .tools.write_file import write_file
+from .tools.result import ToolResult
 
 logger = logging.getLogger(__name__)
 # Execution constants
@@ -90,6 +91,202 @@ def validate_write_paths(
     return True, ""
 
 
+# Tool dispatch table for better maintainability
+# Each handler returns ToolResult format
+def _handle_read_file(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle read_file tool execution."""
+    success, message, data = read_file(tool_input["path"])
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_write_file(tool_input: dict[str, Any], allowed_roots: list[Path] | None) -> ToolResult:
+    """Handle write_file tool execution."""
+    # Validate path is within allowed roots
+    is_valid, error = validate_write_path(tool_input["path"], allowed_roots)
+    if not is_valid:
+        return ToolResult(success=False, message=error, data=None)
+    success, message, data = write_file(
+        tool_input["path"],
+        tool_input["content"],
+        tool_input.get("skip_validation", False),
+    )
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_list_directory(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle list_directory tool execution."""
+    success, message, data = list_directory(tool_input["path"], tool_input.get("recursive", False))
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_execute_command(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle execute_command tool execution."""
+    timeout = tool_input.get("timeout", DEFAULT_COMMAND_TIMEOUT)
+    settings = get_settings()
+    show_output = tool_input.get("show_output", settings.show_command_output)
+    success, message, data = execute_command(
+        tool_input["command"], tool_input.get("working_dir", "."), timeout, show_output
+    )
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_search_files(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle search_files tool execution."""
+    success, message, data = search_files(tool_input["pattern"], tool_input.get("path", "."))
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_get_file_info(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle get_file_info tool execution."""
+    success, message, data = get_file_info(tool_input["path"])
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_read_files(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle read_files tool execution."""
+    # Handle both 'path' (singular) and 'paths' (plural)
+    paths = tool_input.get("paths")
+    if paths is None:
+        path = tool_input.get("path")
+        if path is None:
+            return ToolResult(success=False, message="read_files requires either 'path' or 'paths' parameter", data=None)
+        paths = [path] if isinstance(path, str) else path
+    success, message, data = read_files(paths)
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_read_lines(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle read_lines tool execution."""
+    success, message, data = read_lines(
+        tool_input["path"],
+        tool_input["line_range"],
+        tool_input.get("numbering", "auto"),
+        tool_input.get("context", 0),
+        tool_input.get("show_line_numbers", True),
+        tool_input.get("max_lines", 100),
+    )
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_grep(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle grep tool execution."""
+    # Handle both 'path' (singular) and 'paths' (plural)
+    paths = tool_input.get("paths")
+    if paths is None:
+        path = tool_input.get("path")
+        if path is None:
+            return ToolResult(success=False, message="grep requires either 'path' or 'paths' parameter", data=None)
+        paths = [path] if isinstance(path, str) else path
+    success, message, data = grep(tool_input["pattern"], paths, tool_input.get("flags", ""))
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_edit_file(tool_input: dict[str, Any], allowed_roots: list[Path] | None) -> ToolResult:
+    """Handle edit_file tool execution."""
+    # Validate path is within allowed roots
+    is_valid, error = validate_write_path(tool_input["path"], allowed_roots)
+    if not is_valid:
+        return ToolResult(success=False, message=error, data=None)
+    success, message, data = edit_file(
+        tool_input["path"],
+        tool_input["operation"],
+        tool_input.get("content", ""),
+        tool_input.get("pattern", ""),
+        tool_input.get("inherit_indent", True),
+        tool_input.get("start_pattern", ""),
+        tool_input.get("end_pattern", ""),
+    )
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_find_replace(tool_input: dict[str, Any], allowed_roots: list[Path] | None) -> ToolResult:
+    """Handle find_replace tool execution."""
+    # Handle both 'path' (singular) and 'paths' (plural)
+    paths = tool_input.get("paths")
+    if paths is None:
+        path = tool_input.get("path")
+        if path is None:
+            return ToolResult(success=False, message="find_replace requires either 'path' or 'paths' parameter", data=None)
+        paths = [path] if isinstance(path, str) else path
+    # Validate paths when not in dry_run mode
+    if not tool_input.get("dry_run", True):
+        is_valid, error = validate_write_paths(paths, allowed_roots)
+        if not is_valid:
+            return ToolResult(success=False, message=error, data=None)
+    success, message, data = find_replace(
+        tool_input["pattern"],
+        tool_input["replacement"],
+        paths,
+        tool_input.get("regex", False),
+        tool_input.get("case_sensitive", False),
+        tool_input.get("dry_run", True),
+        tool_input.get("include_patterns", ["*"]),
+        tool_input.get("exclude_patterns", []),
+        tool_input.get("max_file_size", 10485760),
+        tool_input.get("backup", False),
+    )
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_create_directory(tool_input: dict[str, Any], allowed_roots: list[Path] | None) -> ToolResult:
+    """Handle create_directory tool execution."""
+    # Validate path is within allowed roots
+    is_valid, error = validate_write_path(tool_input["path"], allowed_roots)
+    if not is_valid:
+        return ToolResult(success=False, message=error, data=None)
+    success, message, data = _create_directory_util(tool_input["path"])
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_delete_file(tool_input: dict[str, Any], allowed_roots: list[Path] | None) -> ToolResult:
+    """Handle delete_file tool execution."""
+    # Validate path is within allowed roots
+    is_valid, error = validate_write_path(tool_input["path"], allowed_roots)
+    if not is_valid:
+        return ToolResult(success=False, message=error, data=None)
+    success, message, data = _delete_file_util(tool_input["path"])
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_think(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle think tool execution."""
+    success, message, data = think(tool_input["thought"])
+    return ToolResult(success=success, message=message, data=data)
+
+
+def _handle_fetch_webpage(tool_input: dict[str, Any]) -> ToolResult:
+    """Handle fetch_webpage tool execution."""
+    success, message, data = fetch_webpage(
+        tool_input["url"],
+        tool_input.get("timeout", 30),
+        tool_input.get("headers"),
+        tool_input.get("mode", "raw"),
+        tool_input.get("max_length"),
+    )
+    return ToolResult(success=success, message=message, data=data)
+
+
+# Tool dispatch table for better maintainability
+# Maps tool names to their handler functions
+_TOOL_HANDLERS = {
+    "read_file": lambda tool_input, allowed_roots: _handle_read_file(tool_input),
+    "write_file": lambda tool_input, allowed_roots: _handle_write_file(tool_input, allowed_roots),
+    "list_directory": lambda tool_input, allowed_roots: _handle_list_directory(tool_input),
+    "execute_command": lambda tool_input, allowed_roots: _handle_execute_command(tool_input),
+    "search_files": lambda tool_input, allowed_roots: _handle_search_files(tool_input),
+    "get_file_info": lambda tool_input, allowed_roots: _handle_get_file_info(tool_input),
+    "read_files": lambda tool_input, allowed_roots: _handle_read_files(tool_input),
+    "read_lines": lambda tool_input, allowed_roots: _handle_read_lines(tool_input),
+    "grep": lambda tool_input, allowed_roots: _handle_grep(tool_input),
+    "edit_file": lambda tool_input, allowed_roots: _handle_edit_file(tool_input, allowed_roots),
+    "find_replace": lambda tool_input, allowed_roots: _handle_find_replace(tool_input, allowed_roots),
+    "create_directory": lambda tool_input, allowed_roots: _handle_create_directory(tool_input, allowed_roots),
+    "delete_file": lambda tool_input, allowed_roots: _handle_delete_file(tool_input, allowed_roots),
+    "think": lambda tool_input, allowed_roots: _handle_think(tool_input),
+    "fetch_webpage": lambda tool_input, allowed_roots: _handle_fetch_webpage(tool_input),
+}
+
+
 class ActionExecutor:
     """Executes actions with permission checking."""
 
@@ -123,7 +320,7 @@ class ActionExecutor:
         tool_name: str,
         tool_input: dict[str, Any],
         bypass_trust_check: bool = False,
-    ) -> tuple[bool, str, Any]:
+    ) -> tuple[bool, str, Any]:  # Note: Returns tuple for compatibility, but internally uses ToolResult
         """
         Execute an action.
 
@@ -164,138 +361,22 @@ class ActionExecutor:
             logger.warning(f"Action denied by permission manager: {tool_name} ({action_type})")
             return False, f"Action {tool_name} is denied by policy", None
 
-        # Execute the action
+        # Execute the action using dispatch table
         logger.debug(f"Executing built-in tool: {tool_name}")
         try:
-            if tool_name == "read_file":
-                result = read_file(tool_input["path"])
-            elif tool_name == "write_file":
-                # Validate path is within allowed roots
-                is_valid, error = validate_write_path(tool_input["path"], self._allowed_write_roots)
-                if not is_valid:
-                    return False, error, None
-                result = write_file(
-                    tool_input["path"],
-                    tool_input["content"],
-                    tool_input.get("skip_validation", False),
-                )
-            elif tool_name == "list_directory":
-                result = list_directory(tool_input["path"], tool_input.get("recursive", False))
-            elif tool_name == "execute_command":
-                timeout = tool_input.get("timeout", DEFAULT_COMMAND_TIMEOUT)
-                settings = get_settings()
-                show_output = tool_input.get("show_output", settings.show_command_output)
-                result = execute_command(
-                    tool_input["command"], tool_input.get("working_dir", "."), timeout, show_output
-                )
-            elif tool_name == "search_files":
-                result = search_files(tool_input["pattern"], tool_input.get("path", "."))
-            elif tool_name == "get_file_info":
-                result = get_file_info(tool_input["path"])
-            elif tool_name == "read_files":
-                # Handle both 'path' (singular) and 'paths' (plural)
-                paths = tool_input.get("paths")
-                if paths is None:
-                    path = tool_input.get("path")
-                    if path is None:
-                        return False, "read_files requires either 'path' or 'paths' parameter", None
-                    paths = [path] if isinstance(path, str) else path
-                result = read_files(paths)
-            elif tool_name == "read_lines":
-                result = read_lines(
-                    tool_input["path"],
-                    tool_input["line_range"],
-                    tool_input.get("numbering", "auto"),
-                    tool_input.get("context", 0),
-                    tool_input.get("show_line_numbers", True),
-                    tool_input.get("max_lines", 100),
-                )
-            elif tool_name == "grep":
-                # Handle both 'path' (singular) and 'paths' (plural)
-                paths = tool_input.get("paths")
-                if paths is None:
-                    path = tool_input.get("path")
-                    if path is None:
-                        return False, "grep requires either 'path' or 'paths' parameter", None
-                    paths = [path] if isinstance(path, str) else path
-                result = grep(tool_input["pattern"], paths, tool_input.get("flags", ""))
-            elif tool_name == "edit_file":
-                # Validate path is within allowed roots
-                is_valid, error = validate_write_path(tool_input["path"], self._allowed_write_roots)
-                if not is_valid:
-                    return False, error, None
-                result = edit_file(
-                    tool_input["path"],
-                    tool_input["operation"],
-                    tool_input.get("content", ""),
-                    tool_input.get("pattern", ""),
-                    tool_input.get("inherit_indent", True),
-                    tool_input.get("start_pattern", ""),
-                    tool_input.get("end_pattern", ""),
-                )
-            elif tool_name == "find_replace":
-                # Handle both 'path' (singular) and 'paths' (plural)
-                paths = tool_input.get("paths")
-                if paths is None:
-                    path = tool_input.get("path")
-                    if path is None:
-                        return (
-                            False,
-                            ("find_replace requires either 'path' or 'paths' parameter"),
-                            None,
-                        )
-                    paths = [path] if isinstance(path, str) else path
-                # Validate paths when not in dry_run mode
-                if not tool_input.get("dry_run", True):
-                    is_valid, error = validate_write_paths(paths, self._allowed_write_roots)
-                    if not is_valid:
-                        return False, error, None
-                result = find_replace(
-                    tool_input["pattern"],
-                    tool_input["replacement"],
-                    paths,
-                    tool_input.get("regex", False),
-                    tool_input.get("case_sensitive", False),
-                    tool_input.get("dry_run", True),
-                    tool_input.get("include_patterns", ["*"]),
-                    tool_input.get("exclude_patterns", []),
-                    tool_input.get("max_file_size", 10485760),
-                    tool_input.get("backup", False),
-                )
-            elif tool_name == "create_directory":
-                # Validate path is within allowed roots
-                is_valid, error = validate_write_path(tool_input["path"], self._allowed_write_roots)
-                if not is_valid:
-                    return False, error, None
-                result = _create_directory_util(tool_input["path"])
-            elif tool_name == "delete_file":
-                # Validate path is within allowed roots
-                is_valid, error = validate_write_path(tool_input["path"], self._allowed_write_roots)
-                if not is_valid:
-                    return False, error, None
-                result = _delete_file_util(tool_input["path"])
-            elif tool_name == "think":
-                result = think(tool_input["thought"])
-            elif tool_name == "fetch_webpage":
-                result = fetch_webpage(
-                    tool_input["url"],
-                    tool_input.get("timeout", 30),
-                    tool_input.get("headers"),
-                    tool_input.get("mode", "raw"),
-                    tool_input.get("max_length"),
-                )
-
-            else:
+            handler = _TOOL_HANDLERS.get(tool_name)
+            if handler is None:
                 logger.warning(f"Unimplemented tool: {tool_name}")
                 return False, f"Unimplemented tool: {tool_name}", None
+            
+            result = handler(tool_input, self._allowed_write_roots)
 
-            # Log result
-            success = result[0]
-            if success:
+            # Log result  
+            if result.success:
                 logger.info(f"Tool execution succeeded: {tool_name}")
             else:
-                logger.warning(f"Tool execution failed: {tool_name} - {result[1]}")
-            return result
+                logger.warning(f"Tool execution failed: {tool_name} - {result.message}")
+            return (result.success, result.message, result.data)
 
         except (RuntimeError, ValueError, KeyError, AttributeError, TypeError) as e:
             logger.error(f"Exception during tool execution: {tool_name} - {e}", exc_info=True)

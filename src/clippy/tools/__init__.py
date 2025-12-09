@@ -2,6 +2,9 @@
 
 from typing import Any
 
+# Result types for better type safety
+from .result import ToolResult
+
 # Utility functions available for internal use but not exposed as tools
 from .copy_file import copy_file as _copy_file_util
 from .create_directory import TOOL_SCHEMA as CREATE_DIRECTORY_SCHEMA
@@ -116,6 +119,7 @@ def get_create_parallel_subagents_and_execute() -> Any:
 
 
 __all__ = [
+    "ToolResult",
     "create_subagent_and_execute",
     "create_parallel_subagents_and_execute",
     "create_directory",
