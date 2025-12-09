@@ -304,7 +304,7 @@ class ClippyAgent:
                 json.dump(conversation_data, f, indent=2)
 
             return True, f"Conversation saved as '{name}'"
-        except (OSError, IOError, TypeError) as e:
+        except (OSError, TypeError) as e:
             return False, f"Failed to save conversation: {e}"
 
     def load_conversation(self, name: str = "default") -> tuple[bool, str]:
@@ -346,7 +346,7 @@ class ClippyAgent:
             )
 
             return True, f"Conversation '{name}' loaded successfully"
-        except (OSError, IOError, json.JSONDecodeError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             return False, f"Failed to load conversation: {e}"
 
     def list_saved_conversations(self) -> list[str]:

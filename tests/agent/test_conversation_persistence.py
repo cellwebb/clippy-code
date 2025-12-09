@@ -264,7 +264,10 @@ def test_conversation_persistence_handles_exceptions_during_load() -> None:
 
     # Mock the json.load to raise a JSONDecodeError (what json.load raises for invalid JSON)
     import json
-    with patch("clippy.agent.core.json.load", side_effect=json.JSONDecodeError("Mock error", "", 0)):
+
+    with patch(
+        "clippy.agent.core.json.load", side_effect=json.JSONDecodeError("Mock error", "", 0)
+    ):
         # Create a dummy file first
         conversation_file = agent.conversations_dir / "test-error.json"
         conversation_file.touch()
