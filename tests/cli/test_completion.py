@@ -67,6 +67,40 @@ class TestClippyCommandCompleter:
         assert "add" in command_texts
         assert "remove" in command_texts
 
+    def test_model_remove_command_completion(self) -> None:
+        """Test completion of model names for /model remove command."""
+        completer = ClippyCommandCompleter()
+
+        # Test completing "/model remove " - should show model names
+        doc = Document("/model remove ")
+        completions = list(completer.get_completions(doc, None))
+
+        # Should have some model completions
+        assert len(completions) > 0
+        # Check that completions contain model names (not subcommands)
+        completion_texts = [c.text for c in completions]
+        # Should not include subcommands like "list", "add", etc.
+        assert "list" not in completion_texts
+        assert "add" not in completion_texts
+        assert "remove" not in completion_texts
+
+    def test_model_threshold_command_completion(self) -> None:
+        """Test completion of model names for /model threshold command."""
+        completer = ClippyCommandCompleter()
+
+        # Test completing "/model threshold " - should show model names
+        doc = Document("/model threshold ")
+        completions = list(completer.get_completions(doc, None))
+
+        # Should have some model completions
+        assert len(completions) > 0
+        # Check that completions contain model names (not subcommands)
+        completion_texts = [c.text for c in completions]
+        # Should not include subcommands like "list", "add", etc.
+        assert "list" not in completion_texts
+        assert "add" not in completion_texts
+        assert "threshold" not in completion_texts
+
     def test_provider_command_completion(self) -> None:
         """Test completion of provider argument."""
         completer = ClippyCommandCompleter()
