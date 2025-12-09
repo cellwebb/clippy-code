@@ -165,26 +165,40 @@ def collect_files(
 ) -> list[Path]:
     """Collect files to process based on paths and patterns."""
     files: list[Path] = []
+    cwd = Path.cwd()
 
     for path_pattern in paths:
         path_obj = Path(path_pattern)
 
         if path_obj.is_file():
-            files.append(path_obj)
+            files.append(path_obj.resolve())
         elif path_obj.is_dir():
             # Search directory for matching files
             for include_pattern in include_patterns:
                 for file_path in path_obj.rglob(include_pattern):
                     if file_path.is_file() and should_include_file(file_path, exclude_patterns):
                         if file_path.stat().st_size <= max_file_size:
-                            files.append(file_path)
+                            files.append(file_path.resolve())
         else:
             # Treat as glob pattern
-            matched_files = list(Path(".").glob(path_pattern))
+            # Try glob pattern from current working directory
+            glob_base = cwd
+            if path_pattern.startswith("/") or (len(path_pattern) > 1 and path_pattern[1] == ":"):
+                # Absolute path pattern
+                glob_base = Path(path_pattern).parent
+                pattern_part = Path(path_pattern).name
+                matched_files = list(glob_base.glob(pattern_part))
+            else:
+                # Relative path pattern - try from cwd
+                matched_files = list(cwd.glob(path_pattern))
+                # If no matches, try globbing with the exact pattern
+                if not matched_files:
+                    matched_files = list(cwd.glob(f"**/{path_pattern}"))
+
             for file_path in matched_files:
                 if file_path.is_file() and should_include_file(file_path, exclude_patterns):
                     if file_path.stat().st_size <= max_file_size:
-                        files.append(file_path)
+                        files.append(file_path.resolve())
 
     # Remove duplicates
     return list(set(files))
