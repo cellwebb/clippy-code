@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.19.3] - 2025-12-09
+
+### What's New
+
+- Choose which AI model checks command safety for more control
+
+### Improvements
+
+- Safety checks now use configurable models for better flexibility
+- Command cache clears automatically when switching safety models
+
 ## [4.19.2] - 2025-12-09
 
 ### Improvements
