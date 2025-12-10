@@ -19,7 +19,7 @@ class TestSafetyIntegrationE2E:
             "content": "BLOCK: Would delete entire filesystem - extremely dangerous"
         }
 
-        executor = ActionExecutor(permission_manager, llm_provider=mock_provider)
+        executor = ActionExecutor(permission_manager, llm_provider=mock_provider, model="test-model")
 
         # Try to execute rm -rf on project directory (still dangerous but recoverable)
         success, message, result = executor.execute(
@@ -49,7 +49,7 @@ class TestSafetyIntegrationE2E:
                 "file1.txt\nfile2.txt",
             )
 
-            executor = ActionExecutor(permission_manager, llm_provider=mock_provider)
+            executor = ActionExecutor(permission_manager, llm_provider=mock_provider, model="test-model")
 
             # Try to execute ls command
             success, message, result = executor.execute(
@@ -85,7 +85,7 @@ class TestSafetyIntegrationE2E:
         with patch("clippy.executor.execute_command") as mock_execute:
             mock_execute.return_value = (True, "Success", "output")
 
-            executor = ActionExecutor(permission_manager, llm_provider=mock_provider)
+            executor = ActionExecutor(permission_manager, llm_provider=mock_provider, model="test-model")
 
             # Command in user directory should be allowed
             success, _, _ = executor.execute(

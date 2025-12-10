@@ -148,7 +148,7 @@ class TestCommandSafetyCheckerWithCache:
         mock_provider = Mock()
         mock_provider.create_message.return_value = {"content": "ALLOW: Safe command"}
 
-        checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
+        checker = create_safety_checker(mock_provider, "test-model", cache_size=100, cache_ttl=3600)
 
         # First call should hit LLM
         result1 = checker.check_command_safety("ls -la", "/home/user")
@@ -174,7 +174,7 @@ class TestCommandSafetyCheckerWithCache:
             {"content": "BLOCK: Dangerous command"},
         ]
 
-        checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
+        checker = create_safety_checker(mock_provider, "test-model", cache_size=100, cache_ttl=3600)
 
         # Two different commands should both hit LLM
         result1 = checker.check_command_safety("ls -la", "/home/user")
@@ -195,7 +195,7 @@ class TestCommandSafetyCheckerWithCache:
         mock_provider = Mock()
         mock_provider.create_message.return_value = {"content": "ALLOW: Safe command"}
 
-        checker = create_safety_checker(mock_provider, cache_size=0, cache_ttl=0)
+        checker = create_safety_checker(mock_provider, "test-model", cache_size=0, cache_ttl=0)
 
         assert checker.cache is None
 
@@ -218,7 +218,7 @@ class TestCommandSafetyCheckerWithCache:
         mock_provider = Mock()
         mock_provider.create_message.side_effect = Exception("LLM failed")
 
-        checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
+        checker = create_safety_checker(mock_provider, "test-model", cache_size=100, cache_ttl=3600)
 
         # Error call should not be cached
         result1 = checker.check_command_safety("test", "/dir")
@@ -235,7 +235,7 @@ class TestCommandSafetyCheckerWithCache:
         mock_provider = Mock()
         mock_provider.create_message.return_value = {"content": "ALLOW: Safe command"}
 
-        checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
+        checker = create_safety_checker(mock_provider, "test-model", cache_size=100, cache_ttl=3600)
 
         # Add to cache
         checker.check_command_safety("ls -la", "/home/user")
@@ -260,7 +260,7 @@ class TestCommandSafetyCheckerWithCache:
         mock_provider = Mock()
         mock_provider.create_message.return_value = {"content": "ALLOW: Safe command"}
 
-        checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
+        checker = create_safety_checker(mock_provider, "test-model", cache_size=100, cache_ttl=3600)
 
         # Multiple calls with mixing
         checker.check_command_safety("cmd1", "/dir1")  # miss
