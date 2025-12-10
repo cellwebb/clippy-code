@@ -75,7 +75,7 @@ class TestOpenAIProvider:
     def test_should_use_responses_api(self) -> None:
         provider = OpenAIProvider()
 
-        assert provider._should_use_responses_api("gpt-4o") is False
+        assert provider._should_use_responses_api("gpt-5-mini") is False
         assert provider._should_use_responses_api("gpt-5-codex") is True
         assert provider._should_use_responses_api("o3-codex-mini") is True
 
@@ -154,7 +154,7 @@ class TestOpenAIProvider:
 
         provider = OpenAIProvider(api_key="test-key")
         result = provider.create_message(
-            messages=[{"role": "user", "content": "Hi"}], model="gpt-4o"
+            messages=[{"role": "user", "content": "Hi"}], model="gpt-5-mini"
         )
 
         assert result["content"] == "Hello!"
@@ -313,7 +313,7 @@ class TestLLMProviderWrapper:
 
         provider = LLMProvider(api_key="key")
         result = provider.create_message(
-            messages=[{"role": "user", "content": "Hi"}], model="gpt-4o"
+            messages=[{"role": "user", "content": "Hi"}], model="gpt-5-mini"
         )
 
         assert result["content"] == "Hello!"

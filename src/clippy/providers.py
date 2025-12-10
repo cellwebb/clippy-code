@@ -146,7 +146,7 @@ class LLMProvider:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
-        model: str = "gpt-4o",
+        model: str = "gpt-5.1",
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Create a chat completion using appropriate provider.

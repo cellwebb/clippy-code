@@ -185,7 +185,7 @@ def test_user_model_manager_add_duplicate() -> None:
         manager.add_model(
             name="test-model",
             provider="openai",
-            model_id="gpt-4o",
+            model_id="gpt-5-mini",
         )
 
         # Try to add another model with the same name
@@ -226,7 +226,7 @@ def test_user_model_manager_remove_model() -> None:
         manager.add_model(
             name="temp-model",
             provider="openai",
-            model_id="gpt-4o",
+            model_id="gpt-5-mini",
         )
 
         # Remove it
@@ -262,7 +262,7 @@ def test_user_model_manager_set_default() -> None:
         manager.add_model(
             name="my-model",
             provider="openai",
-            model_id="gpt-4o",
+            model_id="gpt-5-mini",
         )
 
         # Set it as default
@@ -292,7 +292,7 @@ def test_user_model_manager_get_default() -> None:
         manager.add_model(
             name="test-model",
             provider="openai",
-            model_id="gpt-4o",
+            model_id="gpt-5-mini",
             is_default=True,
         )
 
@@ -355,7 +355,7 @@ def test_get_default_model_config() -> None:
         manager.add_model(
             name="test-model",
             provider="openai",
-            model_id="gpt-4o",
+            model_id="gpt-5-mini",
             is_default=True,
         )
 
@@ -376,7 +376,7 @@ def test_list_available_models() -> None:
         manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Add some models
-        manager.add_model("model1", "openai", "gpt-4o")
+        manager.add_model("model1", "openai", "gpt-5-mini")
         manager.add_model("model2", "cerebras", "llama3.1-8b", is_default=False)
 
         # Manually update global manager for testing
@@ -426,7 +426,7 @@ def test_json_format() -> None:
         manager = UserModelManager(config_dir=temp_config_dir, load_defaults=False)
 
         # Add a model
-        manager.add_model("test", "openai", "gpt-4o")
+        manager.add_model("test", "openai", "gpt-5-mini")
 
         # Read the JSON file directly
         with open(manager.models_file) as f:

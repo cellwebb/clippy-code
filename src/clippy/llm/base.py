@@ -33,7 +33,7 @@ class BaseProvider:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
-        model: str = "gpt-4o",
+        model: str = "gpt-5-mini",
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Create a chat completion.
