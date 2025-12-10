@@ -1,5 +1,18 @@
 # Changelog
 
+## [4.19.2] - 2025-12-09
+
+### Improvements
+
+- Updated default AI model to gpt-5-mini for better performance
+- Enhanced command safety checker to be smarter about development workflows
+- Improved first-time setup to use model configurations dynamically
+- Better error handling when reading file lines with invalid ranges
+
+### Bug Fixes
+
+- Fixed crashes when requesting lines outside file boundaries
+
 ## [4.19.1] - 2025-12-09
 
 ### Improvements
