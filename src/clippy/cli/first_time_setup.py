@@ -32,6 +32,18 @@ def should_run_setup() -> bool:
     if models_file.stat().st_size == 0:
         return True
 
+    # Even if models file exists, check if there's a default model set
+    # If no default is set, run setup to help user choose one
+    try:
+        from ..models import get_default_model_config
+
+        default_model, default_provider = get_default_model_config()
+        if not default_model or not default_provider:
+            return True
+    except Exception:
+        # If there's any error checking defaults, run setup
+        return True
+
     return False
 
 
@@ -116,63 +128,27 @@ def run_first_time_setup() -> None:
             console.print(f"     [cyan]export {api_key_env}=your_api_key_here[/cyan]")
             console.print()
 
-    # Model selection based on provider
+    # Model selection based on provider - using models.yaml data
     console.print("Now let's choose your model...")
 
-    # Predefined models for each provider
-    provider_models = {
-        "openai": [
-            ("gpt-4o", "GPT-4o - OpenAI's latest model"),
-            ("gpt-4o-mini", "GPT-4o Mini - Fast and cost-effective"),
-            ("gpt-4-turbo", "GPT-4 Turbo - Powerful model"),
-        ],
-        "anthropic": [
-            ("claude-3-5-sonnet-20241022", "Claude 3.5 Sonnet (latest)"),
-            ("claude-3-5-sonnet-20240620", "Claude 3.5 Sonnet (previous)"),
-            ("claude-3-opus-20240229", "Claude 3 Opus - Most capable"),
-            ("claude-3-sonnet-20240229", "Claude 3 Sonnet - Balanced"),
-            ("claude-3-haiku-20240307", "Claude 3 Haiku - Fastest"),
-        ],
-        "cerebras": [
-            ("llama-3.1-70b", "Llama 3.1 70B"),
-            ("llama-3.1-8b", "Llama 3.1 8B"),
-        ],
-        "gemini": [
-            ("gemini-1.5-pro", "Gemini 1.5 Pro"),
-            ("gemini-1.5-flash", "Gemini 1.5 Flash"),
-        ],
-        "openrouter": [
-            ("anthropic/claude-3.5-sonnet", "Claude 3.5 Sonnet via OpenRouter"),
-            ("openai/gpt-4o", "GPT-4o via OpenRouter"),
-            ("meta-llama/llama-3.1-70b-instruct", "Llama 3.1 70B via OpenRouter"),
-        ],
-        "ollama": [
-            ("llama3.1:8b", "Llama 3.1 8B (local)"),
-            ("llama3.1:70b", "Llama 3.1 70B (local)"),
-            ("codellama:13b", "Code Llama 13B (local)"),
-        ],
-        "lmstudio": [
-            ("local-model", "Local Model (specify in LM Studio)"),
-        ],
-        "synthetic": [
-            ("gpt-4o", "GPT-4o via Synthetic.new"),
-            ("gpt-4-turbo", "GPT-4 Turbo via Synthetic.new"),
-        ],
-        "zai": [
-            ("claude-3-5-sonnet", "Claude 3.5 Sonnet via Z.AI"),
-        ],
-        "claude-code": [
-            ("claude-3-5-sonnet", "Claude 3.5 Sonnet via Claude Code"),
-        ],
-    }
+    # Get models from the existing models.yaml infrastructure
+    from ..models import list_models_by_source
 
-    # Get models for selected provider or provide generic options
-    available_models = provider_models.get(
-        selected_provider,
-        [
-            ("default", "Default model for " + selected_provider),
-        ],
-    )
+    # Get all available models and filter by selected provider
+    models_by_source = list_models_by_source()
+    available_models = []
+
+    # First get built-in models for this provider
+    for model_name, description, provider in models_by_source["built_in"]:
+        if provider == selected_provider:
+            # Convert to tuple format: (model_name, description)
+            available_models.append((model_name, description))
+
+    # If no built-in models found for this provider, provide a generic option
+    if not available_models:
+        available_models.append(
+            (f"{selected_provider}-default", f"Default model for {selected_provider}")
+        )
 
     # Create model selection table
     model_table = Table(title="Available Models")
@@ -213,19 +189,35 @@ def run_first_time_setup() -> None:
     if confirm:
         user_manager = UserModelManager()
 
+        # The selected_model is now the actual model name from models.yaml
+        # We need to determine if it's a built-in model to get the correct model_id
+        model_name = selected_model
+        model_id = selected_model
+
+        # Check if this is a built-in model and get its actual model_id
+        from ..models import is_builtin_model
+
+        if is_builtin_model(model_name):
+            # Try to get the model data from the current user manager to get the real model_id
+            existing_model = user_manager.get_model(model_name)
+            if existing_model:
+                model_id = existing_model.model_id
+            else:
+                # If it's a built-in model but not yet loaded, we'll create it with the same name
+                # The YAML loading will handle getting the correct model_id
+                pass
+
         # Add the new model as default
         success, message = user_manager.add_model(
-            name=f"{selected_provider}-{selected_model}",
+            name=model_name,
             provider=selected_provider,
-            model_id=selected_model,
+            model_id=model_id,
             is_default=True,
         )
 
         if success:
             console.print("\n[green]✓ Configuration saved successfully![/green]")
-            console.print(
-                f"Your default model is now: [bold]{selected_provider}/{selected_model}[/bold]"
-            )
+            console.print(f"Your default model is now: [bold]{model_name}[/bold]")
 
             # Reload model manager to ensure changes take effect
             reload_model_manager()
