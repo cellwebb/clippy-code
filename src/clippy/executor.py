@@ -120,13 +120,20 @@ def _handle_list_directory(tool_input: dict[str, Any]) -> ToolResult:
     return ToolResult(success=success, message=message, data=data)
 
 
-def _handle_execute_command(tool_input: dict[str, Any], safety_checker: Any = None) -> ToolResult:
+def _handle_execute_command(
+    tool_input: dict[str, Any], safety_checker: Any = None, executor_instance: Any = None
+) -> ToolResult:
     """Handle execute_command tool execution."""
     command = tool_input["command"]
     working_dir = tool_input.get("working_dir", ".")
 
-    # Use safety checker if available
-    if safety_checker is not None:
+    # Check if safety checker is disabled at runtime
+    safety_disabled = False
+    if executor_instance and hasattr(executor_instance, "_safety_checker_disabled"):
+        safety_disabled = executor_instance._safety_checker_disabled
+
+    # Use safety checker if available and not disabled
+    if safety_checker is not None and not safety_disabled:
         try:
             is_safe, safety_reason = safety_checker.check_command_safety(command, working_dir)
             if not is_safe:
@@ -139,6 +146,8 @@ def _handle_execute_command(tool_input: dict[str, Any], safety_checker: Any = No
         except Exception as e:
             logger.error(f"Safety check failed, blocking command: {e}")
             return ToolResult(success=False, message=f"Safety check failed: {str(e)}", data=None)
+    elif safety_checker is not None and safety_disabled:
+        logger.debug(f"Safety checker is disabled, skipping safety check for: {command}")
 
     timeout = tool_input.get("timeout", DEFAULT_COMMAND_TIMEOUT)
     settings = get_settings()
@@ -299,7 +308,9 @@ def _handle_fetch_webpage(tool_input: dict[str, Any]) -> ToolResult:
 
 # Tool dispatch table for better maintainability
 # Maps tool names to their handler functions
-def _build_tool_handlers(safety_checker: Any = None) -> dict[str, Any]:
+def _build_tool_handlers(
+    safety_checker: Any = None, executor_instance: Any = None
+) -> dict[str, Any]:
     """Build tool handlers with optional safety checker."""
     return {
         "read_file": lambda tool_input, allowed_roots: _handle_read_file(tool_input),
@@ -308,7 +319,7 @@ def _build_tool_handlers(safety_checker: Any = None) -> dict[str, Any]:
         ),
         "list_directory": lambda tool_input, allowed_roots: _handle_list_directory(tool_input),
         "execute_command": lambda tool_input, allowed_roots: _handle_execute_command(
-            tool_input, safety_checker
+            tool_input, safety_checker, executor_instance
         ),
         "search_files": lambda tool_input, allowed_roots: _handle_search_files(tool_input),
         "get_file_info": lambda tool_input, allowed_roots: _handle_get_file_info(tool_input),
@@ -382,9 +393,9 @@ class ActionExecutor:
             self._safety_checker = None
 
         if self._safety_checker:
-            self._tool_handlers = _build_tool_handlers(self._safety_checker)
+            self._tool_handlers = _build_tool_handlers(self._safety_checker, self)
         else:
-            self._tool_handlers = _build_tool_handlers(None)
+            self._tool_handlers = _build_tool_handlers(None, self)
 
     def set_mcp_manager(self, manager: Any | None) -> None:
         """Set the MCP manager for handling MCP tool calls.
@@ -424,7 +435,7 @@ class ActionExecutor:
         else:
             self._safety_checker = None
 
-        self._tool_handlers = _build_tool_handlers(self._safety_checker)
+        self._tool_handlers = _build_tool_handlers(self._safety_checker, self)
 
         if self._safety_checker:
             logger.info("LLM provider set for command safety checking")
@@ -521,3 +532,26 @@ class ActionExecutor:
         if self._safety_checker:
             return self._safety_checker.model
         return None
+
+    def is_safety_checker_enabled(self) -> bool:
+        """Check if the safety checker is currently enabled.
+
+        Returns:
+            True if safety checking is enabled, False otherwise
+        """
+        # Safety is disabled if explicitly disabled or no safety checker is available
+        if getattr(self, "_safety_checker_disabled", False):
+            return False
+        return self._safety_checker is not None
+
+    def set_safety_checker_enabled(self, enabled: bool) -> None:
+        """Enable or disable the safety checker at runtime.
+
+        Args:
+            enabled: True to enable safety checking, False to disable
+        """
+        self._safety_checker_disabled = not enabled
+        if enabled:
+            logger.info("Safety checker enabled")
+        else:
+            logger.warning("Safety checker disabled - commands will execute without safety checks")
