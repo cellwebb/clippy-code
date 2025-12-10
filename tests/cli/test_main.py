@@ -110,7 +110,9 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     executors: list[Any] = []
 
     class StubExecutor:
-        def __init__(self, permission_manager: Any, llm_provider: Any = None, model: str | None = None) -> None:
+        def __init__(
+            self, permission_manager: Any, llm_provider: Any = None, model: str | None = None
+        ) -> None:
             self.permission_manager = permission_manager
             self.mcp_manager = None
             self.llm_provider = llm_provider

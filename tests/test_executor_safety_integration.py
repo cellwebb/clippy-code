@@ -29,7 +29,9 @@ class TestExecutorSafetyIntegration:
         mock_provider = Mock()
         mock_provider.create_message.return_value = {"content": "BLOCK: Too dangerous"}
 
-        executor = ActionExecutor(permission_manager, llm_provider=mock_provider, model="test-model")
+        executor = ActionExecutor(
+            permission_manager, llm_provider=mock_provider, model="test-model"
+        )
 
         success, message, data = executor.execute(
             "execute_command", {"command": "rm -rf /", "working_dir": "/"}
@@ -50,7 +52,9 @@ class TestExecutorSafetyIntegration:
         mock_provider = Mock()
         mock_provider.create_message.return_value = {"content": "ALLOW: Simple echo command"}
 
-        executor = ActionExecutor(permission_manager, llm_provider=mock_provider, model="test-model")
+        executor = ActionExecutor(
+            permission_manager, llm_provider=mock_provider, model="test-model"
+        )
 
         success, message, data = executor.execute(
             "execute_command", {"command": "echo hello", "working_dir": "."}
@@ -70,7 +74,9 @@ class TestExecutorSafetyIntegration:
         mock_provider = Mock()
         mock_provider.create_message.side_effect = Exception("LLM down")
 
-        executor = ActionExecutor(permission_manager, llm_provider=mock_provider, model="test-model")
+        executor = ActionExecutor(
+            permission_manager, llm_provider=mock_provider, model="test-model"
+        )
 
         success, message, data = executor.execute("execute_command", {"command": "echo hello"})
 
@@ -118,7 +124,9 @@ class TestExecutorSafetyIntegration:
         mock_provider = Mock()
         mock_provider.create_message.return_value = {"content": "ALLOW: Safe"}
 
-        executor = ActionExecutor(permission_manager, llm_provider=mock_provider, model="test-model")
+        executor = ActionExecutor(
+            permission_manager, llm_provider=mock_provider, model="test-model"
+        )
 
         success, message, data = executor.execute(
             "execute_command", {"command": "ls", "working_dir": "/etc"}
