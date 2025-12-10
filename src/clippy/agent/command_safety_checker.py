@@ -227,11 +227,8 @@ class CommandSafetyChecker:
             logger.debug(f"Checking command safety: {command}")
 
             # Get safety assessment from the LLM
-            response = ""
-            for chunk in self.llm_provider.get_streaming_response(messages):
-                response += chunk
-
-            response = response.strip()
+            result = self.llm_provider.create_message(messages)
+            response = result.get("content", "").strip()
             logger.debug(f"Safety check response: {response}")
 
             # Parse the response
