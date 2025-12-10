@@ -10,6 +10,7 @@ from .commands.init import handle_init_command
 from .commands.mcp import handle_mcp_command
 from .commands.model import handle_model_command
 from .commands.provider import handle_provider_command
+from .commands.safety import handle_safety_command
 from .commands.session import (
     CommandResult,
     handle_exit_command,
@@ -66,6 +67,7 @@ COMMAND_HANDLERS_AGENT_CONSOLE_ARGS: dict[str, Any] = {
     "model": handle_model_command,
     "provider": handle_provider_command,
     "mcp": handle_mcp_command,
+    "safety": handle_safety_command,
     "init": handle_init_command,
 }
 

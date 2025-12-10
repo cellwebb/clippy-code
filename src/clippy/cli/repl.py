@@ -56,6 +56,7 @@ def _suggest_similar_commands(command: str) -> list[str]:
         "mcp",
         "truncate",
         "yolo",
+        "safety",
     ]
 
     # Find close matches using fuzzy matching
