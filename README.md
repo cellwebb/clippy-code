@@ -242,6 +242,10 @@ For detailed information about:
 ## Documentation
 
 - [Quick Start Guide](QUICKSTART.md) - Getting started in 5 minutes
+- [Visual Tutorial](docs/VISUAL_TUTORIAL.md) - Interactive mode walkthrough with screenshots
+- [Use Cases & Recipes](docs/USE_CASES.md) - Real-world workflows and examples
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions
+- [Advanced Configuration](docs/ADVANCED_CONFIGURATION.md) - Deep customization guide
 - [MCP Integration](docs/MCP.md) - Model Context Protocol setup and usage
 - [Contributing Guide](CONTRIBUTING.md) - Development workflow and code standards
 - [Agent Documentation](AGENTS.md) - Internal architecture for developers
