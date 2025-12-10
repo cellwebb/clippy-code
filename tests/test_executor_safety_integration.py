@@ -27,7 +27,7 @@ class TestExecutorSafetyIntegration:
 
         permission_manager = PermissionManager(PermissionConfig())
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = ["BLOCK: Too dangerous"]
+        mock_provider.create_message.return_value = {"content": "BLOCK: Too dangerous"}
 
         executor = ActionExecutor(permission_manager, llm_provider=mock_provider)
 
@@ -48,7 +48,7 @@ class TestExecutorSafetyIntegration:
 
         permission_manager = PermissionManager(PermissionConfig())
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = ["ALLOW: Simple echo command"]
+        mock_provider.create_message.return_value = {"content": "ALLOW: Simple echo command"}
 
         executor = ActionExecutor(permission_manager, llm_provider=mock_provider)
 
@@ -68,7 +68,7 @@ class TestExecutorSafetyIntegration:
 
         permission_manager = PermissionManager(PermissionConfig())
         mock_provider = Mock()
-        mock_provider.get_streaming_response.side_effect = Exception("LLM down")
+        mock_provider.create_message.side_effect = Exception("LLM down")
 
         executor = ActionExecutor(permission_manager, llm_provider=mock_provider)
 
@@ -98,7 +98,7 @@ class TestExecutorSafetyIntegration:
 
         # Now add safety checker
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = ["BLOCK: Dangerous"]
+        mock_provider.create_message.return_value = {"content": "BLOCK: Dangerous"}
         executor.set_llm_provider(mock_provider)
 
         # Command should now be blocked
@@ -116,7 +116,7 @@ class TestExecutorSafetyIntegration:
 
         permission_manager = PermissionManager(PermissionConfig())
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = ["ALLOW: Safe"]
+        mock_provider.create_message.return_value = {"content": "ALLOW: Safe"}
 
         executor = ActionExecutor(permission_manager, llm_provider=mock_provider)
 
@@ -125,7 +125,7 @@ class TestExecutorSafetyIntegration:
         )
 
         # Check that the safety checker was called with the working directory
-        call_args = mock_provider.get_streaming_response.call_args[0][0]
+        call_args = mock_provider.create_message.call_args[0][0]
         user_message = None
         for msg in call_args:
             if msg["role"] == "user":

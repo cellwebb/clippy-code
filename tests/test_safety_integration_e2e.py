@@ -15,9 +15,9 @@ class TestSafetyIntegrationE2E:
 
         # Mock LLM provider that blocks rm -rf commands
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = [
-            "BLOCK: Would delete entire filesystem - extremely dangerous"
-        ]
+        mock_provider.create_message.return_value = {
+            "content": "BLOCK: Would delete entire filesystem - extremely dangerous"
+        }
 
         executor = ActionExecutor(permission_manager, llm_provider=mock_provider)
 
@@ -38,9 +38,9 @@ class TestSafetyIntegrationE2E:
 
         # Mock LLM provider that allows ls commands
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = [
-            "ALLOW: Simple directory listing command"
-        ]
+        mock_provider.create_message.return_value = {
+            "content": "ALLOW: Simple directory listing command"
+        }
 
         with patch("clippy.executor.execute_command") as mock_execute:
             mock_execute.return_value = (
@@ -71,16 +71,16 @@ class TestSafetyIntegrationE2E:
         # Mock LLM provider that allows commands in safe dirs but blocks in system dirs
         mock_provider = Mock()
 
-        def mock_response(messages):
+        def mock_response(messages, model=None, **kwargs):
             # Check working directory from user message
             user_msg = next(m["content"] for m in messages if m["role"] == "user")
             if "/home/user" in user_msg:
-                return iter(["ALLOW: Safe directory"])
+                return {"content": "ALLOW: Safe directory"}
             elif "/etc" in user_msg:
-                return iter(["BLOCK: System directory modification"])
-            return iter(["ALLOW: Unknown context"])
+                return {"content": "BLOCK: System directory modification"}
+            return {"content": "ALLOW: Unknown context"}
 
-        mock_provider.get_streaming_response.side_effect = mock_response
+        mock_provider.create_message.side_effect = mock_response
 
         with patch("clippy.executor.execute_command") as mock_execute:
             mock_execute.return_value = (True, "Success", "output")

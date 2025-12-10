@@ -11,6 +11,7 @@ class ClippySettings:
         self._show_command_output = self._get_bool_env("CLIPPY_SHOW_COMMAND_OUTPUT", False)
         self._command_timeout = self._get_int_env("CLIPPY_COMMAND_TIMEOUT", 300)
         self._max_tool_result_tokens = self._get_int_env("CLIPPY_MAX_TOOL_RESULT_TOKENS", 10000)
+        self._safety_checker_enabled = self._get_bool_env("CLIPPY_SAFETY_CHECKER_ENABLED", True)
         self._safety_cache_enabled = self._get_bool_env("CLIPPY_SAFETY_CACHE_ENABLED", True)
         self._safety_cache_size = self._get_int_env("CLIPPY_SAFETY_CACHE_SIZE", 1000)
         self._safety_cache_ttl = self._get_int_env("CLIPPY_SAFETY_CACHE_TTL", 3600)
@@ -78,6 +79,15 @@ class ClippySettings:
         return self._max_tool_result_tokens
 
     @property
+    def safety_checker_enabled(self) -> bool:
+        """Whether the command safety checker should be enabled.
+
+        Returns:
+            True if safety checker should be used, False to skip safety checks
+        """
+        return self._safety_checker_enabled
+
+    @property
     def safety_cache_enabled(self) -> bool:
         """Whether safety decisions should be cached.
 
@@ -112,6 +122,7 @@ class ClippySettings:
         self._show_command_output = self._get_bool_env("CLIPPY_SHOW_COMMAND_OUTPUT", False)
         self._command_timeout = self._get_int_env("CLIPPY_COMMAND_TIMEOUT", 300)
         self._max_tool_result_tokens = self._get_int_env("CLIPPY_MAX_TOOL_RESULT_TOKENS", 10000)
+        self._safety_checker_enabled = self._get_bool_env("CLIPPY_SAFETY_CHECKER_ENABLED", True)
         self._safety_cache_enabled = self._get_bool_env("CLIPPY_SAFETY_CACHE_ENABLED", True)
         self._safety_cache_size = self._get_int_env("CLIPPY_SAFETY_CACHE_SIZE", 1000)
         self._safety_cache_ttl = self._get_int_env("CLIPPY_SAFETY_CACHE_TTL", 3600)

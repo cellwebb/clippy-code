@@ -146,19 +146,19 @@ class TestCommandSafetyCheckerWithCache:
     def test_cache_hit(self):
         """Test that cache hits avoid LLM calls."""
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = ["ALLOW: Safe command"]
+        mock_provider.create_message.return_value = {"content": "ALLOW: Safe command"}
 
         checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
 
         # First call should hit LLM
         result1 = checker.check_command_safety("ls -la", "/home/user")
         assert result1 == (True, "Safe command")
-        assert mock_provider.get_streaming_response.call_count == 1
+        assert mock_provider.create_message.call_count == 1
 
         # Second call should hit cache
         result2 = checker.check_command_safety("ls -la", "/home/user")
         assert result2 == result1
-        assert mock_provider.get_streaming_response.call_count == 1  # No additional calls
+        assert mock_provider.create_message.call_count == 1  # No additional calls
 
         # Check cache stats
         stats = checker.get_cache_stats()
@@ -169,9 +169,9 @@ class TestCommandSafetyCheckerWithCache:
     def test_cache_miss(self):
         """Test that different commands miss cache."""
         mock_provider = Mock()
-        mock_provider.get_streaming_response.side_effect = [
-            ["ALLOW: Safe command"],
-            ["BLOCK: Dangerous command"],
+        mock_provider.create_message.side_effect = [
+            {"content": "ALLOW: Safe command"},
+            {"content": "BLOCK: Dangerous command"},
         ]
 
         checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
@@ -182,7 +182,7 @@ class TestCommandSafetyCheckerWithCache:
 
         assert result1 == (True, "Safe command")
         assert result2 == (False, "Dangerous command")
-        assert mock_provider.get_streaming_response.call_count == 2
+        assert mock_provider.create_message.call_count == 2
 
         # Check cache stats
         stats = checker.get_cache_stats()
@@ -193,7 +193,7 @@ class TestCommandSafetyCheckerWithCache:
     def test_cache_disabled(self):
         """Test safety checker with cache disabled."""
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = ["ALLOW: Safe command"]
+        mock_provider.create_message.return_value = {"content": "ALLOW: Safe command"}
 
         checker = create_safety_checker(mock_provider, cache_size=0, cache_ttl=0)
 
@@ -204,7 +204,7 @@ class TestCommandSafetyCheckerWithCache:
         result2 = checker.check_command_safety("ls -la", "/home/user")
 
         assert result1 == result2
-        assert mock_provider.get_streaming_response.call_count == 2  # No caching
+        assert mock_provider.create_message.call_count == 2  # No caching
 
         # Cache stats should indicate disabled
         stats = checker.get_cache_stats()
@@ -216,7 +216,7 @@ class TestCommandSafetyCheckerWithCache:
     def test_cache_not_used_for_errors(self):
         """Test that error results are not cached."""
         mock_provider = Mock()
-        mock_provider.get_streaming_response.side_effect = Exception("LLM failed")
+        mock_provider.create_message.side_effect = Exception("LLM failed")
 
         checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
 
@@ -228,12 +228,12 @@ class TestCommandSafetyCheckerWithCache:
         # Second call should also fail and hit LLM again
         result2 = checker.check_command_safety("test", "/dir")
         assert result2 == result1
-        assert mock_provider.get_streaming_response.call_count == 2  # Both calls hit LLM
+        assert mock_provider.create_message.call_count == 2  # Both calls hit LLM
 
     def test_cache_clear_functionality(self):
         """Test cache clearing functionality."""
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = ["ALLOW: Safe command"]
+        mock_provider.create_message.return_value = {"content": "ALLOW: Safe command"}
 
         checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
 
@@ -258,7 +258,7 @@ class TestCommandSafetyCheckerWithCache:
     def test_cache_performance_stats(self):
         """Test cache performance statistics accuracy."""
         mock_provider = Mock()
-        mock_provider.get_streaming_response.return_value = ["ALLOW: Safe command"]
+        mock_provider.create_message.return_value = {"content": "ALLOW: Safe command"}
 
         checker = create_safety_checker(mock_provider, cache_size=100, cache_ttl=3600)
 

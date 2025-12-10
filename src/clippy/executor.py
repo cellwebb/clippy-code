@@ -359,8 +359,8 @@ class ActionExecutor:
         self._safety_checker: CommandSafetyChecker | None = None
 
         # Create safety checker with cache settings
-        if llm_provider:
-            settings = get_settings()
+        settings = get_settings()
+        if llm_provider and settings.safety_checker_enabled:
             if settings.safety_cache_enabled:
                 self._safety_checker = create_safety_checker(
                     llm_provider,
@@ -397,21 +397,28 @@ class ActionExecutor:
         """
         # Use cache settings
         settings = get_settings()
-        if settings.safety_cache_enabled:
-            self._safety_checker = create_safety_checker(
-                llm_provider,
-                cache_size=settings.safety_cache_size,
-                cache_ttl=settings.safety_cache_ttl,
-            )
+        if llm_provider and settings.safety_checker_enabled:
+            if settings.safety_cache_enabled:
+                self._safety_checker = create_safety_checker(
+                    llm_provider,
+                    cache_size=settings.safety_cache_size,
+                    cache_ttl=settings.safety_cache_ttl,
+                )
+            else:
+                self._safety_checker = create_safety_checker(
+                    llm_provider,
+                    cache_size=0,  # Disable cache
+                    cache_ttl=0,
+                )
         else:
-            self._safety_checker = create_safety_checker(
-                llm_provider,
-                cache_size=0,  # Disable cache
-                cache_ttl=0,
-            )
+            self._safety_checker = None
 
         self._tool_handlers = _build_tool_handlers(self._safety_checker)
-        logger.info("LLM provider set for command safety checking")
+
+        if self._safety_checker:
+            logger.info("LLM provider set for command safety checking")
+        else:
+            logger.info("LLM provider set but safety checking is disabled")
 
     def execute(
         self,
