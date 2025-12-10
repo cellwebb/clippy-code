@@ -57,7 +57,11 @@ TOOL_SCHEMA = {
 }
 
 
-def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple[int, int]:
+def parse_line_range(
+    range_spec: str,
+    total_lines: int,
+    numbering: str,
+) -> tuple[bool, str, int, int]:
     """Parse line range specification into start and end indices (1-based, inclusive).
 
     Args:
@@ -66,12 +70,15 @@ def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple
         numbering: How to interpret numbers ('top', 'bottom', 'auto')
 
     Returns:
-        Tuple of (start_line, end_line) as 1-based indices
+        Tuple of (success, error_message, start_line, end_line) as 1-based indices
+        success is True if valid range, False if out of bounds
 
     Examples:
-        parse_line_range('10-20', 100, 'top') -> (10, 20)
-        parse_line_range('-10:', 100, 'bottom') -> (91, 100)  # Last 10 lines
-        parse_line_range(':10+5', 100, 'top') -> (10, 15)   # Lines 10-15
+        parse_line_range('10-20', 100, 'top') -> (True, "", 10, 20)
+        parse_line_range('-10:', 100, 'bottom') -> (True, "", 91, 100)  # Last 10 lines
+        parse_line_range(':10+5', 100, 'top') -> (True, "", 10, 15)   # Lines 10-15
+        parse_line_range('200-210', 100, 'top') -> (False,
+            "Line range 200-210 is outside file bounds (file has 100 lines)", 0, 0)
     """
     start = 1
     end = total_lines
@@ -91,7 +98,7 @@ def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple
 
         # Parse as positive numbers, then convert to bottom indexing
         if not normalized or normalized == "-":
-            return (1, total_lines)
+            return True, "", 1, total_lines
 
         # Handle range like "-10-20" (bottom: lines 10-20 from end)
         if "-" in normalized and not normalized.startswith("-"):
@@ -100,22 +107,22 @@ def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple
                 try:
                     start_from_bottom = int(parts[0])
                     end_from_bottom = int(parts[1])
-                    start = max(1, total_lines - start_from_bottom + 1)
-                    end = max(1, total_lines - end_from_bottom + 1)
+                    start = total_lines - start_from_bottom + 1
+                    end = total_lines - end_from_bottom + 1
                     # Ensure start <= end
                     if start > end:
                         start, end = end, start
                 except ValueError:
-                    return (1, total_lines)
+                    return True, "", 1, total_lines
 
         # Handle range like "-10" (bottom: last 10 lines)
         elif "-" not in normalized:
             try:
                 count = int(normalized)
-                start = max(1, total_lines - count + 1)
+                start = total_lines - count + 1
                 end = total_lines
             except ValueError:
-                return (1, total_lines)
+                return True, "", 1, total_lines
 
     # Handle top numbering or auto-detected top numbering
     else:
@@ -127,7 +134,7 @@ def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple
                 start = int(start_line)
                 end = start + int(offset)
             except (ValueError, IndexError):
-                return (1, total_lines)
+                return True, "", 1, total_lines
         elif normalized.count("-") == 1 and not normalized.startswith("-"):
             # Format like "10-20" (range from line 10 to 20)
             try:
@@ -135,10 +142,10 @@ def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple
                 start = int(start_str) if start_str else 1
                 end = int(end_str) if end_str else total_lines
             except ValueError:
-                return (1, total_lines)
+                return True, "", 1, total_lines
         elif normalized == "-":
             # Just a hyphen means entire file
-            return (1, total_lines)
+            return True, "", 1, total_lines
         elif normalized.count("-") == 2:
             # Format like "10-20-5" with offset after range
             try:
@@ -152,7 +159,7 @@ def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple
                     end = end + int(parts[2])
                 # else: ignore non-numeric third part
             except ValueError:
-                return (1, total_lines)
+                return True, "", 1, total_lines
         else:
             # Single number like "15" (just line 15)
             try:
@@ -160,17 +167,23 @@ def parse_line_range(range_spec: str, total_lines: int, numbering: str) -> tuple
                 start = line_num
                 end = line_num
             except ValueError:
-                return (1, total_lines)
+                return True, "", 1, total_lines
 
-    # Clamp to valid range
-    start = max(1, min(start, total_lines))
-    end = max(1, min(end, total_lines))
+    # Check if range is out of bounds (before clamping)
+    if start < 1 or end > total_lines:
+        return (
+            False,
+            f"Line range {range_spec} (resolved to {start}-{end}) is outside "
+            f"file bounds (file has {total_lines} lines)",
+            0,
+            0,
+        )
 
     # Ensure start <= end
     if start > end:
         start, end = end, start
 
-    return (start, end)
+    return True, "", start, end
 
 
 def read_lines(
@@ -204,7 +217,9 @@ def read_lines(
             return True, f"File {path} is empty", ""
 
         # Parse the line range
-        start, end = parse_line_range(line_range, total_lines, numbering)
+        success, error_msg, start, end = parse_line_range(line_range, total_lines, numbering)
+        if not success:
+            return False, error_msg, None
 
         # Add context lines
         if context > 0:
