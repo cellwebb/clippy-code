@@ -110,7 +110,7 @@ def test_main_runs_interactive_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     executors: list[Any] = []
 
     class StubExecutor:
-        def __init__(self, permission_manager: Any, llm_provider: Any = None) -> None:
+        def __init__(self, permission_manager: Any, llm_provider: Any = None, model: str | None = None) -> None:
             self.permission_manager = permission_manager
             self.mcp_manager = None
             self.llm_provider = llm_provider
@@ -240,7 +240,7 @@ def test_main_handles_mcp_manager_failure(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         cli_main,
         "ActionExecutor",
-        lambda pm, llm_provider=None: SimpleNamespace(set_mcp_manager=lambda m: None),
+        lambda pm, llm_provider=None, model=None: SimpleNamespace(set_mcp_manager=lambda m: None),
     )
     monkeypatch.setattr(
         cli_main,
