@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.19.4] - 2025-12-09
+
+### What's New
+
+- New safety control commands to turn checks on/off and view status
+- Quickly toggle safety checks while the app is running
+
+### Improvements
+
+- Comprehensive documentation including best practices, troubleshooting, and migration guides
+- Better test coverage for safety integration features
+
 ## [4.19.3] - 2025-12-09
 
 ### What's New
