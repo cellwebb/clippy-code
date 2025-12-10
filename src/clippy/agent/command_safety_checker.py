@@ -188,6 +188,7 @@ class CommandSafetyChecker:
     def __init__(
         self,
         llm_provider: Any,
+        model: str,
         cache_size: int = DEFAULT_CACHE_SIZE,
         cache_ttl: int = DEFAULT_CACHE_TTL,
     ):
@@ -195,10 +196,12 @@ class CommandSafetyChecker:
 
         Args:
             llm_provider: LLM provider instance for checking commands
+            model: Model identifier to use for safety checks
             cache_size: Maximum number of cached safety decisions (0 to disable)
             cache_ttl: Time-to-live for cache entries in seconds (0 to disable)
         """
         self.llm_provider = llm_provider
+        self.model = model
         self.cache = SafetyCache(max_size=cache_size, ttl=cache_ttl) if cache_size > 0 else None
 
         # Performance tracking
@@ -247,7 +250,7 @@ class CommandSafetyChecker:
             logger.debug(f"Checking command safety: {command}")
 
             # Get safety assessment from the LLM
-            response_dict = self.llm_provider.create_message(messages, model="gpt-4o-mini")
+            response_dict = self.llm_provider.create_message(messages, model=self.model)
             response = response_dict.get("content", "")
             logger.debug(f"Safety check response: {response}")
 
@@ -320,17 +323,21 @@ class CommandSafetyChecker:
 
 
 def create_safety_checker(
-    llm_provider: Any, cache_size: int = DEFAULT_CACHE_SIZE, cache_ttl: int = DEFAULT_CACHE_TTL
+    llm_provider: Any,
+    model: str,
+    cache_size: int = DEFAULT_CACHE_SIZE,
+    cache_ttl: int = DEFAULT_CACHE_TTL,
 ) -> CommandSafetyChecker:
     """
     Create a command safety checker instance.
 
     Args:
         llm_provider: LLM provider to use for safety checks
+        model: Model identifier to use for safety checks
         cache_size: Maximum number of cached safety decisions (default: 1000)
         cache_ttl: Time-to-live for cache entries in seconds (default: 3600)
 
     Returns:
         CommandSafetyChecker instance
     """
-    return CommandSafetyChecker(llm_provider, cache_size=cache_size, cache_ttl=cache_ttl)
+    return CommandSafetyChecker(llm_provider, model, cache_size=cache_size, cache_ttl=cache_ttl)

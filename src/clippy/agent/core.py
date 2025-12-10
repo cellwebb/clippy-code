@@ -253,7 +253,11 @@ class ClippyAgent:
             self.api_key = new_api_key
 
             # Update executor's safety checker with new provider
-            self.executor.set_llm_provider(self.provider)
+            self.executor.set_llm_provider(self.provider, self.model)
+
+            # Clear safety checker cache since model changed
+            if self.executor._safety_checker:
+                self.executor._safety_checker.clear_cache()
 
             # Build success message
             provider_info = f" ({new_base_url})" if new_base_url else " (OpenAI)"
@@ -342,7 +346,7 @@ class ClippyAgent:
             )
 
             # Update executor's safety checker with restored provider
-            self.executor.set_llm_provider(self.provider)
+            self.executor.set_llm_provider(self.provider, self.model)
 
             self.conversation_history = conversation_data.get("conversation_history", [])
 

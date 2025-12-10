@@ -342,6 +342,7 @@ class ActionExecutor:
         permission_manager: PermissionManager,
         allowed_write_roots: list[Path] | None = None,
         llm_provider: Any = None,
+        model: str | None = None,
     ):
         """Initialize the executor.
 
@@ -352,24 +353,28 @@ class ActionExecutor:
                 Set to include temp directories for testing.
             llm_provider: LLM provider for command safety checking. If None, safety
                 checking is disabled and only basic pattern matching is used.
+            model: Model identifier to use for safety checks
         """
         self.permission_manager = permission_manager
         self._mcp_manager = None
         self._allowed_write_roots = allowed_write_roots
         self._safety_checker: CommandSafetyChecker | None = None
+        self._llm_provider = llm_provider  # Store for later model updates
 
         # Create safety checker with cache settings
         settings = get_settings()
-        if llm_provider and settings.safety_checker_enabled:
+        if llm_provider and settings.safety_checker_enabled and model:
             if settings.safety_cache_enabled:
                 self._safety_checker = create_safety_checker(
                     llm_provider,
+                    model,
                     cache_size=settings.safety_cache_size,
                     cache_ttl=settings.safety_cache_ttl,
                 )
             else:
                 self._safety_checker = create_safety_checker(
                     llm_provider,
+                    model,
                     cache_size=0,  # Disable cache
                     cache_ttl=0,
                 )
@@ -389,24 +394,30 @@ class ActionExecutor:
         """
         self._mcp_manager = manager
 
-    def set_llm_provider(self, llm_provider: Any) -> None:
+    def set_llm_provider(self, llm_provider: Any, model: str | None = None) -> None:
         """Set the LLM provider for safety checking.
 
         Args:
             llm_provider: LLM provider instance for command safety checking
+            model: Model identifier to use for safety checks
         """
+        # Store provider for later use
+        self._llm_provider = llm_provider
+
         # Use cache settings
         settings = get_settings()
-        if llm_provider and settings.safety_checker_enabled:
+        if llm_provider and settings.safety_checker_enabled and model:
             if settings.safety_cache_enabled:
                 self._safety_checker = create_safety_checker(
                     llm_provider,
+                    model,
                     cache_size=settings.safety_cache_size,
                     cache_ttl=settings.safety_cache_ttl,
                 )
             else:
                 self._safety_checker = create_safety_checker(
                     llm_provider,
+                    model,
                     cache_size=0,  # Disable cache
                     cache_ttl=0,
                 )
@@ -488,3 +499,25 @@ class ActionExecutor:
         except (RuntimeError, ValueError, KeyError, AttributeError, TypeError) as e:
             logger.error(f"Exception during tool execution: {tool_name} - {e}", exc_info=True)
             return False, f"Error executing {tool_name}: {str(e)}", None
+
+    def update_model(self, model: str) -> None:
+        """Update the model used for safety checking.
+
+        Args:
+            model: Model identifier to use for safety checks
+        """
+        if self._safety_checker:
+            self._safety_checker.model = model
+            # Clear cache since model changed
+            self._safety_checker.clear_cache()
+            logger.info(f"Safety checker model updated to: {model}")
+
+    def get_safety_checker_model(self) -> str | None:
+        """Get the model currently used by the safety checker.
+
+        Returns:
+            Model identifier or None if safety checker is disabled
+        """
+        if self._safety_checker:
+            return self._safety_checker.model
+        return None

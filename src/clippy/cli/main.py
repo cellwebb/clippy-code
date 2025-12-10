@@ -203,7 +203,7 @@ def main() -> None:
     )
 
     # Create executor and agent (pass LLM provider for safety checking)
-    executor = ActionExecutor(permission_manager, llm_provider=llm_provider)
+    executor = ActionExecutor(permission_manager, llm_provider=llm_provider, model=model)
     if mcp_manager:
         executor.set_mcp_manager(mcp_manager)
 
