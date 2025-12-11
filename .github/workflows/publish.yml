@@ -52,7 +52,9 @@ jobs:
           echo "✅ Version verified: $CODE_VERSION"
 
       - name: Build package
-        run: uv build
+        run: |
+          rm -rf dist/
+          uv build
 
       - name: Publish to PyPI
         env:
