@@ -102,13 +102,16 @@ class TestSubagentMonitor:
 
     def test_stuck_detection(self) -> None:
         """Test stuck subagent detection."""
-        # Use very short timeouts for testing
+        # Use very short timeouts for testing, but give enough time for CI runners
+        # The monitor needs: heartbeat_timeout to pass + (check_interval * max_stuck_checks)
+        # With heartbeat_timeout=0.05, check_interval=0.02, max_stuck_checks=2
+        # We need at least 0.05 + 0.02*2 = 0.09s minimum, but CI runners can be slow
         config = StuckDetectionConfig(
             stuck_timeout=0.1,
             heartbeat_timeout=0.05,
             check_interval=0.02,
             max_stuck_checks=2,
-            thread_join_timeout=0.01,  # Quick thread join timeout
+            thread_join_timeout=0.1,  # Give thread time to join cleanly
         )
         monitor = SubagentMonitor(config)
 
@@ -119,12 +122,25 @@ class TestSubagentMonitor:
 
         monitor.start_monitoring([subagent])
 
-        # Wait long enough for subagent to be considered stuck (reduced from 1.5s)
-        time.sleep(0.2)
+        # Poll with retries instead of fixed sleep to handle CI timing variance
+        # We need to wait for stuck detection which requires:
+        # 1. heartbeat_timeout (0.05s) to elapse
+        # 2. Two check cycles (0.02s each) with stuck detection
+        max_wait = 2.0  # Maximum time to wait (generous for slow CI)
+        poll_interval = 0.05
+        waited = 0.0
+        detected = False
+
+        while waited < max_wait:
+            time.sleep(poll_interval)
+            waited += poll_interval
+            stats = monitor.get_statistics()
+            if stats["stuck_detected"] > 0:
+                detected = True
+                break
 
         # Check that the monitor detected and handled the stuck subagent
-        stats = monitor.get_statistics()
-        assert stats["stuck_detected"] > 0
+        assert detected, f"Stuck detection not triggered after {waited}s"
 
         # Check that the subagent's status was updated
         tracker = monitor.progress_trackers["stuck_sub"]
