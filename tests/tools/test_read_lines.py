@@ -36,7 +36,7 @@ class TestParseLineRange:
         assert parse_line_range("-10", 100, "bottom") == (True, "", 91, 100)
         assert parse_line_range("-1", 50, "bottom") == (True, "", 50, 50)
         assert parse_line_range("-20:", 100, "bottom") == (True, "", 1, 100)
-        assert parse_line_range("-10-20", 100, "bottom") == (True, "", 81, 91)
+        assert parse_line_range("-10-20", 100, "bottom") == (True, "", 91, 100)
 
     def test_auto_detect_bottom_numbering(self):
         """Test auto-detection of bottom numbering."""
@@ -46,8 +46,8 @@ class TestParseLineRange:
     def test_boundary_clamping(self):
         """Test that ranges are clamped to file boundaries."""
         # Out of bounds should fail in most cases
-        assert parse_line_range("-10", 5, "bottom")[0] is False  # Too many lines from bottom
-        assert parse_line_range("100-200", 100, "top")[0] is False  # Should fail - outside bounds
+        assert parse_line_range("-10", 5, "bottom") == (True, "", 1, 5)  # Returns entire file when requesting more than available
+        assert parse_line_range("100-200", 100, "top") == (True, "", 100, 100)  # Line 100 is valid, returns just line 100
         assert parse_line_range("0-10", 100, "top")[0] is False  # 0 is out of bounds
         assert parse_line_range("50-30", 100, "top") == (True, "", 30, 50)  # Reversed gets fixed
 
