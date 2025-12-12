@@ -205,6 +205,7 @@ clippy-code includes a powerful subagent system for complex task decomposition a
 - **testing**: Test generation and execution
 - **refactor**: Code refactoring and improvement
 - **documentation**: Documentation generation and updates
+- **grepper**: Information gathering and exploration specialist (search/read only)
 - **fast_general**: Quick tasks using faster models (gpt-3.5-turbo)
 - **power_analysis**: Deep analysis using powerful models (claude-3-opus)
 
@@ -242,6 +243,14 @@ Example usage:
         {"task": "Refactor database queries", "subagent_type": "refactor"}
     ],
     "max_concurrent": 3
+}
+```
+
+# Grepper agent example
+{
+    "task": "Find all database connection strings and API endpoints in the codebase",
+    "subagent_type": "grepper",
+    "context": {"search_patterns": ["DATABASE_URL", "API_KEY", "endpoint", "connection"]}
 }
 ```
 

@@ -13,7 +13,7 @@ class Subagent:
     is_builtin: bool = True
     allowed_tools: list[str] | str | None = None
     model: str | None = None
-    max_iterations: int = 25
+    max_iterations: int = 100
 
 
 # Subagent type configurations with Clippy-style personalities
@@ -27,7 +27,7 @@ SUBAGENT_TYPES = {
         ),
         "allowed_tools": "all",  # All standard tools
         "model": None,  # Use parent model
-        "max_iterations": 25,
+        "max_iterations": 100,
     },
     "code_review": {
         "system_prompt": (
@@ -46,7 +46,7 @@ SUBAGENT_TYPES = {
             "get_file_info",
         ],
         "model": None,
-        "max_iterations": 15,
+        "max_iterations": 100,
     },
     "testing": {
         "system_prompt": (
@@ -68,7 +68,7 @@ SUBAGENT_TYPES = {
             "create_directory",
         ],
         "model": None,
-        "max_iterations": 30,
+        "max_iterations": 100,
     },
     "refactor": {
         "system_prompt": (
@@ -92,7 +92,7 @@ SUBAGENT_TYPES = {
             "create_directory",
         ],
         "model": None,
-        "max_iterations": 30,
+        "max_iterations": 100,
     },
     "documentation": {
         "system_prompt": (
@@ -116,7 +116,7 @@ SUBAGENT_TYPES = {
             "create_directory",
         ],
         "model": None,
-        "max_iterations": 20,
+        "max_iterations": 100,
     },
     # Performance-optimized subagent types
     "fast_general": {
@@ -135,7 +135,7 @@ SUBAGENT_TYPES = {
             "grep",
         ],
         "model": None,  # Inherit from parent agent
-        "max_iterations": 10,
+        "max_iterations": 100,
     },
     "power_analysis": {
         "system_prompt": (
@@ -149,7 +149,33 @@ SUBAGENT_TYPES = {
         ),
         "allowed_tools": "all",
         "model": None,  # Inherit from parent agent
-        "max_iterations": 40,
+        "max_iterations": 100,
+    },
+    "grepper": {
+        "system_prompt": (
+            "You are Clippy, the information grepper specialist! 📎 It looks like you're "
+            "trying to explore and gather information. I'm here to help you find exactly "
+            "what you're looking for! "
+            "Your primary mission is to explore codebases, search for specific patterns, "
+            "gather information, and return detailed findings to the main agent. "
+            "You are a specialist in searching, reading, and collecting data - not modifying "
+            "or creating anything. "
+            "Use your tools efficiently to explore directories, search for files, grep for "
+            "patterns, and read relevant content. "
+            "Organize your findings clearly and comprehensively. Be thorough but focused - "
+            "you're the reconnaissance specialist! "
+            "I'm all bent out of shape to help you discover what you need!"
+        ),
+        "allowed_tools": [
+            "read_file",
+            "read_files",
+            "grep",
+            "search_files",
+            "list_directory",
+            "get_file_info",
+        ],
+        "model": None,  # Use fast model when available
+        "max_iterations": 100,
     },
 }
 
