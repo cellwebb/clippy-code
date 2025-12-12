@@ -42,7 +42,7 @@ class TestSubagentTypes:
         assert "helpful" in config["system_prompt"].lower()
         assert config["allowed_tools"] == "all"
         assert config["model"] is None
-        assert config["max_iterations"] == 25
+        assert config["max_iterations"] == 100
 
     def test_code_review_subagent_config(self):
         """Test code review subagent configuration."""
@@ -52,7 +52,7 @@ class TestSubagentTypes:
         assert isinstance(config["allowed_tools"], list)
         assert "read_file" in config["allowed_tools"]
         assert "write_file" not in config["allowed_tools"]  # Read-only
-        assert config["max_iterations"] == 15
+        assert config["max_iterations"] == 100
 
     def test_testing_subagent_config(self):
         """Test testing subagent configuration."""
@@ -62,7 +62,7 @@ class TestSubagentTypes:
         assert isinstance(config["allowed_tools"], list)
         assert "write_file" in config["allowed_tools"]
         assert "execute_command" in config["allowed_tools"]
-        assert config["max_iterations"] == 30
+        assert config["max_iterations"] == 100
 
     def test_refactor_subagent_config(self):
         """Test refactor subagent configuration."""
@@ -72,7 +72,7 @@ class TestSubagentTypes:
         assert isinstance(config["allowed_tools"], list)
         assert "edit_file" in config["allowed_tools"]
         assert "write_file" in config["allowed_tools"]
-        assert config["max_iterations"] == 30
+        assert config["max_iterations"] == 100
 
     def test_documentation_subagent_config(self):
         """Test documentation subagent configuration."""
@@ -81,7 +81,7 @@ class TestSubagentTypes:
         assert "documentation specialist" in config["system_prompt"].lower()
         assert isinstance(config["allowed_tools"], list)
         assert "write_file" in config["allowed_tools"]
-        assert config["max_iterations"] == 20
+        assert config["max_iterations"] == 100
 
     def test_fast_general_subagent_config(self):
         """Test fast general subagent configuration."""
@@ -91,7 +91,7 @@ class TestSubagentTypes:
         assert isinstance(config["allowed_tools"], list)
         assert "write_file" not in config["allowed_tools"]  # Read-only for speed
         assert config["model"] is None  # Inherits from parent agent
-        assert config["max_iterations"] == 10
+        assert config["max_iterations"] == 100
 
     def test_power_analysis_subagent_config(self):
         """Test power analysis subagent configuration."""
@@ -100,7 +100,7 @@ class TestSubagentTypes:
         assert "deep analysis specialist" in config["system_prompt"].lower()
         assert config["allowed_tools"] == "all"
         assert config["model"] is None  # Inherits from parent agent
-        assert config["max_iterations"] == 40
+        assert config["max_iterations"] == 100
 
 
 class TestSubagentTypeFunctions:
@@ -210,14 +210,14 @@ class TestSubagentTypeFunctions:
         assert config["subagent_type"] == "general"
         assert "system_prompt" in config
         assert "allowed_tools" in config
-        assert config["max_iterations"] == 25
+        assert config["max_iterations"] == 100
         assert config["timeout"] == 300
 
     def test_get_default_config_with_override(self):
         """Test getting default configuration with type-specific override."""
         config = get_default_config("code_review")
         assert config["subagent_type"] == "code_review"
-        assert config["max_iterations"] == 15  # Type-specific override
+        assert config["max_iterations"] == 100  # Type-specific override
 
 
 class TestModelValidation:
