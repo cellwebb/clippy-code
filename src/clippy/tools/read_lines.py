@@ -169,11 +169,19 @@ def parse_line_range(
             except ValueError:
                 return True, "", 1, total_lines
 
-    # Check if range is out of bounds (before clamping)
-    if start < 1 or end > total_lines:
+    # Store original values before clamping to check bounds
+    original_start = start
+    original_end = end
+
+    # Clamp to file bounds
+    start = max(1, start)
+    end = min(total_lines, end)
+
+    # Check if the entire requested range is outside file bounds
+    if original_end < 1 or original_start > total_lines:
         return (
             False,
-            f"Line range {range_spec} (resolved to {start}-{end}) is outside "
+            f"Line range {range_spec} (resolved to {original_start}-{original_end}) is outside "
             f"file bounds (file has {total_lines} lines)",
             0,
             0,
