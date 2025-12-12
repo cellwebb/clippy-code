@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.20.0] - 2025-12-12
+
+### What's New
+
+- New 'grepper' subagent for safely searching and gathering information without making changes
+
+### Improvements
+
+- Better handling of file line requests that go beyond file limits
+- Updated provider documentation with current examples and providers
+- More reliable test results for stuck detection
+- Improved build process for cleaner releases
+
+### Bug Fixes
+
+- Fixed version mismatch between project files
+
 ## [4.19.4] - 2025-12-09
 
 ### What's New
