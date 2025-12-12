@@ -22,6 +22,16 @@ uv run python -m clippy       # Run in interactive mode
 - Run `make check` and `make test` before finishing a task to catch regressions early.
 - Use `make format` if a change requires ruff autofixes prior to committing or submitting.
 - Reference `README.md` for installation guidance and `CONTRIBUTING.md` for contributor workflow details.
+### Commit Message Standards
+
+- **Always use conventional commits**: Follow the `type(scope): description` format for consistency and tooling compatibility
+- **Use appropriate scopes**: Common scopes include `agent`, `cli`, `tools`, `mcp`, `subagent`, `docs`, `test`, `fix`, `refactor`
+- **Types**: Use `feat` for new features, `fix` for bug fixes, `docs` for documentation, `refactor` for code refactoring, `test` for tests, `chore` for maintenance
+- **Examples**:
+  - `feat(subagent): add grepper specialized information gathering agent`
+  - `fix(tools): resolve file encoding issue in read_file tool`
+  - `docs(agent): update subagent configuration examples`
+  - `refactor(cli): simplify command parsing logic`
 
 ## Agent Behavior Guidelines
 
