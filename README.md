@@ -34,17 +34,23 @@ clippy-code supports multiple LLM providers through OpenAI-compatible APIs:
 # OpenAI (default)
 echo "OPENAI_API_KEY=your_api_key_here" > .env
 
-# Or choose from many supported providers:
+# Choose from supported providers:
 echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
-echo "MISTRAL_API_KEY=your_api_key_here" > .env
 echo "CEREBRAS_API_KEY=your_api_key_here" > .env
-echo "GEMINI_API_KEY=your_api_key_here" > .env
+echo "DEEPSEEK_API_KEY=your_api_key_here" > .env
+echo "GOOGLE_API_KEY=your_api_key_here" > .env
 echo "GROQ_API_KEY=your_api_key_here" > .env
-echo "MINIMAX_API_KEY=your_api_key_here" > .env
+echo "MISTRAL_API_KEY=your_api_key_here" > .env
 echo "OPENROUTER_API_KEY=your_api_key_here" > .env
 echo "SYNTHETIC_API_KEY=your_api_key_here" > .env
-echo "TOGETHER_API_KEY=your_api_key_here" > .env
 echo "ZAI_API_KEY=your_api_key_here" > .env
+
+# For local providers (optional - can use empty API key)
+echo "LMSTUDIO_API_KEY=" >> .env
+echo "OLLAMA_API_KEY=" >> .env
+
+# For Claude Code (OAuth - no API key needed for token-based access)
+echo "CLAUDE_CODE_ACCESS_TOKEN=your_token_here" >> .env
 ```
 
 ### Basic Usage
@@ -81,7 +87,7 @@ cp mcp.example.json ~/.clippy/mcp.json
 
 ## Key Features
 
-- **🌐 Broad Provider Support**: OpenAI, Anthropic, Cerebras, Groq, Mistral, Ollama, and many more
+- **🌐 Broad Provider Support**: OpenAI, Anthropic, Cerebras, DeepSeek, Google Gemini, Groq, LM Studio, Mistral, Ollama, OpenRouter, Synthetic.new, Z.AI, and more
 - **🛡️ Safety-First Design**: Three-tier permissions with interactive approval for risky operations
 - **🔄 Multiple Interface Modes**: One-shot tasks, interactive REPL, and rich document mode
 - **🤖 Advanced Agent Capabilities**: Streaming responses, context management, subagent delegation
@@ -168,7 +174,7 @@ Caching reduces API calls for repeated commands while maintaining security. Cach
 
 ### Supported Providers
 
-clippy-code works with any OpenAI-compatible provider: Anthropic (including Claude Code OAuth), Chutes, Cerebras, Gemini, Groq, LM Studio, MiniMax, Mistral, Ollama, OpenAI, OpenRouter, Synthetic.new, Together AI, Z.AI, and more.
+clippy-code works with any OpenAI-compatible provider: OpenAI, Anthropic (including Claude Code OAuth), Cerebras, DeepSeek, Google Gemini, Groq, LM Studio, Mistral, Ollama, OpenRouter, Synthetic.new, Z.AI, and more.
 
 ### Managing Models
 
@@ -185,7 +191,7 @@ clippy-code works with any OpenAI-compatible provider: Anthropic (including Clau
 
 ### Environment Variables
 
-- Provider-specific API keys: `ANTHROPIC_API_KEY`, `CHUTES_API_KEY`, `CEREBRAS_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `MINIMAX_API_KEY`, `MISTRAL_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `SYNTHETIC_API_KEY`, `TOGETHER_API_KEY`, `ZAI_API_KEY`, `CLAUDE_CODE_ACCESS_TOKEN` (OAuth), etc.
+- Provider-specific API keys: `ANTHROPIC_API_KEY`, `CEREBRAS_API_KEY`, `DEEPSEEK_API_KEY`, `GOOGLE_API_KEY`, `GROQ_API_KEY`, `LMSTUDIO_API_KEY`, `MISTRAL_API_KEY`, `OLLAMA_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `SYNTHETIC_API_KEY`, `ZAI_API_KEY`, `CLAUDE_CODE_ACCESS_TOKEN` (OAuth)
 - `OPENAI_BASE_URL` - Optional base URL override for custom providers
 - `CLIPPY_SHOW_COMMAND_OUTPUT` - Control whether to show output from `execute_command` tool (default: `false`, set to `true` to show output)
 - `CLIPPY_COMMAND_TIMEOUT` - Default timeout for command execution in seconds (default: `300`)
