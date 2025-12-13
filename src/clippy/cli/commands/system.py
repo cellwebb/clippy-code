@@ -112,6 +112,7 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
     # Get session-based token usage (actual API usage)
     try:
         from ...agent.token_tracker import get_session_tracker
+
         tracker = get_session_tracker()
         session_summary = tracker.get_summary()
     except Exception:
@@ -179,8 +180,12 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
         actual_subagent_count = session_summary["subagents"]["count"]
 
         # Calculate estimated cost (using approximate GPT-4 rates)
-        prompt_cost = session_summary["total"]["prompt_tokens"] * 0.00003  # $0.03 per 1K prompt tokens
-        completion_cost = session_summary["total"]["completion_tokens"] * 0.00006  # $0.06 per 1K completion tokens
+        prompt_cost = (
+            session_summary["total"]["prompt_tokens"] * 0.00003
+        )  # $0.03 per 1K prompt tokens
+        completion_cost = (
+            session_summary["total"]["completion_tokens"] * 0.00006
+        )  # $0.06 per 1K completion tokens
         estimated_cost = prompt_cost + completion_cost
 
         # Build status content
@@ -209,11 +214,7 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
 
             status_content += "\n"
 
-        status_content += (
-            f"[bold]Message Breakdown:[/bold]\n"
-            f"    {message_breakdown}\n\n"
-            f"{note}"
-        )
+        status_content += f"[bold]Message Breakdown:[/bold]\n    {message_breakdown}\n\n{note}"
 
         # Show token tracking status if disabled
         if not tracker.is_enabled():
