@@ -12,7 +12,6 @@ class Subagent:
     prompt: str
     is_builtin: bool = True
     allowed_tools: list[str] | str | None = None
-    model: str | None = None
     max_iterations: int = 100
 
 
@@ -26,7 +25,7 @@ SUBAGENT_TYPES = {
             "I'm practically paperclip-shaped with excitement to assist you!"
         ),
         "allowed_tools": "all",  # All standard tools
-        "model": None,  # Use parent model
+        # Use parent model
         "max_iterations": 100,
     },
     "code_review": {
@@ -45,7 +44,6 @@ SUBAGENT_TYPES = {
             "list_directory",
             "get_file_info",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     "testing": {
@@ -67,7 +65,6 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "create_directory",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     "refactor": {
@@ -91,7 +88,6 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "create_directory",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     "documentation": {
@@ -115,7 +111,6 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "create_directory",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     # New specialty subagents
@@ -144,7 +139,6 @@ SUBAGENT_TYPES = {
             "create_directory",
             "edit_file",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     "debugger": {
@@ -173,7 +167,6 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "edit_file",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     "security": {
@@ -201,7 +194,6 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "execute_command",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     "performance": {
@@ -230,7 +222,6 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "edit_file",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     "integrator": {
@@ -261,7 +252,6 @@ SUBAGENT_TYPES = {
             "create_directory",
             "edit_file",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     "researcher": {
@@ -291,7 +281,6 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "execute_command",
         ],
-        "model": None,
         "max_iterations": 100,
     },
     # Performance-optimized subagent types
@@ -311,7 +300,7 @@ SUBAGENT_TYPES = {
             "get_file_info",
             "grep",
         ],
-        "model": None,  # Inherit from parent agent
+        # Inherit from parent agent
         "max_iterations": 100,
     },
     "power_analysis": {
@@ -325,7 +314,7 @@ SUBAGENT_TYPES = {
             "time to properly organize a filing cabinet. I'm positively riveted by this!"
         ),
         "allowed_tools": "all",
-        "model": None,  # Inherit from parent agent
+        # Inherit from parent agent
         "max_iterations": 100,
     },
     "grepper": {
@@ -351,7 +340,7 @@ SUBAGENT_TYPES = {
             "list_directory",
             "get_file_info",
         ],
-        "model": None,  # Use fast model when available
+        # Use fast model when available
         "max_iterations": 100,
     },
 }
@@ -406,11 +395,10 @@ def list_subagents() -> list[Subagent]:
         subagents.append(
             Subagent(
                 name=name,
-                prompt=str(config["system_prompt"]),  # type: ignore[index]
+                prompt=str(config["system_prompt"]),
                 is_builtin=True,
-                allowed_tools=config["allowed_tools"],  # type: ignore[index]
-                model=config["model"],  # type: ignore[index]
-                max_iterations=int(config["max_iterations"]),  # type: ignore[index]
+                allowed_tools=config["allowed_tools"],  # type: ignore[arg-type]
+                max_iterations=config["max_iterations"],  # type: ignore[arg-type]
             )
         )
 
@@ -497,7 +485,6 @@ def get_default_config(subagent_type: str) -> dict[str, Any]:
         "subagent_type": subagent_type,
         "system_prompt": type_config.get("system_prompt"),
         "allowed_tools": type_config.get("allowed_tools"),
-        "model": type_config.get("model"),
         "max_iterations": type_config.get("max_iterations", 25),
         "timeout": 300,  # Default 5 minutes
     }

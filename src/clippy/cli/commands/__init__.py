@@ -67,7 +67,7 @@ def handle_command(command: str, agent: Any, console: Any) -> CommandResult | No
     elif command_name == "mcp":
         return handle_mcp_command(agent, console, command_args)
     elif command_name == "subagent":
-        return handle_subagent_command(agent, console, command_args)
+        return handle_subagent_command(console, command_args)
     elif command_name == "resume":
         return handle_resume_command(agent, console, command_args)
     else:

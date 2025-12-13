@@ -21,7 +21,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Purpose**: General-purpose tasks with full tool access
 - **Tools**: All standard tools available
 - **Max Iterations**: 25
-- **Model**: Inherits from parent agent
+- **Model**: User-configurable via `/subagent` commands
 - **Use Case**: When you need a generalist assistant with full capabilities
 
 #### `fast_general`
@@ -29,7 +29,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Purpose**: Quick tasks requiring fast response
 - **Tools**: Read-only tools (read_file, list_directory, search_files, get_file_info, grep)
 - **Max Iterations**: 10
-- **Model**: gpt-3.5-turbo (optimized for speed)
+- **Model**: User-configurable via `/subagent` commands
 - **Use Case**: Simple lookups, file searches, quick information gathering
 
 #### `power_analysis`
@@ -37,7 +37,7 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Purpose**: Deep analysis of complex systems
 - **Tools**: All standard tools available
 - **Max Iterations**: 40
-- **Model**: claude-3-opus-20240229 (maximum capability)
+- **Model**: User-configurable via `/subagent` commands
 - **Use Case**: Architecture analysis, complex design decisions, comprehensive reviews
 
 ### Specialized Tasks
@@ -312,17 +312,19 @@ Configure which model each subagent type uses with the `/subagent` command:
 **Model Selection Priority:**
 
 1. **Explicit model in config** - If you pass a model when creating a subagent, that takes highest priority
-2. **Type-specific override** - Model set via `/subagent set` for that subagent type
+2. **Type-specific override** - Model set via `/subagent set` for that subagent type (stored in user config)
 3. **Parent model** - Inherits the model from the parent agent (default)
+
+**Note**: Subagent types in `subagent_types.py` no longer define model preferences. Model selection is entirely user-controlled through the `/subagent` command system or explicit configuration.
 
 **Configuration Storage:**
 Model overrides are stored in `~/.clippy/subagent_config.json` and persist across sessions.
 
 **Use Cases:**
 
-- Use faster, cheaper models for simple tasks (`fast_general` → `gpt-3.5-turbo`)
-- Use more capable models for complex analysis (`power_analysis` → `claude-3-opus-20240229`)
-- Use specialized models per task type (e.g., coding models for refactoring)
+- Use faster, cheaper models for simple tasks (`fast_general` → your preferred fast model)
+- Use more capable models for complex analysis (`power_analysis` → your most capable model)
+- Use specialized models per task type and provider availability
 
 ## Advanced Features
 

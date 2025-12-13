@@ -285,7 +285,6 @@ class SubagentConfigManager:
                     prompt=config["prompt"],
                     is_builtin=False,
                     allowed_tools=config.get("allowed_tools", "all"),
-                    model=config.get("model"),
                     max_iterations=config.get("max_iterations", 25),
                 )
             )
