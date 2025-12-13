@@ -67,6 +67,53 @@ The subagent system allows the main ClippyAgent to delegate complex subtasks to 
 - **Use Case**: Code cleanup, performance optimization, design pattern implementation
 
 #### `documentation`
+#### `architect`
+
+- **Purpose**: System design and architecture planning
+- **Tools**: Architecture tools (read_file, read_files, write_file, search_files, grep, list_directory, get_file_info, create_directory, edit_file)
+- **Max Iterations**: 100
+- **Model**: Inherits from parent agent
+- **Use Case**: System design, technology stack selection, architectural blueprints
+
+#### `debugger`
+
+- **Purpose**: Issue diagnosis and bug resolution
+- **Tools**: Debugging tools (read_file, write_file, execute_command, search_files, grep, list_directory, get_file_info, edit_file)
+- **Max Iterations**: 100
+- **Model**: Inherits from parent agent
+- **Use Case**: Bug investigation, root cause analysis, troubleshooting
+
+#### `security`
+
+- **Purpose**: Security analysis and vulnerability assessment
+- **Tools**: Security analysis tools (read_file, read_files, grep, search_files, list_directory, get_file_info, execute_command)
+- **Max Iterations**: 100
+- **Model**: Inherits from parent agent
+- **Use Case**: Security audits, vulnerability scanning, compliance checks
+
+#### `performance`
+
+- **Purpose**: Performance optimization and profiling
+- **Tools**: Performance tools (read_file, write_file, execute_command, search_files, grep, list_directory, get_file_info, edit_file)
+- **Max Iterations**: 100
+- **Model**: Inherits from parent agent
+- **Use Case**: Performance profiling, optimization, benchmarking
+
+#### `integrator`
+
+- **Purpose**: Integration and deployment specialist
+- **Tools**: Integration tools (read_file, write_file, execute_command, search_files, grep, list_directory, get_file_info, create_directory, edit_file)
+- **Max Iterations**: 100
+- **Model**: Inherits from parent agent
+- **Use Case**: CI/CD setup, deployment pipelines, system integration
+
+#### `researcher`
+
+- **Purpose**: Research and information synthesis
+- **Tools**: Research tools (read_file, read_files, fetch_webpage, grep, search_files, list_directory, get_file_info, execute_command)
+- **Max Iterations**: 100
+- **Model**: Inherits from parent agent
+- **Use Case**: Technical research, information gathering, competitive analysis
 
 - **Purpose**: Documentation creation and maintenance
 - **Tools**: Documentation tools (read_file, read_files, write_file, search_files, grep, list_directory, get_file_info, create_directory)

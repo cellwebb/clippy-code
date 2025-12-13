@@ -210,14 +210,27 @@ clippy-code includes a powerful subagent system for complex task decomposition a
 
 #### Available Subagent Types
 
+##### General Purpose
 - **general**: General-purpose tasks with all tools available
+- **grepper**: Information gathering and exploration specialist (search/read only)
+- **fast_general**: Quick tasks using faster models (gpt-3.5-turbo)
+- **power_analysis**: Deep analysis using powerful models (claude-3-opus)
+
+##### Code Quality & Development
 - **code_review**: Read-only code analysis and review
 - **testing**: Test generation and execution
 - **refactor**: Code refactoring and improvement
 - **documentation**: Documentation generation and updates
-- **grepper**: Information gathering and exploration specialist (search/read only)
-- **fast_general**: Quick tasks using faster models (gpt-3.5-turbo)
-- **power_analysis**: Deep analysis using powerful models (claude-3-opus)
+- **debugger**: Issue diagnosis and bug resolution
+
+##### System & Operations
+- **architect**: System design and architecture planning
+- **security**: Security analysis and vulnerability assessment
+- **performance**: Performance optimization and profiling
+- **integrator**: Integration and deployment specialist
+
+##### Research & Analysis
+- **researcher**: Research and information synthesis
 
 #### Subagent Features
 
