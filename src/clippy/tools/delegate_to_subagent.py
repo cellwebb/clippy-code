@@ -176,6 +176,17 @@ def create_subagent_and_execute(
         # Execute the subagent
         result = subagent.run()
 
+        # Track token usage from this subagent in the session tracker
+        if hasattr(result, 'actual_token_usage') and result.actual_token_usage:
+            from ..agent.token_tracker import get_session_tracker
+            tracker = get_session_tracker()
+            tracker.track_subagent_usage(
+                result.actual_token_usage,
+                name,
+                result.metadata.get("model", "")
+            )
+            logger.info(f"Tracked {result.actual_token_usage.get('total_tokens', 0)} tokens for subagent '{name}'")
+
         if result.success:
             message = f"Subagent '{name}' completed successfully. Output: {result.output}"
             logger.info(f"Subagent '{name}' completed successfully")

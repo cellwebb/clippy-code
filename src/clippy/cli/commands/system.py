@@ -34,7 +34,7 @@ def handle_help_command(console: Console) -> CommandResult:
         "    Options: --keep-recent (default), --keep-older\n"
         "    Examples: /truncate 5, /truncate 3 --keep-older\n"
         "[bold]Session Info:[/bold]\n"
-        "  /status - Show token usage and session info\n"
+        "  /status - Show token usage, costs, and session info\n"
         "  /compact - Summarize conversation to reduce context usage\n\n"
         "[bold]Authentication:[/bold]\n"
         "  clippy auth - Authenticate with Claude Code OAuth\n"
@@ -106,7 +106,21 @@ def handle_help_command(console: Console) -> CommandResult:
 
 def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult:
     """Handle /status command."""
+    # Get conversation-based token count
     status = agent.get_token_count()
+
+    # Get session-based token usage (actual API usage)
+    try:
+        from ...agent.token_tracker import get_session_tracker
+        tracker = get_session_tracker()
+        session_summary = tracker.get_summary()
+    except Exception:
+        # If token tracking fails, use empty summary
+        session_summary = {
+            "total": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0},
+            "main_agent": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0},
+            "subagents": {"count": 0, "total_tokens": 0, "details": []},
+        }
 
     if "error" in status:
         console.print(
@@ -158,18 +172,56 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
         else:
             note = "[dim]Note: Usage % is estimated for ~128k context window[/dim]"
 
+        # Build actual usage summary (from API)
+        actual_tokens = session_summary["total"]["total_tokens"]
+        actual_main = session_summary["main_agent"]["total_tokens"]
+        actual_subagents = session_summary["subagents"]["total_tokens"]
+        actual_subagent_count = session_summary["subagents"]["count"]
+
+        # Calculate estimated cost (using approximate GPT-4 rates)
+        prompt_cost = session_summary["total"]["prompt_tokens"] * 0.00003  # $0.03 per 1K prompt tokens
+        completion_cost = session_summary["total"]["completion_tokens"] * 0.00006  # $0.06 per 1K completion tokens
+        estimated_cost = prompt_cost + completion_cost
+
+        # Build status content
+        status_content = (
+            f"[bold]Current Session:[/bold]\n"
+            f"  Model: [cyan]{status['model']}[/cyan]\n"
+            f"  Provider: [cyan]{provider}[/cyan]\n"
+            f"  Messages: [cyan]{status['message_count']}[/cyan]\n\n"
+            f"[bold]Conversation Context:[/bold]\n"
+            f"  Context: [cyan]{status['total_tokens']:,}[/cyan] tokens\n"
+            f"  Usage: [{usage_bar}] [cyan]{usage_pct}[/cyan]\n\n"
+        )
+
+        # Add actual API usage if we have any
+        if actual_tokens > 0:
+            status_content += (
+                f"[bold]Actual API Usage:[/bold]\n"
+                f"  Total: [cyan]{actual_tokens:,}[/cyan] tokens\n"
+                f"  Main Agent: [blue]{actual_main:,}[/blue] tokens\n"
+                f"  Subagents: [green]{actual_subagents:,}[/green] tokens "
+                f"([dim]{actual_subagent_count} subagents[/dim])\n"
+            )
+
+            if estimated_cost > 0:
+                status_content += f"  💰 Est. Cost: [yellow]${estimated_cost:.4f}[/yellow]\n"
+
+            status_content += "\n"
+
+        status_content += (
+            f"[bold]Message Breakdown:[/bold]\n"
+            f"    {message_breakdown}\n\n"
+            f"{note}"
+        )
+
+        # Show token tracking status if disabled
+        if not tracker.is_enabled():
+            status_content += "\n\n[dim]⚠️ Token tracking is disabled[/dim]"
+
         console.print(
             Panel.fit(
-                f"[bold]Current Session:[/bold]\n"
-                f"  Model: [cyan]{status['model']}[/cyan]\n"
-                f"  Provider: [cyan]{provider}[/cyan]\n"
-                f"  Messages: [cyan]{status['message_count']}[/cyan]\n\n"
-                f"[bold]Token Usage:[/bold]\n"
-                f"  Context: [cyan]{status['total_tokens']:,}[/cyan] tokens\n"
-                f"  Usage: [{usage_bar}] [cyan]{usage_pct}[/cyan]\n\n"
-                f"[bold]Message Breakdown:[/bold]\n"
-                f"    {message_breakdown}\n\n"
-                f"{note}",
+                status_content,
                 title="Session Status",
                 border_style="cyan",
             )

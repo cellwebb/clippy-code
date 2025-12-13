@@ -60,7 +60,8 @@ class SubAgentResult:
     output: str  # Final response from subagent
     error: str | None  # Error message if failed
     iterations_used: int  # How many iterations the subagent took
-    tokens_used: dict[str, int] = field(default_factory=dict)  # Token usage statistics
+    tokens_used: dict[str, int] = field(default_factory=dict)  # Token usage statistics (backward compatibility)
+    actual_token_usage: dict[str, int] = field(default_factory=dict)  # Actual API token usage
     tools_executed: list[str] = field(default_factory=list)  # List of tools used
     execution_time: float = 0.0  # Time in seconds
     metadata: dict[str, Any] = field(default_factory=dict)  # Additional metadata
@@ -238,6 +239,25 @@ class SubAgent:
             self.end_time = time.time()
             execution_time = self.end_time - self.start_time
 
+            # Capture token usage from the session tracker (if available)
+            actual_token_usage = {}
+            try:
+                from .token_tracker import get_session_tracker
+                tracker = get_session_tracker()
+                # Get the latest token usage for this subagent
+                # This will be populated by the token tracking system
+                for usage in tracker.subagents:
+                    if usage.operation_id == self.config.name:
+                        actual_token_usage = {
+                            "prompt_tokens": usage.prompt_tokens,
+                            "completion_tokens": usage.completion_tokens,
+                            "total_tokens": usage.total_tokens,
+                        }
+                        break
+            except Exception:
+                # If token tracking fails, continue without it
+                pass
+
             # Create result
             self.result = SubAgentResult(
                 success=True,
@@ -245,6 +265,7 @@ class SubAgent:
                 error=None,
                 iterations_used=self._get_iteration_count(),
                 execution_time=execution_time,
+                actual_token_usage=actual_token_usage,
                 metadata={
                     "subagent_name": self.config.name,
                     "subagent_type": self.config.subagent_type,

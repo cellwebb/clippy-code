@@ -413,6 +413,8 @@ def create_parallel_subagents_and_execute(
         else:
             result = results
 
+
+
         # Determine overall success
         overall_success = failed_count == 0 or (not fail_fast and successful_count > 0)
 
