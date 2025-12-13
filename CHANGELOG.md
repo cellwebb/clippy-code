@@ -1,5 +1,15 @@
 # Changelog
 
+## [4.20.1] - 2025-12-12
+
+### Improvements
+
+- Better version management for more accurate updates
+
+### Bug Fixes
+
+- Fixed incorrect line range calculation when using negative numbers
+
 ## [4.20.0] - 2025-12-12
 
 ### What's New
