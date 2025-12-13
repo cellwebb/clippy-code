@@ -60,7 +60,9 @@ class SubAgentResult:
     output: str  # Final response from subagent
     error: str | None  # Error message if failed
     iterations_used: int  # How many iterations the subagent took
-    tokens_used: dict[str, int] = field(default_factory=dict)  # Token usage statistics (backward compatibility)
+    tokens_used: dict[str, int] = field(
+        default_factory=dict
+    )  # Token usage statistics (backward compatibility)
     actual_token_usage: dict[str, int] = field(default_factory=dict)  # Actual API token usage
     tools_executed: list[str] = field(default_factory=list)  # List of tools used
     execution_time: float = 0.0  # Time in seconds
@@ -243,6 +245,7 @@ class SubAgent:
             actual_token_usage = {}
             try:
                 from .token_tracker import get_session_tracker
+
                 tracker = get_session_tracker()
                 # Get the latest token usage for this subagent
                 # This will be populated by the token tracking system

@@ -156,17 +156,18 @@ def run_agent_loop(
             # Track token usage from this API call
             if response.get("usage"):
                 from .token_tracker import get_session_tracker
+
                 tracker = get_session_tracker()
 
                 # Determine if this is a subagent or main agent call
                 is_subagent = (
-                    hasattr(config, 'parent_agent') and
-                    config.parent_agent is not None and
-                    hasattr(config.console, '_subagent_name')
+                    hasattr(config, "parent_agent")
+                    and config.parent_agent is not None
+                    and hasattr(config.console, "_subagent_name")
                 )
 
                 if is_subagent:
-                    subagent_name = getattr(config.console, '_subagent_name', 'unknown')
+                    subagent_name = getattr(config.console, "_subagent_name", "unknown")
                     tracker.track_subagent_usage(response["usage"], subagent_name, config.model)
                 else:
                     tracker.track_main_agent_usage(response["usage"], config.model)
