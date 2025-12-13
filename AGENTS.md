@@ -350,7 +350,7 @@ Create an `mcp.json` file in your home directory (`~/.clippy/mcp.json`) or proje
 
 ## Version Management
 
-Keep `pyproject.toml` and `src/clippy/__version__.py` in sync. Use: `make bump-patch|minor|major`
+Track version only in `src/clippy/__version__.py`. The `pyproject.toml` reads dynamically from this file via hatchling. Use: `make bump-patch|minor|major`
 
 ## Design Rationale
 

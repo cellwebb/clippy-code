@@ -1,6 +1,6 @@
 [project]
 name = "clippy-code"
-version = "4.19.4"
+dynamic = ["version"]
 description = "A powerful CLI coding agent powered by OpenAI-compatible LLMs"
 readme = "README.md"
 license = { text = "MIT" }
@@ -61,8 +61,11 @@ Issues = "https://github.com/cellwebb/clippy-code/issues"
 Documentation = "https://github.com/cellwebb/clippy-code#readme"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/clippy/__version__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/clippy"]
