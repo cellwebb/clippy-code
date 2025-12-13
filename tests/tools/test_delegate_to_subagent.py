@@ -396,3 +396,9 @@ class TestDelegateToSubagentTool:
         assert "documentation" in enum_values
         assert "fast_general" in enum_values
         assert "power_analysis" in enum_values
+        assert "architect" in enum_values
+        assert "debugger" in enum_values
+        assert "security" in enum_values
+        assert "performance" in enum_values
+        assert "integrator" in enum_values
+        assert "researcher" in enum_values

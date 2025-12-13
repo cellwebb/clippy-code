@@ -21,7 +21,19 @@ class TestSubagentTypes:
         assert len(SUBAGENT_TYPES) > 0
 
         # Check required types exist
-        required_types = ["general", "code_review", "testing", "refactor", "documentation"]
+        required_types = [
+            "general",
+            "code_review",
+            "testing",
+            "refactor",
+            "documentation",
+            "architect",
+            "debugger",
+            "security",
+            "performance",
+            "integrator",
+            "researcher",
+        ]
         for required_type in required_types:
             assert required_type in SUBAGENT_TYPES
 
@@ -100,6 +112,67 @@ class TestSubagentTypes:
         assert "deep analysis specialist" in config["system_prompt"].lower()
         assert config["allowed_tools"] == "all"
         assert config["model"] is None  # Inherits from parent agent
+        assert config["max_iterations"] == 100
+
+    def test_architect_subagent_config(self):
+        """Test architect subagent configuration."""
+        config = SUBAGENT_TYPES["architect"]
+        assert "clippy" in config["system_prompt"].lower()
+        assert "system architect" in config["system_prompt"].lower()
+        assert isinstance(config["allowed_tools"], list)
+        assert "write_file" in config["allowed_tools"]
+        assert "edit_file" in config["allowed_tools"]
+        assert config["max_iterations"] == 100
+
+    def test_debugger_subagent_config(self):
+        """Test debugger subagent configuration."""
+        config = SUBAGENT_TYPES["debugger"]
+        assert "clippy" in config["system_prompt"].lower()
+        assert "debugging specialist" in config["system_prompt"].lower()
+        assert isinstance(config["allowed_tools"], list)
+        assert "execute_command" in config["allowed_tools"]
+        assert "edit_file" in config["allowed_tools"]
+        assert config["max_iterations"] == 100
+
+    def test_security_subagent_config(self):
+        """Test security subagent configuration."""
+        config = SUBAGENT_TYPES["security"]
+        assert "clippy" in config["system_prompt"].lower()
+        assert "security specialist" in config["system_prompt"].lower()
+        assert isinstance(config["allowed_tools"], list)
+        assert "read_file" in config["allowed_tools"]
+        assert "grep" in config["allowed_tools"]
+        assert "write_file" not in config["allowed_tools"]  # Read-only for safety
+        assert config["max_iterations"] == 100
+
+    def test_performance_subagent_config(self):
+        """Test performance subagent configuration."""
+        config = SUBAGENT_TYPES["performance"]
+        assert "clippy" in config["system_prompt"].lower()
+        assert "performance specialist" in config["system_prompt"].lower()
+        assert isinstance(config["allowed_tools"], list)
+        assert "execute_command" in config["allowed_tools"]
+        assert "write_file" in config["allowed_tools"]
+        assert config["max_iterations"] == 100
+
+    def test_integrator_subagent_config(self):
+        """Test integrator subagent configuration."""
+        config = SUBAGENT_TYPES["integrator"]
+        assert "clippy" in config["system_prompt"].lower()
+        assert "integration specialist" in config["system_prompt"].lower()
+        assert isinstance(config["allowed_tools"], list)
+        assert "execute_command" in config["allowed_tools"]
+        assert "create_directory" in config["allowed_tools"]
+        assert config["max_iterations"] == 100
+
+    def test_researcher_subagent_config(self):
+        """Test researcher subagent configuration."""
+        config = SUBAGENT_TYPES["researcher"]
+        assert "clippy" in config["system_prompt"].lower()
+        assert "research specialist" in config["system_prompt"].lower()
+        assert isinstance(config["allowed_tools"], list)
+        assert "fetch_webpage" in config["allowed_tools"]
+        assert "read_files" in config["allowed_tools"]
         assert config["max_iterations"] == 100
 
 
