@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.20.2] - 2025-12-12
+
+### What's New
+
+- Six new specialty subagents: architect, debugger, security, performance, integrator, and researcher
+- Track your token usage and estimated costs with detailed session reports
+
+### Improvements
+
+- Enhanced safety rules for file deletion to better protect your data
+- Simplified subagent model selection - now fully user-controlled
+- Cleaner status display showing essential token metrics
+
+### Bug Fixes
+
+- Fixed token tracking to prevent double-counting and ensure accurate usage
+- Fixed /subagent command bug that was causing errors
+
 ## [4.20.1] - 2025-12-12
 
 ### Improvements
