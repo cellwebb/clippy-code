@@ -75,17 +75,17 @@ def test_handle_status_error_and_success(monkeypatch: pytest.MonkeyPatch) -> Non
     success_status = {
         "model": "gpt-5",
         "base_url": None,
-        'message_count': 4,
-        'usage_percent': 25.0,
-        'total_tokens': 1024,
-        'system_messages': 1,
-        'system_tokens': 200,
-        'user_messages': 1,
-        'user_tokens': 300,
-        'assistant_messages': 1,
-        'assistant_tokens': 400,
-        'tool_messages': 1,
-        'tool_tokens': 124,
+        "message_count": 4,
+        "usage_percent": 25.0,
+        "total_tokens": 1024,
+        "system_messages": 1,
+        "system_tokens": 200,
+        "user_messages": 1,
+        "user_tokens": 300,
+        "assistant_messages": 1,
+        "assistant_tokens": 400,
+        "tool_messages": 1,
+        "tool_tokens": 124,
     }
     console.messages.clear()
     # The status command should work even if token tracking fails gracefully
