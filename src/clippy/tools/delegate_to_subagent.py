@@ -185,7 +185,8 @@ def create_subagent_and_execute(
                 result.actual_token_usage, name, result.metadata.get("model", "")
             )
             logger.info(
-                f"Tracked {result.actual_token_usage.get('total_tokens', 0)} tokens for subagent '{name}'"
+                f"Tracked {result.actual_token_usage.get('total_tokens', 0)} tokens "
+                f"for subagent '{name}'"
             )
 
         if result.success:

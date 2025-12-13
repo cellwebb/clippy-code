@@ -29,7 +29,8 @@ class TokenUsage:
         """Create TokenUsage from API response usage data.
 
         Args:
-            usage_data: Usage dict from API response with prompt_tokens, completion_tokens, total_tokens
+            usage_data: Usage dict from API response with prompt_tokens, completion_tokens,
+                      total_tokens
             operation: Type of operation (main_agent, subagent, etc.)
             operation_id: Identifier for the specific operation
             model: Model name used
@@ -154,18 +155,6 @@ class SessionTracker:
                 "prompt_tokens": grand_total.prompt_tokens,
                 "completion_tokens": grand_total.completion_tokens,
                 "total_tokens": grand_total.total_tokens,
-            },
-            "main_agent": {
-                "prompt_tokens": self.main_agent.prompt_tokens,
-                "completion_tokens": self.main_agent.completion_tokens,
-                "total_tokens": self.main_agent.total_tokens,
-            },
-            "subagents": {
-                "count": len(self.subagents),
-                "total_tokens": subagent_total.total_tokens,
-                "prompt_tokens": subagent_total.prompt_tokens,
-                "completion_tokens": subagent_total.completion_tokens,
-                "details": subagent_details,
             },
         }
 

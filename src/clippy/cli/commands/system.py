@@ -50,7 +50,7 @@ def handle_help_command(console: Console) -> CommandResult:
         "    Examples: /model add (wizard) or /model add claude-code claude-4-5 --name sonnet\n"
         "  /model remove <name> - Remove a saved model\n"
         "  /model set-default <name> - Set model as default (permanent)\n"
-        "  /model threshold <name> <tokens> - Set compaction threshold\n"
+        "  /model threshold <name> <tokens> - Set compaction threshold\n\n"
         "[bold]Subagent Configuration:[/bold]\n"
         "  /subagent list - Show subagent type configurations\n"
         "  /subagent set <type> <model> - Set model for a subagent type\n"
@@ -174,19 +174,9 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
             note = "[dim]Note: Usage % is estimated for ~128k context window[/dim]"
 
         # Build actual usage summary (from API)
+        actual_prompt = session_summary["total"]["prompt_tokens"]
+        actual_completion = session_summary["total"]["completion_tokens"]
         actual_tokens = session_summary["total"]["total_tokens"]
-        actual_main = session_summary["main_agent"]["total_tokens"]
-        actual_subagents = session_summary["subagents"]["total_tokens"]
-        actual_subagent_count = session_summary["subagents"]["count"]
-
-        # Calculate estimated cost (using approximate GPT-4 rates)
-        prompt_cost = (
-            session_summary["total"]["prompt_tokens"] * 0.00003
-        )  # $0.03 per 1K prompt tokens
-        completion_cost = (
-            session_summary["total"]["completion_tokens"] * 0.00006
-        )  # $0.06 per 1K completion tokens
-        estimated_cost = prompt_cost + completion_cost
 
         # Build status content
         status_content = (
@@ -203,22 +193,19 @@ def handle_status_command(agent: ClippyAgent, console: Console) -> CommandResult
         if actual_tokens > 0:
             status_content += (
                 f"[bold]Actual API Usage:[/bold]\n"
-                f"  Total: [cyan]{actual_tokens:,}[/cyan] tokens\n"
-                f"  Main Agent: [blue]{actual_main:,}[/blue] tokens\n"
-                f"  Subagents: [green]{actual_subagents:,}[/green] tokens "
-                f"([dim]{actual_subagent_count} subagents[/dim])\n"
+                f"  Input:  [cyan]{actual_prompt:,}[/cyan] tokens\n"
+                f"  Output: [cyan]{actual_completion:,}[/cyan] tokens\n"
+                f"  Total:  [cyan]{actual_tokens:,}[/cyan] tokens\n\n"
             )
-
-            if estimated_cost > 0:
-                status_content += f"  💰 Est. Cost: [yellow]${estimated_cost:.4f}[/yellow]\n"
-
-            status_content += "\n"
 
         status_content += f"[bold]Message Breakdown:[/bold]\n    {message_breakdown}\n\n{note}"
 
         # Show token tracking status if disabled
-        if not tracker.is_enabled():
-            status_content += "\n\n[dim]⚠️ Token tracking is disabled[/dim]"
+        try:
+            if not tracker.is_enabled():
+                status_content += "\n\n[dim]⚠️ Token tracking is disabled[/dim]"
+        except Exception:
+            pass
 
         console.print(
             Panel.fit(
