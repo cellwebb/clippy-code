@@ -151,7 +151,7 @@ def run_agent_loop(
             if spinner:
                 spinner.stop()
                 spinner = None
-                
+
             response = _process_streaming_response(
                 config.provider, conversation_history, tools, config.model, config.console
             )
@@ -319,7 +319,7 @@ def _process_streaming_response(
             # Print the chunk directly for real-time display
             # Strip only leading newlines to prevent content appearing on wrong line
             # but preserve other whitespace like spaces between words
-            display_content = chunk["content"].lstrip('\n\r')
+            display_content = chunk["content"].lstrip("\n\r")
             console.print(escape(display_content), end="")
             accumulated_content += chunk["content"]
         elif chunk.get("content") and not chunk.get("delta"):
@@ -328,7 +328,7 @@ def _process_streaming_response(
             if not accumulated_content:
                 # Strip only leading newlines to prevent content appearing on wrong line
                 # but preserve other whitespace like spaces between words
-                display_content = chunk["content"].lstrip('\n\r')
+                display_content = chunk["content"].lstrip("\n\r")
                 console.print(escape(display_content), end="")
             accumulated_content = chunk["content"]
         elif not chunk.get("delta"):

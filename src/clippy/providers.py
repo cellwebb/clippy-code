@@ -18,7 +18,6 @@ from .llm import (
     create_provider,
 )
 from .llm.base import BaseProvider
-from .llm.errors import LLMError
 
 if TYPE_CHECKING:
     from .models import ProviderConfig
