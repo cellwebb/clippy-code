@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from typing import Any
 
 import httpx
 
 from .base import BaseProvider
 from .errors import APIConnectionError, APITimeoutError, raise_for_status
-from .http_client import create_client, post_with_retry
+from .http_client import create_client, post_with_retry, stream_with_retry
 from .utils import _is_reasoner_model
 
 logger = logging.getLogger(__name__)
@@ -58,14 +59,14 @@ class OpenAIProvider(BaseProvider):
         model_lower = model.lower()
         return "codex" in model_lower
 
-    def create_message(
+    def stream_message(
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         model: str = "gpt-5-mini",
         **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Create completion using appropriate API.
+    ) -> Iterator[dict[str, Any]]:
+        """Stream completion using appropriate API.
 
         Args:
             messages: List of messages in OpenAI format
@@ -73,65 +74,20 @@ class OpenAIProvider(BaseProvider):
             model: Model identifier
             **kwargs: Additional arguments
 
-        Returns:
-            Response dict in OpenAI format
+        Yields:
+            Streaming response chunks in OpenAI format
         """
         try:
             if self._should_use_responses_api(model):
-                return self._create_responses(messages, tools, model, **kwargs)
+                # For codex models, non-streaming is the only option
+                response = self._create_responses(messages, tools, model, **kwargs)
+                yield response
             else:
-                return self._create_chat_completion(messages, tools, model, **kwargs)
+                yield from self._stream_chat_completion(messages, tools, model, **kwargs)
         except httpx.ConnectError as e:
             raise APIConnectionError(f"Failed to connect to {self.base_url}: {e}") from e
         except httpx.ReadTimeout as e:
             raise APITimeoutError(f"Request timed out: {e}") from e
-
-    def _create_chat_completion(
-        self,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]] | None,
-        model: str,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Call Chat Completions API.
-
-        Args:
-            messages: List of messages in OpenAI format
-            tools: Optional list of tool definitions
-            model: Model identifier
-            **kwargs: Additional arguments
-
-        Returns:
-            Response dict in OpenAI format
-        """
-        url = f"{self.base_url}/chat/completions"
-
-        # Build payload
-        payload: dict[str, Any] = {
-            "model": model,
-            "messages": self._prepare_messages_for_chat(messages, model),
-        }
-
-        if tools:
-            payload["tools"] = tools
-
-        # Add any extra kwargs (e.g., temperature, max_tokens)
-        for key in ("temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty"):
-            if key in kwargs:
-                payload[key] = kwargs[key]
-
-        logger.debug(f"Chat Completions request to {url} with model {model}")
-
-        response = post_with_retry(
-            self._client,
-            url,
-            json=payload,
-            headers=self._headers(),
-        )
-        raise_for_status(response)
-
-        data = response.json()
-        return self._normalize_chat_response(data)
 
     def _prepare_messages_for_chat(
         self,
@@ -371,6 +327,122 @@ class OpenAIProvider(BaseProvider):
             result["usage"] = data["usage"]
 
         return result
+
+    def _stream_chat_completion(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        model: str,
+        **kwargs: Any,
+    ) -> Iterator[dict[str, Any]]:
+        """Stream Chat Completions API response.
+
+        Args:
+            messages: List of messages in OpenAI format
+            tools: Optional list of tool definitions
+            model: Model identifier
+            **kwargs: Additional arguments
+
+        Yields:
+            Streaming response chunks in OpenAI format
+        """
+        url = f"{self.base_url}/chat/completions"
+
+        # Build payload for streaming
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": self._prepare_messages_for_chat(messages, model),
+            "stream": True,  # Enable streaming
+        }
+
+        if tools:
+            payload["tools"] = tools
+
+        # Add any extra kwargs (e.g., temperature, max_tokens)
+        for key in ("temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty"):
+            if key in kwargs:
+                payload[key] = kwargs[key]
+
+        logger.debug(f"Streaming chat completions request to {url} with model {model}")
+
+        # Track accumulated content and tool calls
+        accumulated_content = ""
+        accumulated_tool_calls: list[dict[str, Any]] = []
+        current_tool_call: dict[str, Any] | None = None
+
+        try:
+            for chunk in stream_with_retry(self._client, url, payload, self._headers()):
+                # Parse OpenAI streaming format
+                choices = chunk.get("choices", [])
+                if not choices:
+                    continue
+
+                delta = choices[0].get("delta", {})
+                finish_reason = choices[0].get("finish_reason")
+
+                # Handle content streaming
+                if "content" in delta and delta["content"] is not None:
+                    accumulated_content += delta["content"]
+                    yield {
+                        "role": "assistant",
+                        "content": delta["content"],
+                        "delta": True,
+                    }
+
+                # Handle tool call streaming
+                if "tool_calls" in delta:
+                    for tool_call_delta in delta["tool_calls"]:
+                        index = tool_call_delta.get("index")
+
+                        # Ensure we have the right tool call slot
+                        while len(accumulated_tool_calls) <= index:
+                            accumulated_tool_calls.append(
+                                {
+                                    "id": "",
+                                    "type": "function",
+                                    "function": {"name": "", "arguments": ""},
+                                }
+                            )
+
+                        current_tool_call = accumulated_tool_calls[index]
+
+                        # Update tool call ID
+                        if "id" in tool_call_delta:
+                            current_tool_call["id"] = tool_call_delta["id"]
+
+                        # Update function name
+                        func_name = tool_call_delta.get("function", {}).get("name")
+                        if func_name:
+                            current_tool_call["function"]["name"] += func_name
+
+                        # Update function arguments
+                        func_args = tool_call_delta.get("function", {}).get("arguments")
+                        if func_args:
+                            current_tool_call["function"]["arguments"] += func_args
+
+                # Handle finish
+                if finish_reason:
+                    tool_calls_result = accumulated_tool_calls if accumulated_tool_calls else None
+                    if accumulated_content:
+                        yield {
+                            "role": "assistant",
+                            "content": accumulated_content,
+                            "tool_calls": tool_calls_result,
+                            "finish_reason": finish_reason,
+                            "delta": False,
+                        }
+                    else:
+                        yield {
+                            "role": "assistant",
+                            "tool_calls": tool_calls_result,
+                            "finish_reason": finish_reason,
+                            "delta": False,
+                        }
+                    return
+
+        except Exception as e:
+            logger.error(f"Error during streaming: {e}")
+            raise
 
     def _normalize_responses_response(self, data: dict[str, Any]) -> dict[str, Any]:
         """Normalize Responses API response to standard format.

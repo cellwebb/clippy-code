@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -29,14 +30,14 @@ class LLMResponse:
 class BaseProvider:
     """Abstract base for all LLM providers."""
 
-    def create_message(
+    def stream_message(
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         model: str = "gpt-5-mini",
         **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Create a chat completion.
+    ) -> Iterator[dict[str, Any]]:
+        """Stream a chat completion.
 
         Args:
             messages: List of messages in OpenAI format
@@ -44,8 +45,8 @@ class BaseProvider:
             model: Model identifier
             **kwargs: Additional provider-specific arguments
 
-        Returns:
-            Response dict in OpenAI format for compatibility
+        Yields:
+            Streaming response chunks in OpenAI format
         """
         raise NotImplementedError
 

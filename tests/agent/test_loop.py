@@ -4,9 +4,9 @@ import json
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import pytest
 from rich.console import Console
 
+import pytest
 from clippy.agent.core import InterruptedExceptionError
 from clippy.agent.loop import AgentLoopConfig, run_agent_loop
 from clippy.executor import ActionExecutor
@@ -16,8 +16,31 @@ from clippy.providers import LLMProvider
 
 @pytest.fixture
 def mock_provider() -> MagicMock:
-    """Create a mock LLM provider."""
+    """Create a mock streaming LLM provider."""
     provider = MagicMock(spec=LLMProvider)
+
+    # Store responses for streaming
+    provider._responses = []
+    provider._call_index = 0
+
+    def mock_stream_message(*args, **kwargs):
+        # Return the next response in sequence
+        if provider._call_index < len(provider._responses):
+            response = provider._responses[provider._call_index]
+            provider._call_index += 1
+            yield response
+        else:
+            # Default response if no more responses configured
+            yield {"role": "assistant", "content": "Default response", "finish_reason": "stop"}
+
+    provider.stream_message = mock_stream_message
+
+    # Helper method to set responses
+    def set_responses(responses):
+        provider._responses = responses
+        provider._call_index = 0
+
+    provider.set_responses = set_responses
     return provider
 
 
@@ -60,12 +83,16 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that loop returns immediately when response has no tool calls."""
-        # Mock provider to return text response without tool calls
-        mock_provider.create_message.return_value = {
-            "role": "assistant",
-            "content": "Hello! How can I help you today?",
-            "finish_reason": "stop",
-        }
+        # Set up mock provider to return text response
+        mock_provider.set_responses(
+            [
+                {
+                    "role": "assistant",
+                    "content": "Hello! How can I help you today?",
+                    "finish_reason": "stop",
+                }
+            ]
+        )
 
         config = AgentLoopConfig(
             provider=mock_provider,

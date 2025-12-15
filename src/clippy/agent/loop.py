@@ -145,12 +145,10 @@ def run_agent_loop(
 
         logger.debug(f"Loaded {len(tools)} tools for iteration {iteration}")
 
-        # Call provider (returns OpenAI message dict)
+        # Call provider using streaming
         try:
-            response = config.provider.create_message(
-                messages=conversation_history,
-                tools=tools,
-                model=config.model,
+            response = _process_streaming_response(
+                config.provider, conversation_history, tools, config.model, config.console
             )
 
             # Track token usage from this API call
@@ -205,12 +203,7 @@ def run_agent_loop(
         # Add to conversation history
         conversation_history.append(assistant_message)
 
-        # Print assistant's text response to the user
-        if response.get("content"):
-            content = response["content"]
-            if isinstance(content, str) and content.strip():
-                cleaned_content = content.lstrip("\n")
-                config.console.print(f"\n[bold blue][📎][/bold blue] {escape(cleaned_content)}")
+        # Note: Response content is already displayed during streaming
 
         # Save conversation automatically after each assistant message
         if config.parent_agent is not None:
@@ -286,6 +279,68 @@ def run_agent_loop(
         spinner.start()
 
     # Note: No maximum iterations limit - loop runs until agent completes or is interrupted
+
+
+def _process_streaming_response(
+    provider: LLMProvider,
+    conversation_history: list[dict[str, Any]],
+    tools: list[dict[str, Any]],
+    model: str,
+    console: ConsoleProtocol,
+) -> dict[str, Any]:
+    """
+    Process streaming response from provider and display in real-time.
+
+    Args:
+        provider: LLM provider instance
+        conversation_history: Current conversation history
+        tools: List of available tools
+        model: Model identifier
+        console: Console for output
+
+    Returns:
+        Final consolidated response
+    """
+    # Start with an empty header for the response
+    console.print("\n[bold blue][📎][/bold blue] ", end="")
+
+    # Track accumulated content and tool calls
+    accumulated_content = ""
+    accumulated_tool_calls: list[dict[str, Any]] = []
+
+    for chunk in provider.stream_message(conversation_history, tools, model):
+        # Handle streaming content deltas
+        if chunk.get("delta") and chunk.get("content"):
+            # Print the chunk directly for real-time display
+            console.print(escape(chunk["content"]), end="")
+            accumulated_content += chunk["content"]
+        elif chunk.get("content") and not chunk.get("delta"):
+            # Final full content (for non-streaming models like codex)
+            accumulated_content = chunk["content"]
+            console.print(escape(accumulated_content))
+        elif not chunk.get("delta"):
+            # Final chunk with complete response
+            if chunk.get("content"):
+                accumulated_content = chunk["content"]
+                if not accumulated_content.strip() and accumulated_tool_calls:
+                    # Only tool calls, no content - print newline
+                    console.print()
+
+            # Return the final consolidated response
+            return {
+                "role": "assistant",
+                "content": accumulated_content if accumulated_content else None,
+                "tool_calls": accumulated_tool_calls if accumulated_tool_calls else None,
+                "finish_reason": chunk.get("finish_reason"),
+            }
+
+    # If we get here, return what we accumulated
+    return {
+        "role": "assistant",
+        "content": accumulated_content if accumulated_content else None,
+        "tool_calls": accumulated_tool_calls if accumulated_tool_calls else None,
+        "finish_reason": "stop",
+    }
 
 
 def _display_auto_compaction_notification(console: ConsoleProtocol, stats: dict[str, Any]) -> None:

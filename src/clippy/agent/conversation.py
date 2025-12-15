@@ -256,12 +256,17 @@ markers, or brackets. Keep it brief but informative (aim for 200-400 words).""",
         # Build temporary conversation for summarization
         summarization_conversation = [system_msg] + to_summarize + [summary_request]
 
-        # Call LLM to create summary
-        response = provider.create_message(
+        # Call LLM to create summary using streaming
+        response_content = ""
+        for chunk in provider.stream_message(
             messages=summarization_conversation,
             tools=[],  # No tools needed for summarization
             model=model,
-        )
+        ):
+            if chunk.get("content"):
+                response_content += chunk["content"]
+
+        response = {"content": response_content}
 
         summary_content = response.get("content", "")
         if not summary_content:

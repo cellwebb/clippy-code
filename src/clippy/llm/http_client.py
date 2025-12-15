@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json as _json
 import logging
+from collections.abc import Iterator
 from typing import Any
 
 import httpx
@@ -69,6 +71,61 @@ def post_with_retry(
         raise RetryableHTTPError(response.status_code, response.text)
 
     return response
+
+
+def stream_with_retry(
+    client: httpx.Client,
+    url: str,
+    json: dict[str, Any],
+    headers: dict[str, str],
+) -> Iterator[dict[str, Any]]:
+    """POST with streaming response for SSE.
+
+    Args:
+        client: httpx Client instance
+        url: URL to POST to
+        json: JSON payload
+        headers: HTTP headers
+
+    Yields:
+        Parsed SSE data chunks
+
+    Raises:
+        RetryableHTTPError: For retryable status codes
+        httpx.HTTPStatusError: For non-retryable errors
+    """
+    try:
+        with client.stream(
+            "POST",
+            url,
+            json=json,
+            headers=headers,
+        ) as response:
+            if response.status_code in RETRYABLE_STATUS_CODES:
+                logger.warning(f"Retryable error {response.status_code} from {url}")
+                raise RetryableHTTPError(response.status_code, "Retryable status code")
+
+            response.raise_for_status()
+
+            # Parse SSE (Server-Sent Events) stream
+            for line in response.iter_lines():
+                if line.strip() == "":
+                    continue  # Skip empty lines
+                if line.startswith("data: "):
+                    data = line[6:]  # Remove "data: " prefix
+                    if data.strip() == "[DONE]":
+                        break
+                    try:
+                        parsed = _json.loads(data)
+                        yield parsed
+                    except _json.JSONDecodeError:
+                        logger.warning(f"Failed to parse SSE data: {data}")
+                        continue
+
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code in RETRYABLE_STATUS_CODES:
+            raise RetryableHTTPError(e.response.status_code, e.response.text)
+        raise
 
 
 def create_client(timeout: httpx.Timeout | None = None) -> httpx.Client:

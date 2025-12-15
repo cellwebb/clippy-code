@@ -10,6 +10,7 @@ import logging
 import sys
 import threading
 import time
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
 from .llm import (
@@ -142,14 +143,14 @@ class LLMProvider:
         # Fall back to provider without token (will fail on first request)
         return ClaudeCodeOAuthProvider(api_key=self.api_key, base_url=base_url)
 
-    def create_message(
+    def stream_message(
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]] | None = None,
         model: str = "gpt-5.1",
         **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Create a chat completion using appropriate provider.
+    ) -> Iterator[dict[str, Any]]:
+        """Stream a chat completion using appropriate provider.
 
         Args:
             messages: List of messages in OpenAI format
@@ -157,21 +158,20 @@ class LLMProvider:
             model: Model identifier
             **kwargs: Additional arguments
 
-        Returns:
-            Response dict in OpenAI format
+        Yields:
+            Streaming response chunks in OpenAI format
         """
         spinner = Spinner("Thinking", enabled=sys.stdout.isatty())
         spinner.start()
 
         try:
-            result = self._provider.create_message(messages, tools, model, **kwargs)
-            return result
+            yield from self._provider.stream_message(messages, tools, model, **kwargs)
         except LLMError:
             # Re-raise LLM errors directly
             raise
         except Exception as e:
             # Wrap unexpected errors
-            logger.exception(f"Unexpected error in create_message: {e}")
+            logger.exception(f"Unexpected error in stream_message: {e}")
             raise
         finally:
             spinner.stop()
