@@ -30,6 +30,32 @@ class LLMResponse:
 class BaseProvider:
     """Abstract base for all LLM providers."""
 
+    def create_message(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str = "gpt-5-mini",
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Create a chat completion without streaming.
+
+        Args:
+            messages: List of messages in OpenAI format
+            tools: Optional list of tool definitions in OpenAI format
+            model: Model identifier
+            **kwargs: Additional provider-specific arguments
+
+        Returns:
+            Complete response in OpenAI format
+        """
+        # Default implementation: iterate over streaming response and return final result
+        response = None
+        for chunk in self.stream_message(messages, tools, model, **kwargs):
+            response = chunk
+        if response is None:
+            raise RuntimeError("No response received from streaming")
+        return response
+
     def stream_message(
         self,
         messages: list[dict[str, Any]],

@@ -4,9 +4,9 @@ import json
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from rich.console import Console
 
-import pytest
 from clippy.agent.core import InterruptedExceptionError
 from clippy.agent.loop import AgentLoopConfig, run_agent_loop
 from clippy.executor import ActionExecutor
@@ -28,12 +28,19 @@ def mock_provider() -> MagicMock:
         if provider._call_index < len(provider._responses):
             response = provider._responses[provider._call_index]
             provider._call_index += 1
-            yield response
+            return iter([response])  # Return iterator
         else:
             # Default response if no more responses configured
-            yield {"role": "assistant", "content": "Default response", "finish_reason": "stop"}
+            return iter([{"role": "assistant", "content": "Default response", "finish_reason": "stop"}])
 
     provider.stream_message = mock_stream_message
+
+    # Helper function to create streaming response from dict
+    def create_streaming_response(response_dict):
+        def stream_func(*args, **kwargs):
+            yield response_dict
+
+        return stream_func
 
     # Helper method to set responses
     def set_responses(responses):
@@ -146,7 +153,10 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        mock_provider.create_message.side_effect = [first_response, second_response]
+        mock_provider.stream_message.side_effect = [
+            mock_provider.create_streaming_response(first_response),
+            mock_provider.create_streaming_response(second_response),
+        ]
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -165,7 +175,7 @@ class TestRunAgentLoop:
 
         assert result == "Here's the file content!"
         # Provider should be called twice
-        assert mock_provider.create_message.call_count == 2
+        assert mock_provider.stream_message.call_count == 2
 
     def test_handles_multiple_iterations(
         self,
@@ -213,7 +223,9 @@ class TestRunAgentLoop:
             },
         ]
 
-        mock_provider.create_message.side_effect = responses
+        mock_provider.stream_message.side_effect = [
+            mock_provider.create_streaming_response(resp) for resp in responses
+        ]
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -231,7 +243,7 @@ class TestRunAgentLoop:
         )
 
         assert result == "Done!"
-        assert mock_provider.create_message.call_count == 3
+        assert mock_provider.stream_message.call_count == 3
 
     def test_stops_at_max_iterations(
         self,
@@ -243,7 +255,7 @@ class TestRunAgentLoop:
     ) -> None:
         """Test that loop stops at maximum iterations."""
         # Always return tool calls (infinite loop scenario)
-        mock_provider.create_message.return_value = {
+        tool_response = {
             "role": "assistant",
             "content": "",
             "tool_calls": [
@@ -254,6 +266,7 @@ class TestRunAgentLoop:
                 }
             ],
         }
+        mock_provider.stream_message.return_value = iter([tool_response])
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -273,7 +286,7 @@ class TestRunAgentLoop:
 
         assert "reached max iterations" in result.lower()
         # Should stop at the configured cap
-        assert mock_provider.create_message.call_count == 3
+        assert mock_provider.stream_message.call_count == 3
 
     def test_handles_api_error(
         self,
@@ -284,7 +297,7 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that API errors are handled properly."""
-        mock_provider.create_message.side_effect = Exception("API Error")
+        mock_provider.stream_message.side_effect = Exception("API Error")
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -334,7 +347,10 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        mock_provider.create_message.side_effect = [first_response, second_response]
+        mock_provider.stream_message.side_effect = [
+            mock_provider.create_streaming_response(first_response),
+            mock_provider.create_streaming_response(second_response),
+        ]
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -392,11 +408,15 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that assistant messages are added to conversation history."""
-        mock_provider.create_message.return_value = {
-            "role": "assistant",
-            "content": "Test response",
-            "finish_reason": "stop",
-        }
+        mock_provider.stream_message.return_value = iter(
+            [
+                {
+                    "role": "assistant",
+                    "content": "Test response",
+                    "finish_reason": "stop",
+                }
+            ]
+        )
 
         initial_length = len(conversation_history)
 
@@ -449,7 +469,10 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        mock_provider.create_message.side_effect = [first_response, second_response]
+        mock_provider.stream_message.side_effect = [
+            mock_provider.create_streaming_response(first_response),
+            mock_provider.create_streaming_response(second_response),
+        ]
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -505,7 +528,10 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        mock_provider.create_message.side_effect = [first_response, second_response]
+        mock_provider.stream_message.side_effect = [
+            mock_provider.create_streaming_response(first_response),
+            mock_provider.create_streaming_response(second_response),
+        ]
 
         # write_file requires approval by default
         config = AgentLoopConfig(
@@ -534,12 +560,12 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that loop stops when finish_reason is 'stop'."""
-        mock_provider.create_message.return_value = {
+        mock_provider.stream_message.return_value = iter([{
             "role": "assistant",
             "content": "Final answer",
             "finish_reason": "stop",
             "tool_calls": [],  # Empty tool calls but finish_reason is stop
-        }
+        }])
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -558,7 +584,7 @@ class TestRunAgentLoop:
 
         assert result == "Final answer"
         # Should only call provider once
-        assert mock_provider.create_message.call_count == 1
+        assert mock_provider.stream_message.call_count == 1
 
     def test_handles_multiple_tool_calls_in_one_response(
         self,
@@ -592,7 +618,10 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        mock_provider.create_message.side_effect = [first_response, second_response]
+        mock_provider.stream_message.side_effect = [
+            mock_provider.create_streaming_response(first_response),
+            mock_provider.create_streaming_response(second_response),
+        ]
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -626,11 +655,11 @@ class TestRunAgentLoop:
         """Test that tools are fetched from catalog on each iteration."""
         mock_catalog.get_all_tools.return_value = []
 
-        mock_provider.create_message.return_value = {
+        mock_provider.stream_message.return_value = iter([{
             "role": "assistant",
             "content": "Done",
             "finish_reason": "stop",
-        }
+        }])
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -659,11 +688,11 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that None content is converted to empty string."""
-        mock_provider.create_message.return_value = {
+        mock_provider.stream_message.return_value = iter([{
             "role": "assistant",
             "content": None,  # No content
             "finish_reason": "stop",
-        }
+        }])
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -698,7 +727,7 @@ class TestRunAgentLoop:
 
         # Create responses that keep returning tool calls
         def delayed_response(*args, **kwargs):
-            return {
+            yield {
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
@@ -710,7 +739,7 @@ class TestRunAgentLoop:
                 ],
             }
 
-        mock_provider.create_message.side_effect = delayed_response
+        mock_provider.stream_message.side_effect = delayed_response
 
         # Use a very short max_duration that will be exceeded immediately
         # since we patch time.time
@@ -751,11 +780,11 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that allowed_tools filters the tools sent to the provider."""
-        mock_provider.create_message.return_value = {
+        mock_provider.stream_message.return_value = iter([{
             "role": "assistant",
             "content": "Done",
             "finish_reason": "stop",
-        }
+        }])
 
         with patch("clippy.agent.loop.tool_catalog") as mock_catalog:
             # Create mock tools
@@ -782,7 +811,7 @@ class TestRunAgentLoop:
             )
 
             # Check that provider received filtered tools
-            call_args = mock_provider.create_message.call_args
+            call_args = mock_provider.stream_message.call_args
             tools_sent = call_args.kwargs.get("tools", [])
             tool_names = [t["function"]["name"] for t in tools_sent]
 
@@ -799,12 +828,12 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that reasoning_content from reasoner models is preserved."""
-        mock_provider.create_message.return_value = {
+        mock_provider.stream_message.return_value = iter([{
             "role": "assistant",
             "content": "Final answer",
             "reasoning_content": "Let me think step by step...",
             "finish_reason": "stop",
-        }
+        }])
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -835,11 +864,11 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that conversation is auto-saved when parent_agent is provided."""
-        mock_provider.create_message.return_value = {
+        mock_provider.stream_message.return_value = iter([{
             "role": "assistant",
             "content": "Done",
             "finish_reason": "stop",
-        }
+        }])
 
         # Create mock parent agent
         mock_parent = MagicMock()
@@ -894,7 +923,10 @@ class TestRunAgentLoop:
             "finish_reason": "stop",
         }
 
-        mock_provider.create_message.side_effect = [first_response, second_response]
+        mock_provider.stream_message.side_effect = [
+            mock_provider.create_streaming_response(first_response),
+            mock_provider.create_streaming_response(second_response),
+        ]
 
         # The loop should continue even when tool fails
         config = AgentLoopConfig(
@@ -914,4 +946,4 @@ class TestRunAgentLoop:
 
         assert result == "I couldn't read the file."
         # Should have completed both iterations
-        assert mock_provider.create_message.call_count == 2
+        assert mock_provider.stream_message.call_count == 2

@@ -59,6 +59,36 @@ class OpenAIProvider(BaseProvider):
         model_lower = model.lower()
         return "codex" in model_lower
 
+    def create_message(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str = "gpt-5-mini",
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Create a chat completion without streaming.
+
+        Args:
+            messages: List of messages in OpenAI format
+            tools: Optional list of tool definitions
+            model: Model identifier
+            **kwargs: Additional arguments
+
+        Returns:
+            Complete response in OpenAI format
+        """
+        try:
+            if self._should_use_responses_api(model):
+                # For codex models, use the Responses API
+                return self._create_responses(messages, tools, model, **kwargs)
+            else:
+                # For chat models, use the Chat Completions API with stream=False
+                return self._create_chat_completion(messages, tools, model, **kwargs)
+        except httpx.ConnectError as e:
+            raise APIConnectionError(f"Failed to connect to {self.base_url}: {e}") from e
+        except httpx.ReadTimeout as e:
+            raise APITimeoutError(f"Request timed out: {e}") from e
+
     def stream_message(
         self,
         messages: list[dict[str, Any]],
@@ -327,6 +357,54 @@ class OpenAIProvider(BaseProvider):
             result["usage"] = data["usage"]
 
         return result
+
+    def _create_chat_completion(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None,
+        model: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Create Chat Completions API response without streaming.
+
+        Args:
+            messages: List of messages in OpenAI format
+            tools: Optional list of tool definitions
+            model: Model identifier
+            **kwargs: Additional arguments
+
+        Returns:
+            Complete response in OpenAI format
+        """
+        url = f"{self.base_url}/chat/completions"
+
+        # Build payload for non-streaming
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": self._prepare_messages_for_chat(messages, model),
+            "stream": False,  # Disable streaming for create_message
+        }
+
+        if tools:
+            payload["tools"] = tools
+
+        # Add any extra kwargs (e.g., temperature, max_tokens)
+        for key in ("temperature", "max_tokens", "top_p", "frequency_penalty", "presence_penalty"):
+            if key in kwargs:
+                payload[key] = kwargs[key]
+
+        logger.debug(f"Chat completions request to {url} with model {model}")
+
+        response = post_with_retry(
+            self._client,
+            url,
+            json=payload,
+            headers=self._headers(),
+        )
+        raise_for_status(response)
+
+        data = response.json()
+        return self._normalize_chat_response(data)
 
     def _stream_chat_completion(
         self,

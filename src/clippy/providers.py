@@ -142,6 +142,26 @@ class LLMProvider:
         # Fall back to provider without token (will fail on first request)
         return ClaudeCodeOAuthProvider(api_key=self.api_key, base_url=base_url)
 
+    def create_message(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+        model: str = "gpt-5.1",
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Create a chat completion using appropriate provider.
+
+        Args:
+            messages: List of messages in OpenAI format
+            tools: Optional list of tool definitions
+            model: Model identifier
+            **kwargs: Additional arguments
+
+        Returns:
+            Complete response in OpenAI format
+        """
+        return self._provider.create_message(messages, tools, model, **kwargs)
+
     def stream_message(
         self,
         messages: list[dict[str, Any]],
