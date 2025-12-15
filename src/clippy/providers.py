@@ -161,17 +161,4 @@ class LLMProvider:
         Yields:
             Streaming response chunks in OpenAI format
         """
-        spinner = Spinner("Thinking", enabled=sys.stdout.isatty())
-        spinner.start()
-
-        try:
-            yield from self._provider.stream_message(messages, tools, model, **kwargs)
-        except LLMError:
-            # Re-raise LLM errors directly
-            raise
-        except Exception as e:
-            # Wrap unexpected errors
-            logger.exception(f"Unexpected error in stream_message: {e}")
-            raise
-        finally:
-            spinner.stop()
+        yield from self._provider.stream_message(messages, tools, model, **kwargs)

@@ -147,6 +147,11 @@ def run_agent_loop(
 
         # Call provider using streaming
         try:
+            # Stop any existing spinner before streaming starts
+            if spinner:
+                spinner.stop()
+                spinner = None
+                
             response = _process_streaming_response(
                 config.provider, conversation_history, tools, config.model, config.console
             )
