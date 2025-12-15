@@ -32,7 +32,11 @@ def mock_provider() -> MagicMock:
                 yield chunk
         else:
             # Default response if no more responses configured
-            default_response = {"role": "assistant", "content": "Default response", "finish_reason": "stop"}
+            default_response = {
+                "role": "assistant",
+                "content": "Default response",
+                "finish_reason": "stop",
+            }
             for chunk in [default_response]:
                 yield chunk
 
@@ -41,8 +45,7 @@ def mock_provider() -> MagicMock:
     # Helper function to create streaming response from dict
     def create_streaming_response(response_dict):
         def stream_func(*args, **kwargs):
-            for chunk in [response_dict]:
-                yield chunk
+            yield from [response_dict]
 
         return stream_func
 
