@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.21.1] - 2025-12-14
+
+### Improvements
+
+- Simplified streaming for more consistent real-time responses
+
+### Bug Fixes
+
+- Fixed text appearing on wrong line below attachments
+- Fixed duplicate text in streaming responses
+- Fixed words running together in responses
+
 ## [4.21.0] - 2025-12-14
 
 ### Improvements
