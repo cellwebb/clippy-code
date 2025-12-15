@@ -28,19 +28,26 @@ def mock_provider() -> MagicMock:
         if provider._call_index < len(provider._responses):
             response = provider._responses[provider._call_index]
             provider._call_index += 1
-            return iter([response])  # Return iterator
+            for chunk in [response]:  # Yield each chunk
+                yield chunk
         else:
             # Default response if no more responses configured
-            return iter([{"role": "assistant", "content": "Default response", "finish_reason": "stop"}])
+            default_response = {"role": "assistant", "content": "Default response", "finish_reason": "stop"}
+            for chunk in [default_response]:
+                yield chunk
 
     provider.stream_message = mock_stream_message
 
     # Helper function to create streaming response from dict
     def create_streaming_response(response_dict):
         def stream_func(*args, **kwargs):
-            yield response_dict
+            for chunk in [response_dict]:
+                yield chunk
 
         return stream_func
+
+    # Attach to provider instance
+    provider.create_streaming_response = create_streaming_response
 
     # Helper method to set responses
     def set_responses(responses):
@@ -560,12 +567,16 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that loop stops when finish_reason is 'stop'."""
-        mock_provider.stream_message.return_value = iter([{
-            "role": "assistant",
-            "content": "Final answer",
-            "finish_reason": "stop",
-            "tool_calls": [],  # Empty tool calls but finish_reason is stop
-        }])
+        mock_provider.stream_message.return_value = iter(
+            [
+                {
+                    "role": "assistant",
+                    "content": "Final answer",
+                    "finish_reason": "stop",
+                    "tool_calls": [],  # Empty tool calls but finish_reason is stop
+                }
+            ]
+        )
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -655,11 +666,15 @@ class TestRunAgentLoop:
         """Test that tools are fetched from catalog on each iteration."""
         mock_catalog.get_all_tools.return_value = []
 
-        mock_provider.stream_message.return_value = iter([{
-            "role": "assistant",
-            "content": "Done",
-            "finish_reason": "stop",
-        }])
+        mock_provider.stream_message.return_value = iter(
+            [
+                {
+                    "role": "assistant",
+                    "content": "Done",
+                    "finish_reason": "stop",
+                }
+            ]
+        )
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -688,11 +703,15 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that None content is converted to empty string."""
-        mock_provider.stream_message.return_value = iter([{
-            "role": "assistant",
-            "content": None,  # No content
-            "finish_reason": "stop",
-        }])
+        mock_provider.stream_message.return_value = iter(
+            [
+                {
+                    "role": "assistant",
+                    "content": None,  # No content
+                    "finish_reason": "stop",
+                }
+            ]
+        )
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -780,11 +799,15 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that allowed_tools filters the tools sent to the provider."""
-        mock_provider.stream_message.return_value = iter([{
-            "role": "assistant",
-            "content": "Done",
-            "finish_reason": "stop",
-        }])
+        mock_provider.stream_message.return_value = iter(
+            [
+                {
+                    "role": "assistant",
+                    "content": "Done",
+                    "finish_reason": "stop",
+                }
+            ]
+        )
 
         with patch("clippy.agent.loop.tool_catalog") as mock_catalog:
             # Create mock tools
@@ -828,12 +851,16 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that reasoning_content from reasoner models is preserved."""
-        mock_provider.stream_message.return_value = iter([{
-            "role": "assistant",
-            "content": "Final answer",
-            "reasoning_content": "Let me think step by step...",
-            "finish_reason": "stop",
-        }])
+        mock_provider.stream_message.return_value = iter(
+            [
+                {
+                    "role": "assistant",
+                    "content": "Final answer",
+                    "reasoning_content": "Let me think step by step...",
+                    "finish_reason": "stop",
+                }
+            ]
+        )
 
         config = AgentLoopConfig(
             provider=mock_provider,
@@ -864,11 +891,15 @@ class TestRunAgentLoop:
         conversation_history: list[dict[str, Any]],
     ) -> None:
         """Test that conversation is auto-saved when parent_agent is provided."""
-        mock_provider.stream_message.return_value = iter([{
-            "role": "assistant",
-            "content": "Done",
-            "finish_reason": "stop",
-        }])
+        mock_provider.stream_message.return_value = iter(
+            [
+                {
+                    "role": "assistant",
+                    "content": "Done",
+                    "finish_reason": "stop",
+                }
+            ]
+        )
 
         # Create mock parent agent
         mock_parent = MagicMock()

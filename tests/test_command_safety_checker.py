@@ -17,8 +17,9 @@ class TestCommandSafetyChecker:
         is_safe, reason = checker.check_command_safety("ls -la", "/home/user")
 
         assert is_safe is True
-        assert reason == "Simple directory listing"
-        mock_provider.create_message.assert_called_once()
+        assert "Recognized safe command" in reason or "Simple directory listing" in reason
+        # Should not need LLM call due to regex pre-check
+        mock_provider.create_message.assert_not_called()
 
     def test_dangerous_command_blocked(self):
         """Test that dangerous commands are blocked."""
@@ -31,7 +32,9 @@ class TestCommandSafetyChecker:
         is_safe, reason = checker.check_command_safety("rm -rf /", "/")
 
         assert is_safe is False
-        assert reason == "Would delete entire filesystem"
+        assert "Dangerous pattern detected" in reason
+        # Should not need LLM call due to regex pre-check
+        mock_provider.create_message.assert_not_called()
 
     def test_malicious_download_blocked(self):
         """Test that curl|bash commands are blocked."""

@@ -210,52 +210,52 @@ class CommandSafetyChecker:
             Tuple of (is_safe: bool, reason: str)
         """
         import re
-        
+
         # Quick pre-check for obviously safe/dangerous commands
         command_stripped = command.strip()
-        
+
         # Block immediately dangerous patterns
         dangerous_patterns = [
-            r'rm\s+-rf\s+[/.~]',  # rm -rf starting with /, ., or ~
-            r'rm\s+--no-preserve-root',  # Dangerous rm flag
-            r'mkfs|fdisk|format',  # Disk formatting
-            r':\(\)\{.*\|\|.*&.*\}\s*:',  # Fork bomb
-            r'curl.*\|\s*(bash|sh|python|node|perl)\b',  # Download and execute
-            r'wget.*\|\s*(bash|sh|python|node|perl)\b',  # Download and execute
-            r'sudo\s+(rm|mkfs|fdisk|format|chmod\s+777)',  # Dangerous sudo commands
-            r'chmod\s+777\s+/[a-z]',  # Making system files world-writable
-            r'[>]{2,}\s*/(dev|sys|proc|etc|boot)',  # Redirecting to system files
+            r"rm\s+-rf\s+[/.~]",  # rm -rf starting with /, ., or ~
+            r"rm\s+--no-preserve-root",  # Dangerous rm flag
+            r"mkfs|fdisk|format",  # Disk formatting
+            r":\(\)\{.*\|\|.*&.*\}\s*:",  # Fork bomb
+            r"curl.*\|\s*(bash|sh|python|node|perl)\b",  # Download and execute
+            r"wget.*\|\s*(bash|sh|python|node|perl)\b",  # Download and execute
+            r"sudo\s+(rm|mkfs|fdisk|format|chmod\s+777)",  # Dangerous sudo commands
+            r"chmod\s+777\s+/[a-z]",  # Making system files world-writable
+            r"[>]{2,}\s*/(dev|sys|proc|etc|boot)",  # Redirecting to system files
         ]
-        
+
         # Allow immediately safe patterns
         safe_patterns = [
-            r'^(python|node|npm|pip|uv|yarn|cargo|go|java|rustc|ruby|perl|php)\b',
-            r'^(pytest|unittest|jest|test\.py|make|cmake|cargo build)',
-            r'^(git|svn|hg)\b',
-            r'^(ruff|black|isort|mypy|flake8|pylint|eslint|prettier)\b',
-            r'^(ls|cat|head|tail|grep|find|wc|cd|pwd|echo|which|whereis)\b',
-            r'^(mkdir|rmdir|cp|mv|chmod|chown)\b+(?!.*(/etc|/boot|/sys|/proc|/usr/bin|/usr/lib))',
-            r'^(rm)\s+(?!-rf\s*[/.~]|-f\s*\*.*)',  # rm without dangerous wildcards or system paths
-            r'^(touch|ln|read|write|vim|nano|emacs|code)\b',
-            r'^(pip|conda|brew)\s+(install|list|show|freeze|remove|uninstall)',
-            r'^(docker|docker-compose)\s+(build|run|ps|logs|stop|start)',
-            r'^make\s+(clean|test|build|install|help)',
+            r"^(python|node|npm|pip|uv|yarn|cargo|go|java|rustc|ruby|perl|php)\b",
+            r"^(pytest|unittest|jest|test\.py|make|cmake|cargo build)",
+            r"^(git|svn|hg)\b",
+            r"^(ruff|black|isort|mypy|flake8|pylint|eslint|prettier)\b",
+            r"^(ls|cat|head|tail|grep|find|wc|cd|pwd|echo|which|whereis)\b",
+            r"^(mkdir|rmdir|cp|mv|chmod|chown)\b(?!.*(/etc|/boot|/sys|/proc|/usr/bin|/usr/lib))",
+            r"^(rm)\s+(?!-rf\s*[/.~]|-f\s*\*.*)",  # rm without dangerous wildcards or system paths
+            r"^(touch|ln|read|write|vim|nano|emacs|code)\b",
+            r"^(pip|conda|brew)\s+(install|list|show|freeze|remove|uninstall)",
+            r"^(docker|docker-compose)\s+(build|run|ps|logs|stop|start)",
+            r"^make\s+(clean|test|build|install|help)",
         ]
-        
+
         # Check dangerous patterns first (block these immediately)
         for pattern in dangerous_patterns:
             if re.search(pattern, command_stripped, re.IGNORECASE):
-                reason = f"Blocked: Dangerous pattern detected"
+                reason = "Blocked: Dangerous pattern detected"
                 logger.warning(f"Command blocked by regex: {command}")
                 return (False, reason)
-        
+
         # Check safe patterns (allow these immediately)
         for pattern in safe_patterns:
             if re.search(pattern, command_stripped, re.IGNORECASE):
-                reason = f"Allowed: Recognized safe command"
+                reason = "Allowed: Recognized safe command"
                 logger.debug(f"Command allowed by regex: {command}")
                 return (True, reason)
-        
+
         # Check cache first (if enabled)
         if self.cache:
             cached_result = self.cache.get(command, working_dir)
@@ -312,7 +312,7 @@ class CommandSafetyChecker:
             # Most safety check failures should not block development workflows
             logger.info(f"Allowing command due to safety check failure (fail-safe): {command}")
             error_result = (True, f"Safety check bypassed due to error: {str(e)}")
-            
+
             # Don't cache error results as they might be temporary
             return error_result
 
