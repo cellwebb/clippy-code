@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.21.0] - 2025-12-14
+
+### Improvements
+
+- Real-time responses now stream continuously as they're generated
+- Simplified and more reliable message processing across all AI providers
+- Removed old compatibility code for a cleaner, faster experience
+
 ## [4.20.2] - 2025-12-12
 
 ### What's New
