@@ -317,16 +317,18 @@ def _process_streaming_response(
         # Handle streaming content deltas
         if chunk.get("delta") and chunk.get("content"):
             # Print the chunk directly for real-time display
-            # Strip leading whitespace for display to prevent content appearing on wrong line
-            display_content = chunk["content"].lstrip()
+            # Strip only leading newlines to prevent content appearing on wrong line
+            # but preserve other whitespace like spaces between words
+            display_content = chunk["content"].lstrip('\n\r')
             console.print(escape(display_content), end="")
             accumulated_content += chunk["content"]
         elif chunk.get("content") and not chunk.get("delta"):
             # Final full content (for non-streaming models like codex)
             # Only print if we haven't already been streaming content
             if not accumulated_content:
-                # Strip leading whitespace for display to prevent content appearing on wrong line
-                display_content = chunk["content"].lstrip()
+                # Strip only leading newlines to prevent content appearing on wrong line
+                # but preserve other whitespace like spaces between words
+                display_content = chunk["content"].lstrip('\n\r')
                 console.print(escape(display_content), end="")
             accumulated_content = chunk["content"]
         elif not chunk.get("delta"):
