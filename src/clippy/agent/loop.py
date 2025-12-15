@@ -321,8 +321,10 @@ def _process_streaming_response(
             accumulated_content += chunk["content"]
         elif chunk.get("content") and not chunk.get("delta"):
             # Final full content (for non-streaming models like codex)
+            # Only print if we haven't already been streaming content
+            if not accumulated_content:
+                console.print(escape(chunk["content"]))
             accumulated_content = chunk["content"]
-            console.print(escape(accumulated_content))
         elif not chunk.get("delta"):
             # Final chunk with complete response
             if chunk.get("content"):
