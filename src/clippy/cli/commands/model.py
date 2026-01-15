@@ -1,5 +1,6 @@
 """Model management command handlers for interactive CLI mode."""
 
+import os
 from typing import Literal
 
 from rich.console import Console
@@ -444,9 +445,18 @@ def _handle_model_add_wizard(agent: ClippyAgent, console: Console) -> CommandRes
                 # Update the agent directly without setting as default
                 model_config, provider_config = get_model_config(display_name)
                 if model_config and provider_config:
+                    # Load API key from environment for the new provider
+                    api_key = None
+                    if provider_config.api_key_env:
+                        api_key = os.getenv(provider_config.api_key_env)
+                        if not api_key:
+                            console.print(f"[red]✗ {provider_config.api_key_env} not found[/red]")
+                            return "continue"
+
                     success, msg = agent.switch_model(
                         model=model_config.model_id,
                         base_url=provider_config.base_url,
+                        api_key=api_key,
                         provider_config=provider_config,
                     )
                     if success:
@@ -562,9 +572,21 @@ def _handle_model_switch(agent: ClippyAgent, console: Console, name: str) -> Com
     # Get the model configuration and update the agent
     model_config, provider_config = get_model_config(name)
     if model_config and provider_config:
+        # Load API key from environment for the new provider
+        api_key = None
+        if provider_config.api_key_env:
+            api_key = os.getenv(provider_config.api_key_env)
+            if not api_key:
+                console.print(
+                    f"[red]✗ {provider_config.api_key_env} not found in environment[/red]"
+                )
+                console.print("[dim]Set the environment variable and try again[/dim]")
+                return "continue"
+
         success, msg = agent.switch_model(
             model=model_config.model_id,
             base_url=provider_config.base_url,
+            api_key=api_key,
             provider_config=provider_config,
         )
         if success:
