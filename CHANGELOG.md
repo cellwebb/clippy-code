@@ -1,3 +1,27 @@
+### Added
+
+- LLM-powered CommandSafetyChecker for intelligent command analysis
+- SafetyCache with LRU eviction and TTL-based expiration for safety decisions
+- Built-in model configurations with /model init command for new users
+- ToolResult dataclass for improved type safety in tool handlers
+- Centralized ClippySettings system with environment variable management
+
+### Changed
+
+- Refactor AgentLoopConfig dataclass to consolidate run_agent_loop parameters
+- Replace large if-elif chain with dispatch table in executor.py
+- Improve find_replace path handling with absolute paths and recursive glob matching
+- Enhance model commands with built-in indicator column and improved completions
+- Streamline version bumping process with git tag automation
+- Narrow exception handling for file operations to catch specific exception types
+
+### Fixed
+
+- Resolve path handling issues in find_replace file collection
+- Prevent deadlocks by using RLock instead of Lock for reentrant calls
+
+---
+
 # Changelog
 
 ## [4.21.1] - 2025-12-14
